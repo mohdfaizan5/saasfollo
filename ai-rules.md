@@ -1,0 +1,5 @@
+- use bun to install every package with shadcn packages unless requried with npm
+- make sure you dont break the existing code
+- use comments to explain the code, not everywhere atleast in complex functions and in start of the file to tell what this file does.
+- make sure you write code understanding the bigger picture and how it fits into the whole application.
+- always check what version of the package is already installed and use that version docs and api.

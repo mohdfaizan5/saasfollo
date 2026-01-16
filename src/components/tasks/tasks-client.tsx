@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { createTask, updateTaskStatus, deleteTask } from '@/lib/actions/tasks';
+import { useProjectRole } from '@/hooks/use-project-role';
 import type { Task, TaskStatus, Version } from '@/lib/types/database';
 
 const STATUS_CONFIG: Record<TaskStatus, { label: string; icon: React.ReactNode; color: string }> = {
@@ -27,6 +28,7 @@ interface TasksClientProps {
 }
 
 export function TasksClient({ initialTasks, projectId, versions }: TasksClientProps) {
+    const { canEdit } = useProjectRole();
     const [tasks, setTasks] = useState<Record<TaskStatus, Task[]>>(initialTasks);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [newTitle, setNewTitle] = useState('');
@@ -118,92 +120,94 @@ export function TasksClient({ initialTasks, projectId, versions }: TasksClientPr
                     </div>
                 </div>
 
-                <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <AlertDialogTrigger render={<Button><Plus className="h-4 w-4 mr-2" />New Task</Button>} />
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Create New Task</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Add a task to track work for this project
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <div className="space-y-4 py-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="task-title">Title</Label>
-                                <Input
-                                    id="task-title"
-                                    placeholder="What needs to be done?"
-                                    value={newTitle}
-                                    onChange={(e) => setNewTitle(e.target.value)}
-                                    disabled={isCreating}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="task-description">Description (optional)</Label>
-                                <Textarea
-                                    id="task-description"
-                                    placeholder="Additional details..."
-                                    value={newDescription}
-                                    onChange={(e) => setNewDescription(e.target.value)}
-                                    disabled={isCreating}
-                                    rows={2}
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
+                {canEdit && (
+                    <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                        <AlertDialogTrigger render={<Button><Plus className="h-4 w-4 mr-2" />New Task</Button>} />
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Create New Task</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Add a task to track work for this project
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <div className="space-y-4 py-4">
                                 <div className="space-y-2">
-                                    <Label>Status</Label>
-                                    <Select value={newStatus} onValueChange={(v) => setNewStatus(v as TaskStatus)}>
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="now">Now</SelectItem>
-                                            <SelectItem value="next">Next</SelectItem>
-                                            <SelectItem value="later">Later</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <Label htmlFor="task-title">Title</Label>
+                                    <Input
+                                        id="task-title"
+                                        placeholder="What needs to be done?"
+                                        value={newTitle}
+                                        onChange={(e) => setNewTitle(e.target.value)}
+                                        disabled={isCreating}
+                                    />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Priority</Label>
-                                    <Select value={newPriority} onValueChange={(v) => setNewPriority(v ?? '')}>
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="high">High</SelectItem>
-                                            <SelectItem value="medium">Medium</SelectItem>
-                                            <SelectItem value="low">Low</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <Label htmlFor="task-description">Description (optional)</Label>
+                                    <Textarea
+                                        id="task-description"
+                                        placeholder="Additional details..."
+                                        value={newDescription}
+                                        onChange={(e) => setNewDescription(e.target.value)}
+                                        disabled={isCreating}
+                                        rows={2}
+                                    />
                                 </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Status</Label>
+                                        <Select value={newStatus} onValueChange={(v) => setNewStatus(v as TaskStatus)}>
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="now">Now</SelectItem>
+                                                <SelectItem value="next">Next</SelectItem>
+                                                <SelectItem value="later">Later</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Priority</Label>
+                                        <Select value={newPriority} onValueChange={(v) => setNewPriority(v ?? '')}>
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="high">High</SelectItem>
+                                                <SelectItem value="medium">Medium</SelectItem>
+                                                <SelectItem value="low">Low</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                                {versions.length > 0 && (
+                                    <div className="space-y-2">
+                                        <Label>Version (optional)</Label>
+                                        <Select value={newVersionId} onValueChange={(v) => setNewVersionId(v ?? '')}>
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {versions.map((v) => (
+                                                    <SelectItem key={v.id} value={v.id.toString()}>
+                                                        {v.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+                                {error && <p className="text-sm text-destructive">{error}</p>}
                             </div>
-                            {versions.length > 0 && (
-                                <div className="space-y-2">
-                                    <Label>Version (optional)</Label>
-                                    <Select value={newVersionId} onValueChange={(v) => setNewVersionId(v ?? '')}>
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {versions.map((v) => (
-                                                <SelectItem key={v.id} value={v.id.toString()}>
-                                                    {v.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            )}
-                            {error && <p className="text-sm text-destructive">{error}</p>}
-                        </div>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel disabled={isCreating}>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleCreate} disabled={isCreating}>
-                                {isCreating ? 'Creating...' : 'Create Task'}
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel disabled={isCreating}>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleCreate} disabled={isCreating}>
+                                    {isCreating ? 'Creating...' : 'Create Task'}
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                )}
             </div>
 
             {/* Task Columns */}
@@ -237,7 +241,7 @@ export function TasksClient({ initialTasks, projectId, versions }: TasksClientPr
                                                 {task.priority}
                                             </Badge>
                                         )}
-                                        {status !== 'done' && (
+                                        {canEdit && status !== 'done' && (
                                             <Select
                                                 value={status}
                                                 onValueChange={(v) => handleStatusChange(task.id, status, v as TaskStatus)}

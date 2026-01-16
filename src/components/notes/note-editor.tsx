@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { updateNote } from '@/lib/actions/notes';
+import { useProjectRole } from '@/hooks/use-project-role';
 import type { Note } from '@/lib/types/database';
 
 interface NoteEditorProps {
@@ -16,6 +18,7 @@ interface NoteEditorProps {
 
 export function NoteEditor({ note, projectId }: NoteEditorProps) {
     const router = useRouter();
+    const { canEdit } = useProjectRole();
     const [title, setTitle] = useState(note.title);
     const [content, setContent] = useState(note.content || '');
     const [isSaving, setIsSaving] = useState(false);
@@ -23,14 +26,15 @@ export function NoteEditor({ note, projectId }: NoteEditorProps) {
 
     // Track changes
     useEffect(() => {
+        if (!canEdit) return; // Don't track changes for readers
         const titleChanged = title !== note.title;
         const contentChanged = content !== (note.content || '');
         setHasChanges(titleChanged || contentChanged);
-    }, [title, content, note.title, note.content]);
+    }, [title, content, note.title, note.content, canEdit]);
 
     // Auto-save with debounce
     const saveNote = useCallback(async () => {
-        if (!hasChanges) return;
+        if (!hasChanges || !canEdit) return;
 
         setIsSaving(true);
         try {
@@ -44,21 +48,21 @@ export function NoteEditor({ note, projectId }: NoteEditorProps) {
         } finally {
             setIsSaving(false);
         }
-    }, [note.id, projectId, title, content, hasChanges]);
+    }, [note.id, projectId, title, content, hasChanges, canEdit]);
 
     // Auto-save on blur or every 5 seconds if there are changes
     useEffect(() => {
-        if (!hasChanges) return;
+        if (!hasChanges || !canEdit) return;
 
         const timer = setTimeout(() => {
             saveNote();
         }, 5000);
 
         return () => clearTimeout(timer);
-    }, [hasChanges, saveNote]);
+    }, [hasChanges, saveNote, canEdit]);
 
     const handleBack = async () => {
-        if (hasChanges) {
+        if (hasChanges && canEdit) {
             await saveNote();
         }
         router.push(`/projects/${projectId}/notes`);
@@ -73,18 +77,28 @@ export function NoteEditor({ note, projectId }: NoteEditorProps) {
                     Back to Notes
                 </Button>
                 <div className="flex items-center gap-2">
-                    {hasChanges && (
-                        <span className="text-xs text-muted-foreground">Unsaved changes</span>
+                    {!canEdit && (
+                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                            <Eye className="h-3 w-3 mr-1" />
+                            View Only
+                        </Badge>
                     )}
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={saveNote}
-                        disabled={isSaving || !hasChanges}
-                    >
-                        <Save className="h-4 w-4 mr-2" />
-                        {isSaving ? 'Saving...' : 'Save'}
-                    </Button>
+                    {canEdit && (
+                        <>
+                            {hasChanges && (
+                                <span className="text-xs text-muted-foreground">Unsaved changes</span>
+                            )}
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={saveNote}
+                                disabled={isSaving || !hasChanges}
+                            >
+                                <Save className="h-4 w-4 mr-2" />
+                                {isSaving ? 'Saving...' : 'Save'}
+                            </Button>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -94,15 +108,17 @@ export function NoteEditor({ note, projectId }: NoteEditorProps) {
                 onChange={(e) => setTitle(e.target.value)}
                 className="text-2xl font-bold border-0 px-0 focus-visible:ring-0"
                 placeholder="Note title..."
+                readOnly={!canEdit}
             />
 
             {/* Content */}
             <Textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Start writing..."
+                placeholder={canEdit ? "Start writing..." : "No content yet"}
                 className="min-h-[60vh] resize-none border-0 px-0 focus-visible:ring-0"
-                onBlur={saveNote}
+                onBlur={canEdit ? saveNote : undefined}
+                readOnly={!canEdit}
             />
         </div>
     );

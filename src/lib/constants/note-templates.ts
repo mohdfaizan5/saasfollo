@@ -3,7 +3,8 @@
  */
 export const NOTE_TEMPLATES = {
     icp: {
-        title: 'Ideal Customer Profile (ICP)',
+        title: 'Ideal Customer Profile',
+        description: 'Define your target audience',
         content: `# Ideal Customer Profile
 
 ## Target Role
@@ -27,8 +28,81 @@ export const NOTE_TEMPLATES = {
 `,
     },
     blank: {
-        title: 'Untitled Note',
+        title: 'Blank Note',
+        description: 'Start from scratch',
         content: '',
+    },
+    meetingNotes: {
+        title: 'Meeting Notes',
+        description: 'Structured meeting template',
+        content: `# Meeting Notes
+
+**Date:** 
+**Attendees:** 
+
+## Agenda
+1. 
+
+## Discussion Points
+
+
+## Action Items
+- [ ] 
+
+## Next Steps
+
+`,
+    },
+    productRequirements: {
+        title: 'Product Requirements',
+        description: 'PRD template for features',
+        content: `# Product Requirements Document
+
+## Overview
+Brief description of the feature/product.
+
+## Problem Statement
+What problem are we solving?
+
+## Goals & Success Metrics
+- Goal 1:
+- Metric: 
+
+## User Stories
+As a [user], I want to [action] so that [benefit].
+
+## Requirements
+
+### Must Have
+- 
+
+### Nice to Have
+- 
+
+## Technical Considerations
+
+
+## Timeline
+
+`,
+    },
+    brainstorm: {
+        title: 'Brainstorm',
+        description: 'Capture ideas freely',
+        content: `# Brainstorm Session
+
+**Topic:** 
+**Date:** 
+
+## Ideas
+- 
+
+## Promising Concepts
+
+
+## Next Actions
+
+`,
     },
 } as const;
 

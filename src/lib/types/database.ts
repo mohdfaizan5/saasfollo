@@ -21,6 +21,7 @@ export interface Project {
   user_id: string;
   name: string;
   description: string | null;
+  icon_url: string | null;
   active_version_id: number | null;
   is_pinned: boolean;
   created_at: string;
@@ -93,6 +94,7 @@ export interface UserSettings {
 export interface ProjectInsert {
   name: string;
   description?: string | null;
+  icon_url?: string | null;
   is_pinned?: boolean;
 }
 
@@ -145,6 +147,7 @@ export interface UserSettingsInsert {
 export interface ProjectUpdate {
   name?: string;
   description?: string | null;
+  icon_url?: string | null;
   active_version_id?: number | null;
   is_pinned?: boolean;
 }
@@ -203,4 +206,28 @@ export interface VersionWithTasks extends Version {
 
 export interface TaskWithVersion extends Task {
   version?: Version | null;
+}
+
+// =============================================================================
+// Collaboration Types
+// =============================================================================
+
+export type CollaboratorRole = 'owner' | 'editor' | 'reader';
+
+export interface ProjectCollaborator {
+  id: number;
+  project_id: number;
+  user_id: string;
+  email: string;
+  role: CollaboratorRole;
+  invited_by: string | null;
+  invited_at: string;
+  accepted_at: string | null;
+  created_at: string;
+}
+
+export interface ProjectCollaboratorInsert {
+  project_id: number;
+  email: string;
+  role?: CollaboratorRole;
 }

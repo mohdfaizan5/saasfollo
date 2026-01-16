@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { createLinksFromString, deleteLink } from '@/lib/actions/links';
+import { useProjectRole } from '@/hooks/use-project-role';
 import type { Link as LinkType } from '@/lib/types/database';
 
 // React Icons imports
@@ -190,6 +191,7 @@ interface LinkCardProps {
     onDelete: (id: number) => void;
     span: string;
     isFeatured: boolean;
+    canEdit: boolean;
 }
 
 // Extract domain from URL for favicon
@@ -202,7 +204,7 @@ function getDomain(url: string): string {
     }
 }
 
-function LinkCard({ link, projectId, onDelete, span, isFeatured }: LinkCardProps) {
+function LinkCard({ link, projectId, onDelete, span, isFeatured, canEdit }: LinkCardProps) {
     const [isDeleting, setIsDeleting] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const [faviconError, setFaviconError] = useState(false);
@@ -288,13 +290,15 @@ function LinkCard({ link, projectId, onDelete, span, isFeatured }: LinkCardProps
                         >
                             <ExternalLink className="h-3.5 w-3.5 text-white" />
                         </button>
-                        <button
-                            className="p-1.5 rounded-lg bg-red-500/80 backdrop-blur-sm hover:bg-red-500 transition-colors"
-                            onClick={handleDelete}
-                            disabled={isDeleting}
-                        >
-                            <Trash2 className="h-3.5 w-3.5 text-white" />
-                        </button>
+                        {canEdit && (
+                            <button
+                                className="p-1.5 rounded-lg bg-red-500/80 backdrop-blur-sm hover:bg-red-500 transition-colors"
+                                onClick={handleDelete}
+                                disabled={isDeleting}
+                            >
+                                <Trash2 className="h-3.5 w-3.5 text-white" />
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -315,7 +319,7 @@ function LinkCard({ link, projectId, onDelete, span, isFeatured }: LinkCardProps
                 </div>
 
                 {/* Subtle gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-linear-to-br from-white/10 to-transparent pointer-events-none" />
             </div>
         </a>
     );
@@ -327,6 +331,7 @@ interface LinksClientProps {
 }
 
 export function LinksClient({ initialLinks, projectId }: LinksClientProps) {
+    const { canEdit } = useProjectRole();
     const [links, setLinks] = useState<LinkType[]>(initialLinks);
     const [urlInput, setUrlInput] = useState('');
     const [isAdding, setIsAdding] = useState(false);
@@ -373,27 +378,29 @@ export function LinksClient({ initialLinks, projectId }: LinksClientProps) {
             </div>
 
             {/* Add Links */}
-            <Card className="p-4">
-                <div className="flex gap-3">
-                    <Input
-                        placeholder="Paste URLs here (comma or space separated)..."
-                        value={urlInput}
-                        onChange={(e) => setUrlInput(e.target.value)}
-                        disabled={isAdding}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                handleAddLinks();
-                            }
-                        }}
-                    />
-                    <Button onClick={handleAddLinks} disabled={isAdding}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        {isAdding ? 'Adding...' : 'Add'}
-                    </Button>
-                </div>
-                {error && <p className="text-sm text-destructive mt-2">{error}</p>}
-            </Card>
+            {canEdit && (
+                <Card className="p-4">
+                    <div className="flex gap-3">
+                        <Input
+                            placeholder="Paste URLs here (comma or space separated)..."
+                            value={urlInput}
+                            onChange={(e) => setUrlInput(e.target.value)}
+                            disabled={isAdding}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleAddLinks();
+                                }
+                            }}
+                        />
+                        <Button onClick={handleAddLinks} disabled={isAdding}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            {isAdding ? 'Adding...' : 'Add'}
+                        </Button>
+                    </div>
+                    {error && <p className="text-sm text-destructive mt-2">{error}</p>}
+                </Card>
+            )}
 
             {/* Bento Grid */}
             {links.length === 0 ? (
@@ -419,6 +426,7 @@ export function LinksClient({ initialLinks, projectId }: LinksClientProps) {
                             onDelete={handleDelete}
                             span={getBentoSpan(index, links.length)}
                             isFeatured={false}
+                            canEdit={canEdit}
                         />
                     ))}
                 </div>

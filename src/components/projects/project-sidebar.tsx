@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import * as React from "react"
+import { usePathname, useRouter } from 'next/navigation';
 import {
     LayoutDashboard,
     Link2,
@@ -9,78 +9,129 @@ import {
     CheckSquare,
     FileText,
     Lock,
-    ChevronLeft
+    Settings
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import {
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    SidebarRail,
+} from "@/components/ui/sidebar"
+import Logo from '@/components/logo';
 import type { Project } from '@/lib/types/database';
+import type { UserProjectRole } from '@/lib/actions/projects';
 
-const NAV_ITEMS = [
+interface NavItem {
+    href: string;
+    label: string;
+    icon: React.ComponentType;
+    hideForReader?: boolean;
+}
+
+const NAV_ITEMS: NavItem[] = [
     { href: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: 'tasks', label: 'Tasks', icon: CheckSquare },
     { href: 'versions', label: 'Versions', icon: Layers },
     { href: 'links', label: 'Links', icon: Link2 },
     { href: 'notes', label: 'Notes', icon: FileText },
-    { href: 'secrets', label: 'Secrets', icon: Lock },
+    { href: 'secrets', label: 'Secrets', icon: Lock, hideForReader: true },
 ];
 
 interface ProjectSidebarProps {
     project: Project;
+    userRole?: UserProjectRole;
 }
 
-export function ProjectSidebar({ project }: ProjectSidebarProps) {
+export function ProjectSidebar({ project, userRole = 'owner' }: ProjectSidebarProps) {
     const pathname = usePathname();
+    const router = useRouter();
     const baseUrl = `/projects/${project.id}`;
+    const isReader = userRole === 'reader';
+    const canManage = userRole === 'owner';
+
+    const isActive = (href: string) => {
+        const fullHref = `${baseUrl}/${href}`;
+        if (href === 'dashboard') {
+            return pathname === baseUrl || pathname === fullHref || pathname === `${fullHref}/`;
+        }
+        return pathname.startsWith(fullHref);
+    };
+
+    // Filter nav items based on role
+    const filteredNavItems = NAV_ITEMS.filter(item => {
+        if (item.hideForReader && isReader) return false;
+        return true;
+    });
 
     return (
-        <aside className="w-64 border-r bg-card min-h-[calc(100vh-64px)] flex flex-col">
-            {/* Back to projects */}
-            <div className="p-4 border-b">
-                <Link
-                    href="/projects"
-                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                    <ChevronLeft className="h-4 w-4" />
-                    All Projects
-                </Link>
-            </div>
-
-            {/* Project name */}
-            <div className="p-4 border-b">
-                <h2 className="font-semibold truncate">{project.name}</h2>
-                {project.description && (
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                        {project.description}
-                    </p>
-                )}
-            </div>
-
-            {/* Navigation */}
-            <nav className="flex-1 p-3">
-                <ul className="space-y-1">
-                    {NAV_ITEMS.map((item) => {
-                        const href = `${baseUrl}/${item.href}`;
-                        const isActive = pathname === href ||
-                            (item.href === 'dashboard' && pathname === baseUrl);
-
-                        return (
-                            <li key={item.href}>
-                                <Link
-                                    href={href}
-                                    className={cn(
-                                        'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
-                                        isActive
-                                            ? 'bg-primary text-primary-foreground'
-                                            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                                    )}
-                                >
-                                    <item.icon className="h-4 w-4" />
-                                    {item.label}
-                                </Link>
-                            </li>
-                        );
-                    })}
-                </ul>
-            </nav>
-        </aside>
+        <Sidebar collapsible="icon">
+            <SidebarHeader className="border-b">
+                {/* Logo + Slash + Project Name */}
+                <div className="h-14 flex items-center px-2 group-data-[collapsible=icon]:justify-center">
+                    {/* Full expanded view */}
+                    <div className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
+                        <Logo full={false} width={24} height={24} href="/projects" />
+                        <span className="text-muted-foreground text-lg">/</span>
+                        <div className="flex items-center gap-2">
+                            <div className="shrink-0 w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center overflow-hidden">
+                                {project.icon_url ? (
+                                    <img
+                                        src={project.icon_url}
+                                        alt={project.name}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <span className="text-primary font-semibold text-xs">
+                                        {project.name.charAt(0).toUpperCase()}
+                                    </span>
+                                )}
+                            </div>
+                            <span className="text-sm font-medium truncate max-w-[120px]">{project.name}</span>
+                        </div>
+                    </div>
+                    {/* Collapsed icon view */}
+                    <div className="hidden group-data-[collapsible=icon]:flex items-center justify-center">
+                        <Logo full={false} width={24} height={24} href="/projects" />
+                    </div>
+                </div>
+            </SidebarHeader>
+            <SidebarContent>
+                <SidebarMenu>
+                    {filteredNavItems.map((item) => (
+                        <SidebarMenuItem key={item.href}>
+                            <SidebarMenuButton
+                                isActive={isActive(item.href)}
+                                tooltip={item.label}
+                                onClick={() => router.push(`${baseUrl}/${item.href}`)}
+                            >
+                                <item.icon />
+                                <span>{item.label}</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    ))}
+                </SidebarMenu>
+            </SidebarContent>
+            {canManage && (
+                <SidebarFooter>
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                isActive={pathname.startsWith(`${baseUrl}/settings`)}
+                                tooltip="Settings"
+                                onClick={() => router.push(`${baseUrl}/settings`)}
+                            >
+                                <Settings />
+                                <span>Settings</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarFooter>
+            )}
+            <SidebarRail />
+        </Sidebar>
     );
 }

@@ -61,13 +61,29 @@ export function ProjectCard({ project }: ProjectCardProps) {
             )}
 
             {/* Project name and description */}
-            <div className="mb-4 pr-8">
-                <h3 className="font-semibold text-lg truncate">{project.name}</h3>
-                {project.description && (
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                        {project.description}
-                    </p>
-                )}
+            <div className="mb-4 pr-8 flex items-start gap-3">
+                {/* Project Icon */}
+                <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
+                    {project.icon_url ? (
+                        <img
+                            src={project.icon_url}
+                            alt={project.name}
+                            className="w-full h-full object-cover"
+                        />
+                    ) : (
+                        <span className="text-primary font-semibold text-lg">
+                            {project.name.charAt(0).toUpperCase()}
+                        </span>
+                    )}
+                </div>
+                <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-lg truncate">{project.name}</h3>
+                    {project.description && (
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                            {project.description}
+                        </p>
+                    )}
+                </div>
             </div>
 
             {/* Stats */}

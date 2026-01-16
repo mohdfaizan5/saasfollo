@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { createVersion, setVersionActive, deleteVersion } from '@/lib/actions/versions';
+import { useProjectRole } from '@/hooks/use-project-role';
 import type { Version } from '@/lib/types/database';
 
 interface VersionsClientProps {
@@ -19,6 +20,7 @@ interface VersionsClientProps {
 }
 
 export function VersionsClient({ initialVersions, projectId, activeVersionId }: VersionsClientProps) {
+    const { canEdit } = useProjectRole();
     const [versions, setVersions] = useState<Version[]>(initialVersions);
     const [currentActiveId, setCurrentActiveId] = useState<number | null>(activeVersionId);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -98,47 +100,49 @@ export function VersionsClient({ initialVersions, projectId, activeVersionId }: 
                     </div>
                 </div>
 
-                <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <AlertDialogTrigger render={<Button><Plus className="h-4 w-4 mr-2" />New Version</Button>} />
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Create New Version</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Define a new scope-based version (e.g., MVP, v1, Beta)
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <div className="space-y-4 py-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="version-name">Version Name</Label>
-                                <Input
-                                    id="version-name"
-                                    placeholder="e.g., v1 MVP"
-                                    value={newName}
-                                    onChange={(e) => setNewName(e.target.value)}
-                                    disabled={isCreating}
-                                />
+                {canEdit && (
+                    <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                        <AlertDialogTrigger render={<Button><Plus className="h-4 w-4 mr-2" />New Version</Button>} />
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Create New Version</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Define a new scope-based version (e.g., MVP, v1, Beta)
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="version-name">Version Name</Label>
+                                    <Input
+                                        id="version-name"
+                                        placeholder="e.g., v1 MVP"
+                                        value={newName}
+                                        onChange={(e) => setNewName(e.target.value)}
+                                        disabled={isCreating}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="version-description">Description (optional)</Label>
+                                    <Textarea
+                                        id="version-description"
+                                        placeholder="What's in scope for this version..."
+                                        value={newDescription}
+                                        onChange={(e) => setNewDescription(e.target.value)}
+                                        disabled={isCreating}
+                                        rows={3}
+                                    />
+                                </div>
+                                {error && <p className="text-sm text-destructive">{error}</p>}
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="version-description">Description (optional)</Label>
-                                <Textarea
-                                    id="version-description"
-                                    placeholder="What's in scope for this version..."
-                                    value={newDescription}
-                                    onChange={(e) => setNewDescription(e.target.value)}
-                                    disabled={isCreating}
-                                    rows={3}
-                                />
-                            </div>
-                            {error && <p className="text-sm text-destructive">{error}</p>}
-                        </div>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel disabled={isCreating}>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleCreate} disabled={isCreating}>
-                                {isCreating ? 'Creating...' : 'Create Version'}
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel disabled={isCreating}>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleCreate} disabled={isCreating}>
+                                    {isCreating ? 'Creating...' : 'Create Version'}
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                )}
             </div>
 
             {/* Versions Grid */}
@@ -166,7 +170,7 @@ export function VersionsClient({ initialVersions, projectId, activeVersionId }: 
                                 </Badge>
                             </div>
                             <div className="flex items-center gap-2 mt-4">
-                                {version.status !== 'active' && (
+                                {canEdit && version.status !== 'active' && (
                                     <Button
                                         variant="outline"
                                         size="sm"
@@ -176,14 +180,16 @@ export function VersionsClient({ initialVersions, projectId, activeVersionId }: 
                                         Set Active
                                     </Button>
                                 )}
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-destructive hover:text-destructive"
-                                    onClick={() => handleDelete(version.id)}
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
+                                {canEdit && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-destructive hover:text-destructive"
+                                        onClick={() => handleDelete(version.id)}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                )}
                             </div>
                         </Card>
                     ))}

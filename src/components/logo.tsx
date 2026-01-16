@@ -1,77 +1,52 @@
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
-import { Badge } from "./ui/badge";
 
 const Logo = ({
   full = false,
-  width = 100,
-  height = 100,
+  width = 30,
+  height = 30,
   link = true,
   className,
   textClassName,
-  isBeta = false,
+  href,
 }: {
   full?: boolean;
   link?: boolean;
-  isBeta?: boolean;
   width?: number;
   height?: number;
   className?: string;
   textClassName?: string;
+  href?: string;
 }) => {
-  if (link)
+  const content = (
+    <>
+      <Image
+        src={"/saasfollo_logo.png"}
+        width={width}
+        height={height}
+        alt="SaaSfollo logo"
+      />
+      {full && <span className={cn("-ml-1", textClassName)}>aaSfollo</span>}
+    </>
+  );
+
+  if (link) {
     return (
       <Link
-        href={"/"}
-        className={cn(
-          "flex items-center text-xl font-light  font-bbh ",
-          className
-        )}
-      >
-        <Image
-          src={"/appykitUI temp logo.png"}
-          width={30}
-          height={30}
-          alt=""
-          className=""
-        />
-
-        {full && <span className={cn("-ml-1", textClassName)}>ppykitUI</span>}
-      </Link>
-    );
-  else
-    return (
-      <div
+        href={href || "/"}
         className={cn("flex items-center text-xl font-light font-bbh", className)}
       >
-        <Image
-          src={"/appykitUI temp logo.png"}
-          width={30}
-          height={30}
-          alt="logo"
-        />
-        {full && <span className={cn("-ml-1", textClassName)}>ppykitUI</span>}
-      </div>
+        {content}
+      </Link>
     );
+  }
+
+  return (
+    <div className={cn("flex items-center text-xl font-light font-bbh", className)}>
+      {content}
+    </div>
+  );
 };
 
 export default Logo;
-
-{
-  /* <Link */
-}
-//             href={"/"}
-//             className=" "
-//           >
-//             {/* <span className="bg-[#007AFF] px-2  rounded-sm">A</span> */}
-
-//             <Image
-//               src={"/appykitUI temp logo.png"}
-//               height={30}
-//               width={30}
-//               className="rounded-t-sm"
-//               alt=""
-//             />
-//             <span className="-ml-1">ppykitUI</span>
-//           </Link>

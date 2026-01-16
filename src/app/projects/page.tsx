@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { FolderKanban } from 'lucide-react';
 import { createClient } from '@/lib/server';
 import { getProjects } from '@/lib/actions/projects';
-import { ProjectCard, CreateProjectDialog } from '@/components/projects';
+import { ProjectCard, CreateProjectDialog, ProjectsHeader } from '@/components/projects';
 
 export default async function ProjectsPage() {
     const supabase = await createClient();
@@ -13,12 +13,17 @@ export default async function ProjectsPage() {
     }
 
     const projects = await getProjects();
-
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        redirect('/auth/login');
+    }
     return (
         <div className="min-h-screen bg-background">
-            <p className="font-serif text-center max-w-64">
+            {/* <p className="font-serif text-center max-w-64">
                 Voice-first AI powered productivity system for your daily life
-            </p>
+            </p> */}
+            <ProjectsHeader userEmail={user.email || ''} />
+
             <div className="max-w-6xl mx-auto px-4 py-8">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
