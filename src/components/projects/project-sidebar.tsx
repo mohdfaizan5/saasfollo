@@ -38,7 +38,7 @@ const NAV_ITEMS: NavItem[] = [
     { href: 'versions', label: 'Versions', icon: Layers },
     { href: 'links', label: 'Links', icon: Link2 },
     { href: 'notes', label: 'Notes', icon: FileText },
-    { href: 'secrets', label: 'Secrets', icon: Lock, hideForReader: true },
+    // { href: 'secrets', label: 'Secrets', icon: Lock, hideForReader: true },
 ];
 
 interface ProjectSidebarProps {
@@ -71,10 +71,10 @@ export function ProjectSidebar({ project, userRole = 'owner' }: ProjectSidebarPr
         <Sidebar collapsible="icon">
             <SidebarHeader className="border-b">
                 {/* Logo + Slash + Project Name */}
-                <div className="h-14 flex items-center px-2 group-data-[collapsible=icon]:justify-center">
+                <div className="h-12 flex items-center  group-data-[collapsible=icon]:justify-center">
                     {/* Full expanded view */}
                     <div className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
-                        <Logo full={false} width={24} height={24} href="/projects" />
+                        <Logo full={false} width={28} height={28} href="/projects" />
                         <span className="text-muted-foreground text-lg">/</span>
                         <div className="flex items-center gap-2">
                             <div className="shrink-0 w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center overflow-hidden">
@@ -95,12 +95,12 @@ export function ProjectSidebar({ project, userRole = 'owner' }: ProjectSidebarPr
                     </div>
                     {/* Collapsed icon view */}
                     <div className="hidden group-data-[collapsible=icon]:flex items-center justify-center">
-                        <Logo full={false} width={24} height={24} href="/projects" />
+                        <Logo full={false} width={28} height={28} href="/projects" />
                     </div>
                 </div>
             </SidebarHeader>
             <SidebarContent>
-                <SidebarMenu>
+                <SidebarMenu className="mx-2 mt-2">
                     {filteredNavItems.map((item) => (
                         <SidebarMenuItem key={item.href}>
                             <SidebarMenuButton

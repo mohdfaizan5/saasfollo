@@ -1,15 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { updateNote } from '@/lib/actions/notes';
 import { useProjectRole } from '@/hooks/use-project-role';
+import { EditorJSWrapper, parseEditorContent, stringifyEditorContent } from './editorjs-wrapper';
 import type { Note } from '@/lib/types/database';
+import type { OutputData } from '@editorjs/editorjs';
 
 interface NoteEditorProps {
     note: Note;
@@ -20,24 +20,34 @@ export function NoteEditor({ note, projectId }: NoteEditorProps) {
     const router = useRouter();
     const { canEdit } = useProjectRole();
     const [title, setTitle] = useState(note.title);
-    const [content, setContent] = useState(note.content || '');
+    const [editorData, setEditorData] = useState<OutputData | null>(() =>
+        parseEditorContent(note.content)
+    );
     const [isSaving, setIsSaving] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
 
-    // Track changes
+    // Track title changes
     useEffect(() => {
-        if (!canEdit) return; // Don't track changes for readers
+        if (!canEdit) return;
         const titleChanged = title !== note.title;
-        const contentChanged = content !== (note.content || '');
-        setHasChanges(titleChanged || contentChanged);
-    }, [title, content, note.title, note.content, canEdit]);
+        setHasChanges(titleChanged);
+    }, [title, note.title, canEdit]);
 
-    // Auto-save with debounce
+    // Handle editor content changes
+    const handleEditorChange = useCallback((data: OutputData) => {
+        setEditorData(data);
+        if (canEdit) {
+            setHasChanges(true);
+        }
+    }, [canEdit]);
+
+    // Save note
     const saveNote = useCallback(async () => {
-        if (!hasChanges || !canEdit) return;
+        if (!canEdit) return;
 
         setIsSaving(true);
         try {
+            const content = editorData ? stringifyEditorContent(editorData) : null;
             await updateNote(note.id, projectId, {
                 title,
                 content,
@@ -48,15 +58,15 @@ export function NoteEditor({ note, projectId }: NoteEditorProps) {
         } finally {
             setIsSaving(false);
         }
-    }, [note.id, projectId, title, content, hasChanges, canEdit]);
+    }, [note.id, projectId, title, editorData, canEdit]);
 
-    // Auto-save on blur or every 5 seconds if there are changes
+    // Auto-save every 10 seconds if there are changes
     useEffect(() => {
         if (!hasChanges || !canEdit) return;
 
         const timer = setTimeout(() => {
             saveNote();
-        }, 5000);
+        }, 10000);
 
         return () => clearTimeout(timer);
     }, [hasChanges, saveNote, canEdit]);
@@ -68,8 +78,14 @@ export function NoteEditor({ note, projectId }: NoteEditorProps) {
         router.push(`/projects/${projectId}/notes`);
     };
 
+    // Memoize initial data to prevent re-renders
+    const initialEditorData = useMemo(() =>
+        parseEditorContent(note.content),
+        [note.content]
+    );
+
     return (
-        <div className="p-6 space-y-4 max-w-4xl mx-auto">
+        <div className="p-6 space-y-6 max-w-4xl mx-auto">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <Button variant="ghost" onClick={handleBack}>
@@ -102,24 +118,26 @@ export function NoteEditor({ note, projectId }: NoteEditorProps) {
                 </div>
             </div>
 
-            {/* Title */}
-            <Input
+            {/* Title - Bigger and Editable */}
+            <textarea
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="text-2xl font-bold border-0 px-0 focus-visible:ring-0"
+                className="no-scrollbar w-full text-4xl font-bold border-0 bg-transparent px-0 focus:outline-none focus:ring-0 placeholder:text-muted-foreground"
                 placeholder="Note title..."
+                maxLength={80}
                 readOnly={!canEdit}
             />
 
-            {/* Content */}
-            <Textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder={canEdit ? "Start writing..." : "No content yet"}
-                className="min-h-[60vh] resize-none border-0 px-0 focus-visible:ring-0"
-                onBlur={canEdit ? saveNote : undefined}
-                readOnly={!canEdit}
-            />
+            {/* Editor.js Content */}
+            <div className="border-none rounded-lg p-4 bg-transparent min-h-[50vh]">
+                <EditorJSWrapper
+
+                    data={initialEditorData}
+                    onChange={handleEditorChange}
+                    readOnly={!canEdit}
+                    placeholder={canEdit ? "Start writing... Use '/' for block commands" : "No content yet"}
+                />
+            </div>
         </div>
     );
 }

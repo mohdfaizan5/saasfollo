@@ -9,6 +9,7 @@
 
 export type TaskStatus = 'now' | 'next' | 'later' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high' | null;
+export type TaskCategory = 'website' | 'marketing' | 'seo' | 'content' | null;
 export type VersionStatus = 'active' | 'inactive';
 export type LinkType = 'figma' | 'github' | 'vercel' | 'notion' | 'linear' | 'slack' | 'discord' | 'generic';
 
@@ -46,6 +47,7 @@ export interface Task {
   description: string | null;
   status: TaskStatus;
   priority: TaskPriority;
+  category: TaskCategory;
   due_date: string | null;
   assignee: string | null;
   created_at: string;
@@ -112,6 +114,7 @@ export interface TaskInsert {
   description?: string | null;
   status?: TaskStatus;
   priority?: TaskPriority;
+  category?: TaskCategory;
   due_date?: string | null;
   assignee?: string | null;
 }
@@ -164,6 +167,7 @@ export interface TaskUpdate {
   description?: string | null;
   status?: TaskStatus;
   priority?: TaskPriority;
+  category?: TaskCategory;
   due_date?: string | null;
   assignee?: string | null;
 }

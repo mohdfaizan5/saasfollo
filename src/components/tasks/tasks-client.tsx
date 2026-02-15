@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { CheckSquare, Plus, Clock, ArrowRight, Archive, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -12,7 +12,11 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, A
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { createTask, updateTaskStatus, deleteTask } from '@/lib/actions/tasks';
 import { useProjectRole } from '@/hooks/use-project-role';
-import type { Task, TaskStatus, Version } from '@/lib/types/database';
+import { TaskFilters } from './task-filters';
+import { TaskProgressBar } from './task-progress-bar';
+import { TaskViewToggle, type TaskView } from './task-view-toggle';
+import { TasksTodoView } from './tasks-todo-view';
+import type { Task, TaskStatus, TaskCategory, Version, ProjectCollaborator } from '@/lib/types/database';
 
 const STATUS_CONFIG: Record<TaskStatus, { label: string; icon: React.ReactNode; color: string }> = {
     now: { label: 'Now', icon: <Clock className="h-4 w-4" />, color: 'bg-orange-500' },
@@ -21,13 +25,30 @@ const STATUS_CONFIG: Record<TaskStatus, { label: string; icon: React.ReactNode; 
     done: { label: 'Done', icon: <CheckCircle2 className="h-4 w-4" />, color: 'bg-green-500' },
 };
 
+const CATEGORIES: { value: TaskCategory; label: string }[] = [
+    { value: 'website', label: 'Website' },
+    { value: 'marketing', label: 'Marketing' },
+    { value: 'seo', label: 'SEO' },
+    { value: 'content', label: 'Content' },
+];
+
 interface TasksClientProps {
     initialTasks: Record<TaskStatus, Task[]>;
     projectId: number;
     versions: Version[];
+    collaborators?: ProjectCollaborator[];
+    currentUserId?: string;
+    initialView?: TaskView;
 }
 
-export function TasksClient({ initialTasks, projectId, versions }: TasksClientProps) {
+export function TasksClient({
+    initialTasks,
+    projectId,
+    versions,
+    collaborators = [],
+    currentUserId = '',
+    initialView = 'todo'
+}: TasksClientProps) {
     const { canEdit } = useProjectRole();
     const [tasks, setTasks] = useState<Record<TaskStatus, Task[]>>(initialTasks);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -36,8 +57,57 @@ export function TasksClient({ initialTasks, projectId, versions }: TasksClientPr
     const [newStatus, setNewStatus] = useState<TaskStatus>('next');
     const [newVersionId, setNewVersionId] = useState<string>('');
     const [newPriority, setNewPriority] = useState<string>('');
+    const [newCategory, setNewCategory] = useState<TaskCategory>(null);
+    const [newAssignee, setNewAssignee] = useState<string>('');
     const [isCreating, setIsCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // View state
+    const [currentView, setCurrentView] = useState<TaskView>(initialView);
+
+    // Filter state
+    const [selectedCategory, setSelectedCategory] = useState<TaskCategory>(null);
+    const [selectedVersionId, setSelectedVersionId] = useState<string>('');
+    const [selectedAssignee, setSelectedAssignee] = useState<string>('');
+
+    // Filter tasks
+    const filteredTasks = useMemo(() => {
+        const filtered: Record<TaskStatus, Task[]> = {
+            now: [],
+            next: [],
+            later: [],
+            done: [],
+        };
+
+        Object.entries(tasks).forEach(([status, statusTasks]) => {
+            filtered[status as TaskStatus] = statusTasks.filter((task) => {
+                // Category filter
+                if (selectedCategory && task.category !== selectedCategory) {
+                    return false;
+                }
+                // Version filter
+                if (selectedVersionId && task.version_id?.toString() !== selectedVersionId) {
+                    return false;
+                }
+                // Assignee filter
+                if (selectedAssignee) {
+                    if (selectedAssignee === 'unassigned' && task.assignee) {
+                        return false;
+                    }
+                    if (selectedAssignee !== 'unassigned' && task.assignee !== selectedAssignee) {
+                        return false;
+                    }
+                }
+                return true;
+            });
+        });
+
+        return filtered;
+    }, [tasks, selectedCategory, selectedVersionId, selectedAssignee]);
+
+    // Calculate progress
+    const totalTasks = Object.values(filteredTasks).flat().length;
+    const completedTasks = filteredTasks.done.length;
 
     const handleCreate = async () => {
         if (!newTitle.trim()) {
@@ -56,22 +126,46 @@ export function TasksClient({ initialTasks, projectId, versions }: TasksClientPr
                 status: newStatus,
                 version_id: newVersionId ? parseInt(newVersionId, 10) : null,
                 priority: (newPriority as Task['priority']) || null,
+                category: newCategory,
+                assignee: newAssignee || null,
             });
             setTasks((prev) => ({
                 ...prev,
                 [newStatus]: [task, ...prev[newStatus]],
             }));
             setIsDialogOpen(false);
-            setNewTitle('');
-            setNewDescription('');
-            setNewStatus('next');
-            setNewVersionId('');
-            setNewPriority('');
+            resetForm();
         } catch (err) {
             console.error('Failed to create task:', err);
             setError('Failed to create task');
         } finally {
             setIsCreating(false);
+        }
+    };
+
+    const resetForm = () => {
+        setNewTitle('');
+        setNewDescription('');
+        setNewStatus('next');
+        setNewVersionId('');
+        setNewPriority('');
+        setNewCategory(null);
+        setNewAssignee('');
+    };
+
+    const handleQuickCreate = async (title: string, status: TaskStatus) => {
+        try {
+            const task = await createTask({
+                project_id: projectId,
+                title: title.trim(),
+                status: status,
+            });
+            setTasks((prev) => ({
+                ...prev,
+                [status]: [task, ...prev[status]],
+            }));
+        } catch (err) {
+            console.error('Failed to create task:', err);
         }
     };
 
@@ -107,7 +201,7 @@ export function TasksClient({ initialTasks, projectId, versions }: TasksClientPr
     return (
         <div className="p-6 space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-primary/10">
                         <CheckSquare className="h-5 w-5 text-primary" />
@@ -115,160 +209,245 @@ export function TasksClient({ initialTasks, projectId, versions }: TasksClientPr
                     <div>
                         <h1 className="text-xl font-bold">Tasks</h1>
                         <p className="text-sm text-muted-foreground">
-                            Organize by Now / Next / Later / Done
+                            {currentView === 'todo' ? 'Checklist view' : 'Kanban board'}
                         </p>
                     </div>
                 </div>
 
-                {canEdit && (
-                    <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                        <AlertDialogTrigger render={<Button><Plus className="h-4 w-4 mr-2" />New Task</Button>} />
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Create New Task</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Add a task to track work for this project
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <div className="space-y-4 py-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="task-title">Title</Label>
-                                    <Input
-                                        id="task-title"
-                                        placeholder="What needs to be done?"
-                                        value={newTitle}
-                                        onChange={(e) => setNewTitle(e.target.value)}
-                                        disabled={isCreating}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="task-description">Description (optional)</Label>
-                                    <Textarea
-                                        id="task-description"
-                                        placeholder="Additional details..."
-                                        value={newDescription}
-                                        onChange={(e) => setNewDescription(e.target.value)}
-                                        disabled={isCreating}
-                                        rows={2}
-                                    />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>Status</Label>
-                                        <Select value={newStatus} onValueChange={(v) => setNewStatus(v as TaskStatus)}>
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="now">Now</SelectItem>
-                                                <SelectItem value="next">Next</SelectItem>
-                                                <SelectItem value="later">Later</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Priority</Label>
-                                        <Select value={newPriority} onValueChange={(v) => setNewPriority(v ?? '')}>
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="high">High</SelectItem>
-                                                <SelectItem value="medium">Medium</SelectItem>
-                                                <SelectItem value="low">Low</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                                {versions.length > 0 && (
-                                    <div className="space-y-2">
-                                        <Label>Version (optional)</Label>
-                                        <Select value={newVersionId} onValueChange={(v) => setNewVersionId(v ?? '')}>
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {versions.map((v) => (
-                                                    <SelectItem key={v.id} value={v.id.toString()}>
-                                                        {v.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                )}
-                                {error && <p className="text-sm text-destructive">{error}</p>}
-                            </div>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel disabled={isCreating}>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleCreate} disabled={isCreating}>
-                                    {isCreating ? 'Creating...' : 'Create Task'}
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                )}
-            </div>
+                <div className="flex items-center gap-3">
+                    <TaskViewToggle currentView={currentView} onViewChange={setCurrentView} />
 
-            {/* Task Columns */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {(['now', 'next', 'later', 'done'] as TaskStatus[]).map((status) => (
-                    <div key={status} className="space-y-3">
-                        <div className="flex items-center gap-2 p-2">
-                            <div className={`p-1.5 rounded ${STATUS_CONFIG[status].color}`}>
-                                {STATUS_CONFIG[status].icon}
-                            </div>
-                            <span className="font-medium">{STATUS_CONFIG[status].label}</span>
-                            <Badge variant="secondary" className="ml-auto">
-                                {tasks[status].length}
-                            </Badge>
-                        </div>
-                        <div className="space-y-2">
-                            {tasks[status].map((task) => (
-                                <Card key={task.id} className="p-3">
-                                    <p className="font-medium text-sm">{task.title}</p>
-                                    {task.description && (
-                                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                            {task.description}
-                                        </p>
-                                    )}
-                                    <div className="flex items-center gap-2 mt-2 flex-wrap">
-                                        {task.priority && (
-                                            <Badge
-                                                variant={task.priority === 'high' ? 'destructive' : 'secondary'}
-                                                className="text-xs"
-                                            >
-                                                {task.priority}
-                                            </Badge>
-                                        )}
-                                        {canEdit && status !== 'done' && (
-                                            <Select
-                                                value={status}
-                                                onValueChange={(v) => handleStatusChange(task.id, status, v as TaskStatus)}
-                                            >
-                                                <SelectTrigger className="h-6 text-xs w-20">
+                    {canEdit && (
+                        <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                            <AlertDialogTrigger render={<Button><Plus className="h-4 w-4 mr-2" />New Task</Button>} />
+                            <AlertDialogContent className="max-w-md">
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Create New Task</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Add a task to track work for this project
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <div className="space-y-4 py-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="task-title">Title</Label>
+                                        <Input
+                                            id="task-title"
+                                            placeholder="What needs to be done?"
+                                            value={newTitle}
+                                            onChange={(e) => setNewTitle(e.target.value)}
+                                            disabled={isCreating}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="task-description">Description (optional)</Label>
+                                        <Textarea
+                                            id="task-description"
+                                            placeholder="Additional details..."
+                                            value={newDescription}
+                                            onChange={(e) => setNewDescription(e.target.value)}
+                                            disabled={isCreating}
+                                            rows={2}
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label>Status</Label>
+                                            <Select value={newStatus} onValueChange={(v) => setNewStatus(v as TaskStatus)}>
+                                                <SelectTrigger>
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="now">Now</SelectItem>
                                                     <SelectItem value="next">Next</SelectItem>
                                                     <SelectItem value="later">Later</SelectItem>
-                                                    <SelectItem value="done">Done</SelectItem>
                                                 </SelectContent>
                                             </Select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Priority</Label>
+                                            <Select value={newPriority} onValueChange={(v) => setNewPriority(v ?? '')}>
+                                                <SelectTrigger>
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="high">High</SelectItem>
+                                                    <SelectItem value="medium">Medium</SelectItem>
+                                                    <SelectItem value="low">Low</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label>Category</Label>
+                                            <Select
+                                                value={newCategory || ''}
+                                                onValueChange={(v) => setNewCategory(v as TaskCategory || null)}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {CATEGORIES.map((cat) => (
+                                                        <SelectItem key={cat.value} value={cat.value!}>
+                                                            {cat.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        {collaborators.length > 0 && (
+                                            <div className="space-y-2">
+                                                <Label>Assign to</Label>
+                                                <Select
+                                                    value={newAssignee}
+                                                    onValueChange={(v) => setNewAssignee(v ?? '')}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {collaborators.map((collab) => (
+                                                            <SelectItem key={collab.id} value={collab.user_id}>
+                                                                {collab.email.split('@')[0]}
+                                                                {collab.user_id === currentUserId && ' (You)'}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
                                         )}
                                     </div>
-                                </Card>
-                            ))}
-                            {tasks[status].length === 0 && (
-                                <div className="text-center py-4 text-xs text-muted-foreground border border-dashed rounded-md">
-                                    No tasks
+                                    {versions.length > 0 && (
+                                        <div className="space-y-2">
+                                            <Label>Version (optional)</Label>
+                                            <Select value={newVersionId} onValueChange={(v) => setNewVersionId(v ?? '')}>
+                                                <SelectTrigger>
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {versions.map((v) => (
+                                                        <SelectItem key={v.id} value={v.id.toString()}>
+                                                            {v.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    )}
+                                    {error && <p className="text-sm text-destructive">{error}</p>}
                                 </div>
-                            )}
-                        </div>
-                    </div>
-                ))}
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel disabled={isCreating}>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleCreate} disabled={isCreating}>
+                                        {isCreating ? 'Creating...' : 'Create Task'}
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    )}
+                </div>
             </div>
+
+            {/* Filters */}
+            <TaskFilters
+                versions={versions}
+                collaborators={collaborators}
+                currentUserId={currentUserId}
+                selectedCategory={selectedCategory}
+                selectedVersionId={selectedVersionId}
+                selectedAssignee={selectedAssignee}
+                onCategoryChange={setSelectedCategory}
+                onVersionChange={setSelectedVersionId}
+                onAssigneeChange={setSelectedAssignee}
+            />
+
+            {/* Progress Bar */}
+            <Card className="p-4">
+                <TaskProgressBar
+                    totalTasks={totalTasks}
+                    completedTasks={completedTasks}
+                    label={selectedCategory ? selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1) : undefined}
+                />
+            </Card>
+
+            {/* View Content */}
+            {currentView === 'todo' ? (
+                <Card className="p-4">
+                    <TasksTodoView
+                        tasks={filteredTasks}
+                        canEdit={canEdit}
+                        onStatusChange={handleStatusChange}
+                        onDelete={handleDelete}
+                        onQuickCreate={handleQuickCreate}
+                    />
+                </Card>
+            ) : (
+                /* Kanban View */
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {(['now', 'next', 'later', 'done'] as TaskStatus[]).map((status) => (
+                        <div key={status} className="space-y-3">
+                            <div className="flex items-center gap-2 p-2">
+                                <div className={`p-1.5 rounded ${STATUS_CONFIG[status].color}`}>
+                                    {STATUS_CONFIG[status].icon}
+                                </div>
+                                <span className="font-medium">{STATUS_CONFIG[status].label}</span>
+                                <Badge variant="secondary" className="ml-auto">
+                                    {filteredTasks[status].length}
+                                </Badge>
+                            </div>
+                            <div className="space-y-2">
+                                {filteredTasks[status].map((task) => (
+                                    <Card key={task.id} className="p-3">
+                                        <p className="font-medium text-sm">{task.title}</p>
+                                        {task.description && (
+                                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                                {task.description}
+                                            </p>
+                                        )}
+                                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                            {task.category && (
+                                                <Badge variant="outline" className="text-xs">
+                                                    {task.category}
+                                                </Badge>
+                                            )}
+                                            {task.priority && (
+                                                <Badge
+                                                    variant={task.priority === 'high' ? 'destructive' : 'secondary'}
+                                                    className="text-xs"
+                                                >
+                                                    {task.priority}
+                                                </Badge>
+                                            )}
+                                            {canEdit && status !== 'done' && (
+                                                <Select
+                                                    value={status}
+                                                    onValueChange={(v) => handleStatusChange(task.id, status, v as TaskStatus)}
+                                                >
+                                                    <SelectTrigger className="h-6 text-xs w-20">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="now">Now</SelectItem>
+                                                        <SelectItem value="next">Next</SelectItem>
+                                                        <SelectItem value="later">Later</SelectItem>
+                                                        <SelectItem value="done">Done</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                        </div>
+                                    </Card>
+                                ))}
+                                {filteredTasks[status].length === 0 && (
+                                    <div className="text-center py-4 text-xs text-muted-foreground border border-dashed rounded-md">
+                                        No tasks
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
