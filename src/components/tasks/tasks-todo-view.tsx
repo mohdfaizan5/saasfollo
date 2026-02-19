@@ -15,6 +15,7 @@ interface TasksTodoViewProps {
     onStatusChange: (taskId: number, oldStatus: TaskStatus, newStatus: TaskStatus) => void;
     onDelete: (taskId: number, status: TaskStatus) => void;
     onQuickCreate: (title: string, status: TaskStatus) => void;
+    onTaskUpdate: (taskId: number, status: TaskStatus, updates: Partial<Task>) => void;
 }
 
 // Map Kanban statuses to To-Do sections
@@ -37,6 +38,7 @@ export function TasksTodoView({
     onStatusChange,
     onDelete,
     onQuickCreate,
+    onTaskUpdate,
 }: TasksTodoViewProps) {
     const [newTaskInputs, setNewTaskInputs] = useState<Record<TaskStatus, string>>({
         now: '',
@@ -68,11 +70,15 @@ export function TasksTodoView({
 
     const toggleComplete = (task: Task) => {
         if (task.status === 'done') {
-            // Move back to "now" (Todo)
+            // Move back to "now" (Todo) and mark as not completed
             onStatusChange(task.id, 'done', 'now');
+            // Also update is_completed to false
+            onTaskUpdate(task.id, task.status, { is_completed: false });
         } else {
-            // Mark as done
+            // Mark as done and update status
             onStatusChange(task.id, task.status, 'done');
+            // Also update is_completed to true
+            onTaskUpdate(task.id, task.status, { is_completed: true });
         }
     };
 

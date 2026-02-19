@@ -52,16 +52,7 @@ export default async function SecuritySettingsPage({ params }: SecuritySettingsP
                 </div>
             </div>
 
-            {/* API Keys Section */}
-            <div className="border rounded-lg p-6 bg-card">
-                <h3 className="text-sm font-medium mb-2">API Access</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                    Manage API keys for programmatic access to this project.
-                </p>
-                <button className="px-4 py-2 text-sm font-medium border rounded-md hover:bg-accent transition-colors">
-                    Generate API Key
-                </button>
-            </div>
+
 
             {/* Danger Zone */}
             <div className="border border-destructive/50 rounded-lg p-6 bg-destructive/5">

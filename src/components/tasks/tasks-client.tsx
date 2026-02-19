@@ -10,12 +10,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { createTask, updateTaskStatus, deleteTask } from '@/lib/actions/tasks';
+import { createTask, updateTaskStatus, deleteTask, updateTask } from '@/lib/actions/tasks';
 import { useProjectRole } from '@/hooks/use-project-role';
 import { TaskFilters } from './task-filters';
 import { TaskProgressBar } from './task-progress-bar';
 import { TaskViewToggle, type TaskView } from './task-view-toggle';
 import { TasksTodoView } from './tasks-todo-view';
+import TasksKanbanBoard from './tasks-kanban-board';
 import type { Task, TaskStatus, TaskCategory, Version, ProjectCollaborator } from '@/lib/types/database';
 
 const STATUS_CONFIG: Record<TaskStatus, { label: string; icon: React.ReactNode; color: string }> = {
@@ -47,7 +48,7 @@ export function TasksClient({
     versions,
     collaborators = [],
     currentUserId = '',
-    initialView = 'todo'
+    initialView = 'kanban'
 }: TasksClientProps) {
     const { canEdit } = useProjectRole();
     const [tasks, setTasks] = useState<Record<TaskStatus, Task[]>>(initialTasks);
@@ -119,7 +120,7 @@ export function TasksClient({
         setError(null);
 
         try {
-            const task = await createTask({
+            const taskData = {
                 project_id: projectId,
                 title: newTitle.trim(),
                 description: newDescription.trim() || null,
@@ -128,7 +129,10 @@ export function TasksClient({
                 priority: (newPriority as Task['priority']) || null,
                 category: newCategory,
                 assignee: newAssignee || null,
-            });
+                is_completed: newStatus === 'done', // Set is_completed based on status
+            };
+
+            const task = await createTask(taskData);
             setTasks((prev) => ({
                 ...prev,
                 [newStatus]: [task, ...prev[newStatus]],
@@ -137,7 +141,7 @@ export function TasksClient({
             resetForm();
         } catch (err) {
             console.error('Failed to create task:', err);
-            setError('Failed to create task');
+            setError('Failed to create task. Please check your input and try again.');
         } finally {
             setIsCreating(false);
         }
@@ -155,11 +159,14 @@ export function TasksClient({
 
     const handleQuickCreate = async (title: string, status: TaskStatus) => {
         try {
-            const task = await createTask({
+            const taskData = {
                 project_id: projectId,
                 title: title.trim(),
                 status: status,
-            });
+                is_completed: status === 'done', // Set is_completed based on status
+            };
+
+            const task = await createTask(taskData);
             setTasks((prev) => ({
                 ...prev,
                 [status]: [task, ...prev[status]],
@@ -174,12 +181,16 @@ export function TasksClient({
             const task = tasks[oldStatus].find((t) => t.id === taskId);
             if (!task) return;
 
-            await updateTaskStatus(taskId, projectId, newStatus);
+            // Update the task status and is_completed field
+            const updatedTask = await updateTask(taskId, projectId, {
+                status: newStatus,
+                is_completed: newStatus === 'done'
+            });
 
             setTasks((prev) => ({
                 ...prev,
                 [oldStatus]: prev[oldStatus].filter((t) => t.id !== taskId),
-                [newStatus]: [{ ...task, status: newStatus }, ...prev[newStatus]],
+                [newStatus]: [{ ...task, status: newStatus, is_completed: newStatus === 'done' }, ...prev[newStatus]],
             }));
         } catch (err) {
             console.error('Failed to update task status:', err);
@@ -195,6 +206,27 @@ export function TasksClient({
             }));
         } catch (err) {
             console.error('Failed to delete task:', err);
+        }
+    };
+
+    const handleTaskUpdate = async (taskId: number, status: TaskStatus, updates: Partial<Task>) => {
+        try {
+            if (!taskId || !status) return;
+
+            // Update the task on the server
+            const updatedTask = await updateTask(taskId, projectId, updates);
+
+            // Optimistic update
+            setTasks((prev) => {
+                const newTasks = { ...prev };
+                const taskIndex = newTasks[status].findIndex((t) => t.id === taskId);
+                if (taskIndex !== -1) {
+                    newTasks[status][taskIndex] = { ...newTasks[status][taskIndex], ...updatedTask };
+                }
+                return newTasks;
+            });
+        } catch (err) {
+            console.error('Failed to update task:', err);
         }
     };
 
@@ -380,73 +412,21 @@ export function TasksClient({
                         onStatusChange={handleStatusChange}
                         onDelete={handleDelete}
                         onQuickCreate={handleQuickCreate}
+                        onTaskUpdate={handleTaskUpdate}
                     />
                 </Card>
             ) : (
                 /* Kanban View */
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {(['now', 'next', 'later', 'done'] as TaskStatus[]).map((status) => (
-                        <div key={status} className="space-y-3">
-                            <div className="flex items-center gap-2 p-2">
-                                <div className={`p-1.5 rounded ${STATUS_CONFIG[status].color}`}>
-                                    {STATUS_CONFIG[status].icon}
-                                </div>
-                                <span className="font-medium">{STATUS_CONFIG[status].label}</span>
-                                <Badge variant="secondary" className="ml-auto">
-                                    {filteredTasks[status].length}
-                                </Badge>
-                            </div>
-                            <div className="space-y-2">
-                                {filteredTasks[status].map((task) => (
-                                    <Card key={task.id} className="p-3">
-                                        <p className="font-medium text-sm">{task.title}</p>
-                                        {task.description && (
-                                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                                {task.description}
-                                            </p>
-                                        )}
-                                        <div className="flex items-center gap-2 mt-2 flex-wrap">
-                                            {task.category && (
-                                                <Badge variant="outline" className="text-xs">
-                                                    {task.category}
-                                                </Badge>
-                                            )}
-                                            {task.priority && (
-                                                <Badge
-                                                    variant={task.priority === 'high' ? 'destructive' : 'secondary'}
-                                                    className="text-xs"
-                                                >
-                                                    {task.priority}
-                                                </Badge>
-                                            )}
-                                            {canEdit && status !== 'done' && (
-                                                <Select
-                                                    value={status}
-                                                    onValueChange={(v) => handleStatusChange(task.id, status, v as TaskStatus)}
-                                                >
-                                                    <SelectTrigger className="h-6 text-xs w-20">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="now">Now</SelectItem>
-                                                        <SelectItem value="next">Next</SelectItem>
-                                                        <SelectItem value="later">Later</SelectItem>
-                                                        <SelectItem value="done">Done</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            )}
-                                        </div>
-                                    </Card>
-                                ))}
-                                {filteredTasks[status].length === 0 && (
-                                    <div className="text-center py-4 text-xs text-muted-foreground border border-dashed rounded-md">
-                                        No tasks
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                <TasksKanbanBoard
+                    tasks={filteredTasks}
+                    projectId={projectId}
+                    onStatusChange={handleStatusChange}
+                    onTaskUpdate={handleTaskUpdate}
+                    onDelete={handleDelete}
+                    onEditTask={(task) => {
+                        console.log('Edit task', task);
+                    }}
+                />
             )}
         </div>
     );

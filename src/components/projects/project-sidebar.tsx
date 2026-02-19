@@ -9,7 +9,8 @@ import {
     CheckSquare,
     FileText,
     Lock,
-    Settings
+    Settings,
+    TrendingUp
 } from 'lucide-react';
 import {
     Sidebar,
@@ -35,6 +36,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
     { href: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: 'tasks', label: 'Tasks', icon: CheckSquare },
+    { href: 'growth', label: 'Growth', icon: TrendingUp },
     { href: 'versions', label: 'Versions', icon: Layers },
     { href: 'links', label: 'Links', icon: Link2 },
     { href: 'notes', label: 'Notes', icon: FileText },

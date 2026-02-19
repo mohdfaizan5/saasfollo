@@ -50,6 +50,8 @@ export interface Task {
   category: TaskCategory;
   due_date: string | null;
   assignee: string | null;
+  assigned_to?: string | null;
+  is_completed: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -117,6 +119,7 @@ export interface TaskInsert {
   category?: TaskCategory;
   due_date?: string | null;
   assignee?: string | null;
+  is_completed?: boolean;
 }
 
 export interface LinkInsert {
@@ -170,6 +173,7 @@ export interface TaskUpdate {
   category?: TaskCategory;
   due_date?: string | null;
   assignee?: string | null;
+  is_completed?: boolean;
 }
 
 export interface LinkUpdate {

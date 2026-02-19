@@ -25,8 +25,8 @@ export default async function TasksPage({ params, searchParams }: TasksPageProps
         getProjectCollaborators(projectIdNum),
     ]);
 
-    // Validate view param
-    const initialView: TaskView = view === 'kanban' ? 'kanban' : 'todo';
+    // Validate view param - default to kanban
+    const initialView: TaskView = view === 'todo' ? 'todo' : 'kanban';
 
     return (
         <TasksClient
