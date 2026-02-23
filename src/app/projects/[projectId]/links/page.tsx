@@ -7,9 +7,9 @@ interface LinksPageProps {
 
 export default async function LinksPage({ params }: LinksPageProps) {
     const { projectId } = await params;
-    const projectIdNum = parseInt(projectId, 10);
 
-    const links = await getLinks(projectIdNum);
+    // projectId is now the nanoid string
+    const links = await getLinks(projectId);
 
-    return <LinksClient initialLinks={links} projectId={projectIdNum} />;
+    return <LinksClient initialLinks={links} projectId={projectId} />;
 }

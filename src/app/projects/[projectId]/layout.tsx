@@ -34,11 +34,11 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
         redirect('/auth/login');
     }
 
+    // projectId from URL is now the nanoid string - no parseInt needed
     const { projectId } = await params;
-    const projectIdNum = parseInt(projectId, 10);
     const [project, userRole] = await Promise.all([
-        getProject(projectIdNum),
-        getUserProjectRole(projectIdNum),
+        getProject(projectId),
+        getUserProjectRole(projectId),
     ]);
 
     if (!project || !userRole) {
@@ -70,7 +70,7 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
                         </div>
                         <UserProfileDropdown email={user.email!} />
                     </header>
-                    <main className="flex-1 overflow-auto p-4">
+                    <main className="flex-1 overflow-auto p-6">
                         {children}
                     </main>
                 </SidebarInset>

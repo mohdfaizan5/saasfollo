@@ -1,3 +1,8 @@
+/**
+ * Server actions for Versions
+ * Uses project nanoid for project lookups, version nanoid for version lookups.
+ * Internal FK references still use numeric IDs for database consistency.
+ */
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -5,10 +10,28 @@ import { createClient } from '@/lib/server';
 import type { Version, VersionInsert, VersionUpdate } from '@/lib/types/database';
 
 /**
- * Get all versions for a project
+ * Helper: resolve a project nanoid to its internal numeric id
  */
-export async function getVersions(projectId: number): Promise<Version[]> {
+async function resolveProjectId(projectNanoid: string): Promise<number> {
     const supabase = await createClient();
+    const { data, error } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('nanoid', projectNanoid)
+        .single();
+
+    if (error || !data) {
+        throw new Error('Project not found');
+    }
+    return data.id;
+}
+
+/**
+ * Get all versions for a project (by project nanoid)
+ */
+export async function getVersions(projectNanoid: string): Promise<Version[]> {
+    const supabase = await createClient();
+    const projectId = await resolveProjectId(projectNanoid);
 
     const { data, error } = await supabase
         .from('versions')
@@ -25,15 +48,15 @@ export async function getVersions(projectId: number): Promise<Version[]> {
 }
 
 /**
- * Get a single version by ID
+ * Get a single version by its nanoid
  */
-export async function getVersion(versionId: number): Promise<Version | null> {
+export async function getVersion(versionNanoid: string): Promise<Version | null> {
     const supabase = await createClient();
 
     const { data, error } = await supabase
         .from('versions')
         .select('*')
-        .eq('id', versionId)
+        .eq('nanoid', versionNanoid)
         .single();
 
     if (error) {
@@ -49,13 +72,18 @@ export async function getVersion(versionId: number): Promise<Version | null> {
 
 /**
  * Create a new version for a project
+ * Accepts project nanoid, resolves to numeric id for the FK
  */
-export async function createVersion(version: VersionInsert): Promise<Version> {
+export async function createVersion(projectNanoid: string, version: Omit<VersionInsert, 'project_id'>): Promise<Version> {
     const supabase = await createClient();
+    const projectId = await resolveProjectId(projectNanoid);
 
     const { data, error } = await supabase
         .from('versions')
-        .insert(version)
+        .insert({
+            ...version,
+            project_id: projectId,
+        })
         .select()
         .single();
 
@@ -64,14 +92,14 @@ export async function createVersion(version: VersionInsert): Promise<Version> {
         throw new Error('Failed to create version');
     }
 
-    revalidatePath(`/projects/${version.project_id}`);
+    revalidatePath(`/projects/${projectNanoid}`);
     return data;
 }
 
 /**
- * Update an existing version
+ * Update an existing version (lookup by version nanoid)
  */
-export async function updateVersion(versionId: number, projectId: number, updates: VersionUpdate): Promise<Version> {
+export async function updateVersion(versionNanoid: string, projectNanoid: string, updates: VersionUpdate): Promise<Version> {
     const supabase = await createClient();
 
     const { data, error } = await supabase
@@ -80,7 +108,7 @@ export async function updateVersion(versionId: number, projectId: number, update
             ...updates,
             updated_at: new Date().toISOString(),
         })
-        .eq('id', versionId)
+        .eq('nanoid', versionNanoid)
         .select()
         .single();
 
@@ -89,34 +117,47 @@ export async function updateVersion(versionId: number, projectId: number, update
         throw new Error('Failed to update version');
     }
 
-    revalidatePath(`/projects/${projectId}`);
+    revalidatePath(`/projects/${projectNanoid}`);
     return data;
 }
 
 /**
- * Delete a version
+ * Delete a version (lookup by version nanoid)
  */
-export async function deleteVersion(versionId: number, projectId: number): Promise<void> {
+export async function deleteVersion(versionNanoid: string, projectNanoid: string): Promise<void> {
     const supabase = await createClient();
 
     const { error } = await supabase
         .from('versions')
         .delete()
-        .eq('id', versionId);
+        .eq('nanoid', versionNanoid);
 
     if (error) {
         console.error('Error deleting version:', error);
         throw new Error('Failed to delete version');
     }
 
-    revalidatePath(`/projects/${projectId}`);
+    revalidatePath(`/projects/${projectNanoid}`);
 }
 
 /**
  * Set a version as active (and deactivate others)
+ * Uses version nanoid for the target, project nanoid for project-level operations
  */
-export async function setVersionActive(versionId: number, projectId: number): Promise<void> {
+export async function setVersionActive(versionNanoid: string, projectNanoid: string): Promise<void> {
     const supabase = await createClient();
+    const projectId = await resolveProjectId(projectNanoid);
+
+    // Get the version's numeric id for the FK update
+    const { data: version } = await supabase
+        .from('versions')
+        .select('id')
+        .eq('nanoid', versionNanoid)
+        .single();
+
+    if (!version) {
+        throw new Error('Version not found');
+    }
 
     // First, set all versions of this project to inactive
     const { error: deactivateError } = await supabase
@@ -133,23 +174,23 @@ export async function setVersionActive(versionId: number, projectId: number): Pr
     const { error: activateError } = await supabase
         .from('versions')
         .update({ status: 'active', updated_at: new Date().toISOString() })
-        .eq('id', versionId);
+        .eq('nanoid', versionNanoid);
 
     if (activateError) {
         console.error('Error activating version:', activateError);
         throw new Error('Failed to activate version');
     }
 
-    // Update the project's active_version_id
+    // Update the project's active_version_id (uses numeric id for FK)
     const { error: projectError } = await supabase
         .from('projects')
-        .update({ active_version_id: versionId, updated_at: new Date().toISOString() })
-        .eq('id', projectId);
+        .update({ active_version_id: version.id, updated_at: new Date().toISOString() })
+        .eq('nanoid', projectNanoid);
 
     if (projectError) {
         console.error('Error updating project active version:', projectError);
         throw new Error('Failed to update project');
     }
 
-    revalidatePath(`/projects/${projectId}`);
+    revalidatePath(`/projects/${projectNanoid}`);
 }

@@ -8,14 +8,13 @@ interface NotePageProps {
 
 export default async function NotePage({ params }: NotePageProps) {
     const { projectId, noteId } = await params;
-    const projectIdNum = parseInt(projectId, 10);
-    const noteIdNum = parseInt(noteId, 10);
 
-    const note = await getNote(noteIdNum);
+    // noteId is now the nanoid string - pass directly
+    const note = await getNote(noteId);
 
     if (!note) {
         notFound();
     }
 
-    return <NoteEditor note={note} projectId={projectIdNum} />;
+    return <NoteEditor note={note} projectId={projectId} />;
 }

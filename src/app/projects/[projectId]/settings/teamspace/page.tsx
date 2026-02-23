@@ -10,7 +10,7 @@ interface TeamspaceSettingsPageProps {
 
 export default async function TeamspaceSettingsPage({ params }: TeamspaceSettingsPageProps) {
     const { projectId } = await params;
-    const project = await getProject(parseInt(projectId, 10));
+    const project = await getProject(projectId);
 
     if (!project) notFound();
 
@@ -20,7 +20,8 @@ export default async function TeamspaceSettingsPage({ params }: TeamspaceSetting
 
     if (!user) redirect('/auth/login');
 
-    const collaborators = await getProjectCollaborators(project.id);
+    // Use project nanoid for collaborator lookup
+    const collaborators = await getProjectCollaborators(projectId);
 
     return (
         <div className="space-y-8">
@@ -32,7 +33,7 @@ export default async function TeamspaceSettingsPage({ params }: TeamspaceSetting
             </div>
 
             <CollaboratorsClient
-                projectId={project.id}
+                projectId={projectId}
                 collaborators={collaborators}
                 currentUserEmail={user.email || ''}
             />

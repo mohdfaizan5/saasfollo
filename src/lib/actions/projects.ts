@@ -1,3 +1,8 @@
+/**
+ * Server actions for Projects
+ * All public-facing lookups now use the `nanoid` field instead of numeric `id`.
+ * Internal FK references (active_version_id, etc.) still use numeric ids.
+ */
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -8,30 +13,32 @@ export type UserProjectRole = CollaboratorRole | 'owner';
 
 /**
  * Get the current user's role for a specific project
- * Returns 'owner' for project owners, the collaborator role, or null if no access
+ * Accepts nanoid (string) as the project identifier
  */
-export async function getUserProjectRole(projectId: number): Promise<UserProjectRole | null> {
+export async function getUserProjectRole(projectNanoid: string): Promise<UserProjectRole | null> {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) return null;
 
-    // Check if user is the project owner
+    // Look up project by nanoid
     const { data: project } = await supabase
         .from('projects')
-        .select('user_id')
-        .eq('id', projectId)
+        .select('id, user_id')
+        .eq('nanoid', projectNanoid)
         .single();
 
-    if (project?.user_id === user.id) {
+    if (!project) return null;
+
+    if (project.user_id === user.id) {
         return 'owner';
     }
 
-    // Check if user is a collaborator
+    // Check if user is a collaborator (uses internal numeric id for FK join)
     const { data: collaborator } = await supabase
         .from('project_collaborators')
         .select('role')
-        .eq('project_id', projectId)
+        .eq('project_id', project.id)
         .eq('user_id', user.id)
         .single();
 
@@ -69,15 +76,15 @@ export async function getProjects(): Promise<ProjectWithStats[]> {
 }
 
 /**
- * Get a single project by ID
+ * Get a single project by nanoid
  */
-export async function getProject(projectId: number): Promise<Project | null> {
+export async function getProject(projectNanoid: string): Promise<Project | null> {
     const supabase = await createClient();
 
     const { data, error } = await supabase
         .from('projects')
         .select('*')
-        .eq('id', projectId)
+        .eq('nanoid', projectNanoid)
         .single();
 
     if (error) {
@@ -92,9 +99,9 @@ export async function getProject(projectId: number): Promise<Project | null> {
 }
 
 /**
- * Get a project with its active version
+ * Get a project with its active version by nanoid
  */
-export async function getProjectWithActiveVersion(projectId: number): Promise<ProjectWithStats | null> {
+export async function getProjectWithActiveVersion(projectNanoid: string): Promise<ProjectWithStats | null> {
     const supabase = await createClient();
 
     const { data, error } = await supabase
@@ -103,7 +110,7 @@ export async function getProjectWithActiveVersion(projectId: number): Promise<Pr
       *,
       active_version:versions!fk_projects_active_version(*)
     `)
-        .eq('id', projectId)
+        .eq('nanoid', projectNanoid)
         .single();
 
     if (error) {
@@ -122,6 +129,7 @@ export async function getProjectWithActiveVersion(projectId: number): Promise<Pr
 
 /**
  * Create a new project
+ * Returns the created project (which will have an auto-generated nanoid)
  */
 export async function createProject(project: ProjectInsert): Promise<Project> {
     const supabase = await createClient();
@@ -150,9 +158,9 @@ export async function createProject(project: ProjectInsert): Promise<Project> {
 }
 
 /**
- * Update an existing project
+ * Update an existing project (lookup by nanoid)
  */
-export async function updateProject(projectId: number, updates: ProjectUpdate): Promise<Project> {
+export async function updateProject(projectNanoid: string, updates: ProjectUpdate): Promise<Project> {
     const supabase = await createClient();
 
     const { data, error } = await supabase
@@ -161,7 +169,7 @@ export async function updateProject(projectId: number, updates: ProjectUpdate): 
             ...updates,
             updated_at: new Date().toISOString(),
         })
-        .eq('id', projectId)
+        .eq('nanoid', projectNanoid)
         .select()
         .single();
 
@@ -171,20 +179,20 @@ export async function updateProject(projectId: number, updates: ProjectUpdate): 
     }
 
     revalidatePath('/projects');
-    revalidatePath(`/projects/${projectId}`);
+    revalidatePath(`/projects/${projectNanoid}`);
     return data;
 }
 
 /**
- * Delete a project
+ * Delete a project (lookup by nanoid)
  */
-export async function deleteProject(projectId: number): Promise<void> {
+export async function deleteProject(projectNanoid: string): Promise<void> {
     const supabase = await createClient();
 
     const { error } = await supabase
         .from('projects')
         .delete()
-        .eq('id', projectId);
+        .eq('nanoid', projectNanoid);
 
     if (error) {
         console.error('Error deleting project:', error);
@@ -195,16 +203,16 @@ export async function deleteProject(projectId: number): Promise<void> {
 }
 
 /**
- * Toggle project pinned status
+ * Toggle project pinned status (lookup by nanoid)
  */
-export async function toggleProjectPin(projectId: number): Promise<Project> {
+export async function toggleProjectPin(projectNanoid: string): Promise<Project> {
     const supabase = await createClient();
 
     // First get the current pinned status
     const { data: project, error: fetchError } = await supabase
         .from('projects')
         .select('is_pinned')
-        .eq('id', projectId)
+        .eq('nanoid', projectNanoid)
         .single();
 
     if (fetchError) {
@@ -219,7 +227,7 @@ export async function toggleProjectPin(projectId: number): Promise<Project> {
             is_pinned: !project.is_pinned,
             updated_at: new Date().toISOString(),
         })
-        .eq('id', projectId)
+        .eq('nanoid', projectNanoid)
         .select()
         .single();
 
@@ -234,8 +242,9 @@ export async function toggleProjectPin(projectId: number): Promise<Project> {
 
 /**
  * Set the active version for a project
+ * Uses nanoid for project lookup, numeric id for version FK
  */
-export async function setActiveVersion(projectId: number, versionId: number | null): Promise<Project> {
+export async function setActiveVersion(projectNanoid: string, versionId: number | null): Promise<Project> {
     const supabase = await createClient();
 
     const { data, error } = await supabase
@@ -244,7 +253,7 @@ export async function setActiveVersion(projectId: number, versionId: number | nu
             active_version_id: versionId,
             updated_at: new Date().toISOString(),
         })
-        .eq('id', projectId)
+        .eq('nanoid', projectNanoid)
         .select()
         .single();
 
@@ -254,15 +263,14 @@ export async function setActiveVersion(projectId: number, versionId: number | nu
     }
 
     revalidatePath('/projects');
-    revalidatePath(`/projects/${projectId}`);
+    revalidatePath(`/projects/${projectNanoid}`);
     return data;
 }
 
 /**
- * Upload a project icon
- * Stores the file in Supabase Storage and updates the project's icon_url
+ * Upload a project icon (lookup by nanoid)
  */
-export async function uploadProjectIcon(projectId: number, formData: FormData): Promise<Project> {
+export async function uploadProjectIcon(projectNanoid: string, formData: FormData): Promise<Project> {
     const supabase = await createClient();
 
     const { data: userData } = await supabase.auth.getUser();
@@ -271,7 +279,7 @@ export async function uploadProjectIcon(projectId: number, formData: FormData): 
     }
 
     // Verify user has permission to update this project
-    const role = await getUserProjectRole(projectId);
+    const role = await getUserProjectRole(projectNanoid);
     if (!role || role === 'reader') {
         throw new Error('You do not have permission to update this project');
     }
@@ -295,13 +303,13 @@ export async function uploadProjectIcon(projectId: number, formData: FormData): 
     // Get current project to delete old icon if exists
     const { data: currentProject } = await supabase
         .from('projects')
-        .select('icon_url')
-        .eq('id', projectId)
+        .select('icon_url, nanoid')
+        .eq('nanoid', projectNanoid)
         .single();
 
-    // Generate unique filename
+    // Generate unique filename using nanoid
     const fileExt = file.name.split('.').pop()?.toLowerCase() || 'png';
-    const fileName = `${projectId}/${Date.now()}-icon.${fileExt}`;
+    const fileName = `${projectNanoid}/${Date.now()}-icon.${fileExt}`;
 
     // Upload to Supabase Storage
     const { error: uploadError } = await supabase.storage
@@ -324,7 +332,6 @@ export async function uploadProjectIcon(projectId: number, formData: FormData): 
     // Delete old icon if exists
     if (currentProject?.icon_url) {
         try {
-            // Extract file path from URL
             const oldUrl = new URL(currentProject.icon_url);
             const pathParts = oldUrl.pathname.split('/storage/v1/object/public/project-icons/');
             if (pathParts.length > 1) {
@@ -333,7 +340,6 @@ export async function uploadProjectIcon(projectId: number, formData: FormData): 
                     .remove([decodeURIComponent(pathParts[1])]);
             }
         } catch {
-            // Ignore errors deleting old icon
             console.warn('Could not delete old icon');
         }
     }
@@ -345,7 +351,7 @@ export async function uploadProjectIcon(projectId: number, formData: FormData): 
             icon_url: urlData.publicUrl,
             updated_at: new Date().toISOString(),
         })
-        .eq('id', projectId)
+        .eq('nanoid', projectNanoid)
         .select()
         .single();
 
@@ -355,15 +361,14 @@ export async function uploadProjectIcon(projectId: number, formData: FormData): 
     }
 
     revalidatePath('/projects');
-    revalidatePath(`/projects/${projectId}`);
+    revalidatePath(`/projects/${projectNanoid}`);
     return data;
 }
 
 /**
- * Delete a project icon
- * Removes the file from storage and clears the icon_url
+ * Delete a project icon (lookup by nanoid)
  */
-export async function deleteProjectIcon(projectId: number): Promise<Project> {
+export async function deleteProjectIcon(projectNanoid: string): Promise<Project> {
     const supabase = await createClient();
 
     const { data: userData } = await supabase.auth.getUser();
@@ -371,8 +376,8 @@ export async function deleteProjectIcon(projectId: number): Promise<Project> {
         throw new Error('Not authenticated');
     }
 
-    // Verify user has permission to update this project
-    const role = await getUserProjectRole(projectId);
+    // Verify user has permission
+    const role = await getUserProjectRole(projectNanoid);
     if (!role || role === 'reader') {
         throw new Error('You do not have permission to update this project');
     }
@@ -381,7 +386,7 @@ export async function deleteProjectIcon(projectId: number): Promise<Project> {
     const { data: currentProject } = await supabase
         .from('projects')
         .select('icon_url')
-        .eq('id', projectId)
+        .eq('nanoid', projectNanoid)
         .single();
 
     // Delete icon from storage if exists
@@ -406,7 +411,7 @@ export async function deleteProjectIcon(projectId: number): Promise<Project> {
             icon_url: null,
             updated_at: new Date().toISOString(),
         })
-        .eq('id', projectId)
+        .eq('nanoid', projectNanoid)
         .select()
         .single();
 
@@ -416,6 +421,6 @@ export async function deleteProjectIcon(projectId: number): Promise<Project> {
     }
 
     revalidatePath('/projects');
-    revalidatePath(`/projects/${projectId}`);
+    revalidatePath(`/projects/${projectNanoid}`);
     return data;
 }

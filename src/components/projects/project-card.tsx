@@ -19,14 +19,14 @@ export function ProjectCard({ project }: ProjectCardProps) {
     const [isLoading, setIsLoading] = useState(false);
 
     const handleCardClick = () => {
-        router.push(`/projects/${project.id}/dashboard`);
+        router.push(`/projects/${project.nanoid}/dashboard`);
     };
 
     const handlePinToggle = async (e: React.MouseEvent) => {
         e.stopPropagation();
         setIsLoading(true);
         try {
-            await toggleProjectPin(project.id);
+            await toggleProjectPin(project.nanoid);
         } catch (error) {
             console.error('Failed to toggle pin:', error);
         } finally {
@@ -40,7 +40,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
         }
         setIsLoading(true);
         try {
-            await deleteProject(project.id);
+            await deleteProject(project.nanoid);
         } catch (error) {
             console.error('Failed to delete project:', error);
         } finally {
@@ -130,7 +130,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
                         <MoreVertical className="h-4 w-4" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenuItem onClick={() => router.push(`/projects/${project.id}/dashboard`)}>
+                        <DropdownMenuItem onClick={() => router.push(`/projects/${project.nanoid}/dashboard`)}>
                             <Pencil className="h-4 w-4 mr-2" />
                             Open Project
                         </DropdownMenuItem>

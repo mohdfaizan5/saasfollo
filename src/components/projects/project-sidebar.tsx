@@ -3,16 +3,6 @@
 import * as React from "react"
 import { usePathname, useRouter } from 'next/navigation';
 import {
-    LayoutDashboard,
-    Link2,
-    Layers,
-    CheckSquare,
-    FileText,
-    Lock,
-    Settings,
-    TrendingUp
-} from 'lucide-react';
-import {
     Sidebar,
     SidebarContent,
     SidebarFooter,
@@ -25,21 +15,32 @@ import {
 import Logo from '@/components/logo';
 import type { Project } from '@/lib/types/database';
 import type { UserProjectRole } from '@/lib/actions/projects';
+import {
+    SquaresFourIcon,
+    CheckSquareIcon,
+    TrendUpIcon,
+    CubeIcon,
+    LinkIcon,
+    FileTextIcon,
+    GearIcon
+} from '@phosphor-icons/react';
 
 interface NavItem {
     href: string;
     label: string;
-    icon: React.ComponentType;
+    icon: React.ComponentType<any>;
     hideForReader?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
-    { href: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: 'tasks', label: 'Tasks', icon: CheckSquare },
-    { href: 'growth', label: 'Growth', icon: TrendingUp },
-    { href: 'versions', label: 'Versions', icon: Layers },
-    { href: 'links', label: 'Links', icon: Link2 },
-    { href: 'notes', label: 'Notes', icon: FileText },
+    { href: 'dashboard', label: 'Dashboard', icon: SquaresFourIcon },
+    // NOTE: Changed from 'tasks' to 'build' for frontend nomenclature while backend remains unchanged
+    // The href is now 'build' but the underlying backend calls still use the original 'tasks' logic
+    { href: 'build', label: 'Build', icon: CheckSquareIcon },
+    { href: 'growth', label: 'Growth', icon: TrendUpIcon },
+    { href: 'versions', label: 'Versions', icon: CubeIcon },
+    { href: 'links', label: 'Links', icon: LinkIcon },
+    { href: 'notes', label: 'Notes', icon: FileTextIcon },
     // { href: 'secrets', label: 'Secrets', icon: Lock, hideForReader: true },
 ];
 
@@ -51,7 +52,7 @@ interface ProjectSidebarProps {
 export function ProjectSidebar({ project, userRole = 'owner' }: ProjectSidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
-    const baseUrl = `/projects/${project.id}`;
+    const baseUrl = `/projects/${project.nanoid}`;
     const isReader = userRole === 'reader';
     const canManage = userRole === 'owner';
 
@@ -110,8 +111,8 @@ export function ProjectSidebar({ project, userRole = 'owner' }: ProjectSidebarPr
                                 tooltip={item.label}
                                 onClick={() => router.push(`${baseUrl}/${item.href}`)}
                             >
-                                <item.icon />
-                                <span>{item.label}</span>
+                                <item.icon size={56} weight="duotone"  />
+                                <span>{item.label} </span>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                     ))}
@@ -126,7 +127,7 @@ export function ProjectSidebar({ project, userRole = 'owner' }: ProjectSidebarPr
                                 tooltip="Settings"
                                 onClick={() => router.push(`${baseUrl}/settings`)}
                             >
-                                <Settings />
+                                <GearIcon weight="duotone" />
                                 <span>Settings</span>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

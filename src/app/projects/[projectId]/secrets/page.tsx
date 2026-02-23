@@ -7,17 +7,17 @@ interface SecretsPageProps {
 
 export default async function SecretsPage({ params }: SecretsPageProps) {
     const { projectId } = await params;
-    const projectIdNum = parseInt(projectId, 10);
 
+    // projectId is now the nanoid string
     const [secrets, hasPin] = await Promise.all([
-        getSecrets(projectIdNum),
+        getSecrets(projectId),
         hasPinSetup(),
     ]);
 
     return (
         <SecretsClient
             initialSecrets={secrets}
-            projectId={projectIdNum}
+            projectId={projectId}
             hasPinInitially={hasPin}
         />
     );

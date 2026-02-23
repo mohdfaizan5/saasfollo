@@ -5,6 +5,7 @@ import { Link2, Plus, Trash2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { createLinksFromString, deleteLink } from '@/lib/actions/links';
 import { useProjectRole } from '@/hooks/use-project-role';
 import type { Link as LinkType } from '@/lib/types/database';
@@ -187,8 +188,8 @@ function getBentoSpan(index: number, total: number): string {
 
 interface LinkCardProps {
     link: LinkType;
-    projectId: number;
-    onDelete: (id: number) => void;
+    projectId: string;
+    onDelete: (id: string) => void;
     span: string;
     isFeatured: boolean;
     canEdit: boolean;
@@ -221,8 +222,8 @@ function LinkCard({ link, projectId, onDelete, span, isFeatured, canEdit }: Link
         e.stopPropagation();
         setIsDeleting(true);
         try {
-            await deleteLink(link.id, projectId);
-            onDelete(link.id);
+            await deleteLink(link.nanoid, projectId);
+            onDelete(link.nanoid);
         } catch (error) {
             console.error('Failed to delete link:', error);
         } finally {
@@ -327,7 +328,7 @@ function LinkCard({ link, projectId, onDelete, span, isFeatured, canEdit }: Link
 
 interface LinksClientProps {
     initialLinks: LinkType[];
-    projectId: number;
+    projectId: string;
 }
 
 export function LinksClient({ initialLinks, projectId }: LinksClientProps) {
@@ -358,12 +359,12 @@ export function LinksClient({ initialLinks, projectId }: LinksClientProps) {
         }
     };
 
-    const handleDelete = (linkId: number) => {
-        setLinks((prev) => prev.filter((l) => l.id !== linkId));
+    const handleDelete = (linkNanoid: string) => {
+        setLinks((prev) => prev.filter((l) => l.nanoid !== linkNanoid));
     };
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="space-y-4">
             {/* Header */}
             <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
@@ -418,9 +419,14 @@ export function LinksClient({ initialLinks, projectId }: LinksClientProps) {
                 </div>
             ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 auto-rows-fr">
+                    {isAdding && Array.from({ length: 4 }).map((_, index) => (
+                        <div key={`loading-${index}`} className="col-span-1">
+                            <Skeleton className="h-36 w-full rounded-2xl" />
+                        </div>
+                    ))}
                     {links.map((link, index) => (
                         <LinkCard
-                            key={link.id}
+                            key={link.nanoid}
                             link={link}
                             projectId={projectId}
                             onDelete={handleDelete}

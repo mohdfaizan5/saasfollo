@@ -13,7 +13,7 @@ import type { OutputData } from '@editorjs/editorjs';
 
 interface NoteEditorProps {
     note: Note;
-    projectId: number;
+    projectId: string;
 }
 
 export function NoteEditor({ note, projectId }: NoteEditorProps) {
@@ -48,7 +48,7 @@ export function NoteEditor({ note, projectId }: NoteEditorProps) {
         setIsSaving(true);
         try {
             const content = editorData ? stringifyEditorContent(editorData) : null;
-            await updateNote(note.id, projectId, {
+            await updateNote(note.nanoid, projectId, {
                 title,
                 content,
             });
@@ -58,7 +58,7 @@ export function NoteEditor({ note, projectId }: NoteEditorProps) {
         } finally {
             setIsSaving(false);
         }
-    }, [note.id, projectId, title, editorData, canEdit]);
+    }, [note.nanoid, projectId, title, editorData, canEdit]);
 
     // Auto-save every 10 seconds if there are changes
     useEffect(() => {

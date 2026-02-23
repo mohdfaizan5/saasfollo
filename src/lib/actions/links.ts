@@ -1,3 +1,7 @@
+/**
+ * Server actions for Links
+ * Uses project nanoid for project lookups, link nanoid for individual link operations.
+ */
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -30,9 +34,7 @@ function extractLabel(url: string): string {
         const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
 
         if (pathParts.length > 0) {
-            // Use the last meaningful part of the path
             const lastPart = pathParts[pathParts.length - 1];
-            // Clean up common patterns
             if (lastPart && lastPart !== 'undefined' && !lastPart.includes('?')) {
                 return lastPart.replace(/[-_]/g, ' ').slice(0, 50);
             }
@@ -45,10 +47,28 @@ function extractLabel(url: string): string {
 }
 
 /**
- * Get all links for a project
+ * Helper: resolve a project nanoid to its internal numeric id
  */
-export async function getLinks(projectId: number): Promise<Link[]> {
+async function resolveProjectId(projectNanoid: string): Promise<number> {
     const supabase = await createClient();
+    const { data, error } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('nanoid', projectNanoid)
+        .single();
+
+    if (error || !data) {
+        throw new Error('Project not found');
+    }
+    return data.id;
+}
+
+/**
+ * Get all links for a project (by project nanoid)
+ */
+export async function getLinks(projectNanoid: string): Promise<Link[]> {
+    const supabase = await createClient();
+    const projectId = await resolveProjectId(projectNanoid);
 
     const { data, error } = await supabase
         .from('links')
@@ -66,9 +86,11 @@ export async function getLinks(projectId: number): Promise<Link[]> {
 
 /**
  * Create a single link
+ * Accepts project nanoid, resolves internally
  */
-export async function createLink(link: LinkInsert): Promise<Link> {
+export async function createLink(projectNanoid: string, link: Omit<LinkInsert, 'project_id'>): Promise<Link> {
     const supabase = await createClient();
+    const projectId = await resolveProjectId(projectNanoid);
 
     const detectedType = link.detected_type || detectLinkType(link.url);
     const label = link.label || extractLabel(link.url);
@@ -77,6 +99,7 @@ export async function createLink(link: LinkInsert): Promise<Link> {
         .from('links')
         .insert({
             ...link,
+            project_id: projectId,
             detected_type: detectedType,
             label,
         })
@@ -88,25 +111,25 @@ export async function createLink(link: LinkInsert): Promise<Link> {
         throw new Error('Failed to create link');
     }
 
-    revalidatePath(`/projects/${link.project_id}`);
+    revalidatePath(`/projects/${projectNanoid}`);
     return data;
 }
 
 /**
  * Create multiple links from a string (comma/space separated)
  */
-export async function createLinksFromString(projectId: number, urlString: string): Promise<Link[]> {
+export async function createLinksFromString(projectNanoid: string, urlString: string): Promise<Link[]> {
+    const projectId = await resolveProjectId(projectNanoid);
+
     // Split by comma, space, or newline
     const urls = urlString
         .split(/[,\s\n]+/)
         .map((url) => url.trim())
         .filter((url) => {
-            // Basic URL validation
             try {
                 new URL(url);
                 return true;
             } catch {
-                // Try adding https://
                 try {
                     new URL(`https://${url}`);
                     return true;
@@ -116,7 +139,6 @@ export async function createLinksFromString(projectId: number, urlString: string
             }
         })
         .map((url) => {
-            // Ensure URL has protocol
             if (!url.startsWith('http://') && !url.startsWith('https://')) {
                 return `https://${url}`;
             }
@@ -146,25 +168,25 @@ export async function createLinksFromString(projectId: number, urlString: string
         throw new Error('Failed to create links');
     }
 
-    revalidatePath(`/projects/${projectId}`);
+    revalidatePath(`/projects/${projectNanoid}`);
     return data || [];
 }
 
 /**
- * Delete a link
+ * Delete a link (lookup by link nanoid)
  */
-export async function deleteLink(linkId: number, projectId: number): Promise<void> {
+export async function deleteLink(linkNanoid: string, projectNanoid: string): Promise<void> {
     const supabase = await createClient();
 
     const { error } = await supabase
         .from('links')
         .delete()
-        .eq('id', linkId);
+        .eq('nanoid', linkNanoid);
 
     if (error) {
         console.error('Error deleting link:', error);
         throw new Error('Failed to delete link');
     }
 
-    revalidatePath(`/projects/${projectId}`);
+    revalidatePath(`/projects/${projectNanoid}`);
 }

@@ -28,7 +28,7 @@ export function ProjectIconUpload({ project }: ProjectIconUploadProps) {
             const formData = new FormData();
             formData.append('icon', file);
 
-            const updatedProject = await uploadProjectIcon(project.id, formData);
+            const updatedProject = await uploadProjectIcon(project.nanoid, formData);
             setCurrentIconUrl(updatedProject.icon_url);
         } catch (err) {
             console.error('Failed to upload icon:', err);
@@ -51,7 +51,7 @@ export function ProjectIconUpload({ project }: ProjectIconUploadProps) {
         setError(null);
 
         try {
-            await deleteProjectIcon(project.id);
+            await deleteProjectIcon(project.nanoid);
             setCurrentIconUrl(null);
         } catch (err) {
             console.error('Failed to delete icon:', err);
@@ -82,7 +82,7 @@ export function ProjectIconUpload({ project }: ProjectIconUploadProps) {
             const formData = new FormData();
             formData.append('icon', file);
 
-            const updatedProject = await uploadProjectIcon(project.id, formData);
+            const updatedProject = await uploadProjectIcon(project.nanoid, formData);
             setCurrentIconUrl(updatedProject.icon_url);
         } catch (err) {
             console.error('Failed to upload icon:', err);

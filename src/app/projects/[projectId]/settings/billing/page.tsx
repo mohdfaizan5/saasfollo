@@ -8,7 +8,7 @@ interface BillingSettingsPageProps {
 
 export default async function BillingSettingsPage({ params }: BillingSettingsPageProps) {
     const { projectId } = await params;
-    const project = await getProject(parseInt(projectId, 10));
+    const project = await getProject(projectId);
 
     if (!project) notFound();
 

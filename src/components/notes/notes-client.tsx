@@ -8,15 +8,17 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { createNote, createNoteFromTemplate, deleteNote } from '@/lib/actions/notes';
 import { NOTE_TEMPLATES, type NoteTemplateKey } from '@/lib/constants/note-templates';
 import { useProjectRole } from '@/hooks/use-project-role';
 import type { Note } from '@/lib/types/database';
+import { TargetIcon } from '@phosphor-icons/react';
 
 // Template card configuration with icons and colors
 const TEMPLATE_CONFIG: Record<NoteTemplateKey, { icon: React.ComponentType<{ className?: string }>; color: string; bgColor: string }> = {
-    icp: { icon: Target, color: 'text-purple-600', bgColor: 'bg-purple-100' },
+    icp: { icon: TargetIcon, color: 'text-purple-600', bgColor: 'bg-purple-100' },
     blank: { icon: FileText, color: 'text-gray-600', bgColor: 'bg-gray-100' },
     meetingNotes: { icon: Users, color: 'text-blue-600', bgColor: 'bg-blue-100' },
     productRequirements: { icon: ClipboardList, color: 'text-green-600', bgColor: 'bg-green-100' },
@@ -25,7 +27,7 @@ const TEMPLATE_CONFIG: Record<NoteTemplateKey, { icon: React.ComponentType<{ cla
 
 interface NotesClientProps {
     initialNotes: Note[];
-    projectId: number;
+    projectId: string;
 }
 
 // Helper to get preview text from note content (handles both plain text and potential JSON)
@@ -66,14 +68,13 @@ export function NotesClient({ initialNotes, projectId }: NotesClientProps) {
         setError(null);
 
         try {
-            const note = await createNote({
-                project_id: projectId,
+            const note = await createNote(projectId, {
                 title: newTitle.trim(),
             });
             setNotes((prev) => [note, ...prev]);
             setIsDialogOpen(false);
             setNewTitle('');
-            router.push(`/projects/${projectId}/notes/${note.id}`);
+            router.push(`/projects/${projectId}/notes/${note.nanoid}`);
         } catch (err) {
             console.error('Failed to create note:', err);
             setError('Failed to create note');
@@ -87,20 +88,20 @@ export function NotesClient({ initialNotes, projectId }: NotesClientProps) {
         try {
             const note = await createNoteFromTemplate(projectId, templateKey);
             setNotes((prev) => [note, ...prev]);
-            router.push(`/projects/${projectId}/notes/${note.id}`);
+            router.push(`/projects/${projectId}/notes/${note.nanoid}`);
         } catch (err) {
             console.error('Failed to create note from template:', err);
         }
     };
 
-    const handleDelete = async (noteId: number, e: React.MouseEvent) => {
+    const handleDelete = async (noteNanoid: string, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
         if (!canEdit) return;
         if (!confirm('Are you sure you want to delete this note?')) return;
         try {
-            await deleteNote(noteId, projectId);
-            setNotes((prev) => prev.filter((n) => n.id !== noteId));
+            await deleteNote(noteNanoid, projectId);
+            setNotes((prev) => prev.filter((n) => n.nanoid !== noteNanoid));
         } catch (err) {
             console.error('Failed to delete note:', err);
         }
@@ -109,9 +110,9 @@ export function NotesClient({ initialNotes, projectId }: NotesClientProps) {
     const templateKeys = Object.keys(NOTE_TEMPLATES) as NoteTemplateKey[];
 
     return (
-        <div className="p-6 space-y-8">
+        <div className="space-y-4">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between ">
                 <div className="flex items-center gap-4">
                     <div className="p-3 rounded-xl bg-linear-to-br from-primary/20 to-primary/5">
                         <FileText className="h-8 w-8 text-primary" />
@@ -172,10 +173,10 @@ export function NotesClient({ initialNotes, projectId }: NotesClientProps) {
                                 <button
                                     key={key}
                                     onClick={() => handleCreateFromTemplate(key)}
-                                    className="group flex flex-col items-start gap-3 p-4 rounded-xl border bg-card hover:bg-accent/50 hover:border-primary/30 transition-all duration-200 text-left hover:shadow-md"
+                                    className="group flex flex- items-start gap-3 p-4 rounded-xl border bg-card hover:bg-accent/50 hover:border-primary/30 transition-all duration-200 text-left hover:shadow-md"
                                 >
                                     <div className={`p-2.5 rounded-lg ${config.bgColor} group-hover:scale-110 transition-transform duration-200`}>
-                                        <IconComponent className={`h-5 w-5 ${config.color}`} />
+                                        <IconComponent  className={`h-5 w-5 ${config.color}`} />
                                     </div>
                                     <div>
                                         <p className="font-medium text-sm leading-tight">{template.title}</p>
@@ -191,7 +192,7 @@ export function NotesClient({ initialNotes, projectId }: NotesClientProps) {
             )}
 
             {/* Notes Masonry Grid */}
-            {notes.length === 0 ? (
+            {notes.length === 0 && !isCreating ? (
                 <div className="text-center py-16 text-muted-foreground">
                     <div className="inline-flex p-6 rounded-full bg-muted/50 mb-6">
                         <FileText className="h-12 w-12 opacity-50" />
@@ -203,10 +204,21 @@ export function NotesClient({ initialNotes, projectId }: NotesClientProps) {
                 </div>
             ) : (
                 <div className="notes-masonry">
+                    {isCreating && (
+                        <Card className="note-card p-5 bg-card mb-4 break-inside-avoid">
+                            <div className="space-y-3">
+                                <Skeleton className="h-5 w-2/3" />
+                                <Skeleton className="h-4 w-full" />
+                                <Skeleton className="h-4 w-11/12" />
+                                <Skeleton className="h-4 w-5/6" />
+                                <Skeleton className="h-3 w-24 mt-6" />
+                            </div>
+                        </Card>
+                    )}
                     {notes.map((note) => {
                         const preview = getPreviewText(note.content);
                         return (
-                            <Link key={note.id} href={`/projects/${projectId}/notes/${note.id}`}>
+                            <Link key={note.nanoid} href={`/projects/${projectId}/notes/${note.nanoid}`}>
                                 <Card className="note-card p-5 hover:shadow-lg transition-all duration-200 hover:border-primary/40 group cursor-pointer bg-card hover:-translate-y-1">
                                     <div className="flex items-start justify-between gap-2">
                                         <h3 className="font-semibold text-base leading-snug">{note.title}</h3>
@@ -215,7 +227,7 @@ export function NotesClient({ initialNotes, projectId }: NotesClientProps) {
                                                 variant="ghost"
                                                 size="sm"
                                                 className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
-                                                onClick={(e) => handleDelete(note.id, e)}
+                                                onClick={(e) => handleDelete(note.nanoid, e)}
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>

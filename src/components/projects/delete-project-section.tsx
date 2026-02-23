@@ -29,7 +29,7 @@ export function DeleteProjectSection({ project }: { project: Project }) {
 
         startTransition(async () => {
             try {
-                await deleteProject(project.id);
+                await deleteProject(project.nanoid);
                 setOpen(false);
                 router.push('/projects');
             } catch (error) {

@@ -17,7 +17,7 @@ import { addCollaborator, removeCollaborator, updateCollaboratorRole } from '@/l
 import { useProjectRole } from '@/hooks/use-project-role';
 
 interface CollaboratorsClientProps {
-    projectId: number;
+    projectId: string;
     collaborators: ProjectCollaborator[];
     currentUserEmail: string;
 }
@@ -46,13 +46,13 @@ export function CollaboratorsClient({ projectId, collaborators, currentUserEmail
         });
     };
 
-    const handleRemove = (id: number) => {
+    const handleRemove = (collaboratorNanoid: string) => {
         if (!confirm('Are you sure you want to remove this collaborator?')) return;
         setError('');
         setMessage('');
         startTransition(async () => {
             try {
-                await removeCollaborator(id, projectId);
+                await removeCollaborator(collaboratorNanoid, projectId);
                 setMessage('Collaborator removed');
             } catch (err: any) {
                 setError(err.message);
@@ -149,7 +149,7 @@ export function CollaboratorsClient({ projectId, collaborators, currentUserEmail
                                                 <Select
                                                     defaultValue={c.role}
                                                     onValueChange={(val) => {
-                                                        startTransition(() => updateCollaboratorRole(c.id, val as CollaboratorRole, projectId));
+                                                        startTransition(() => updateCollaboratorRole(c.nanoid, val as CollaboratorRole, projectId));
                                                     }}
                                                     disabled={isPending}
                                                 >
@@ -166,7 +166,7 @@ export function CollaboratorsClient({ projectId, collaborators, currentUserEmail
                                                     variant="ghost"
                                                     size="icon"
                                                     className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                                    onClick={() => handleRemove(c.id)}
+                                                    onClick={() => handleRemove(c.nanoid)}
                                                     disabled={isPending}
                                                 >
                                                     <Trash2 className="h-4 w-4" />

@@ -13,12 +13,12 @@ interface DashboardPageProps {
 
 export default async function DashboardPage({ params }: DashboardPageProps) {
     const { projectId } = await params;
-    const projectIdNum = parseInt(projectId, 10);
 
+    // projectId is now the nanoid string - pass directly
     const [project, taskCounts, recentTasks] = await Promise.all([
-        getProjectWithActiveVersion(projectIdNum),
-        getTaskCounts(projectIdNum),
-        getTasks(projectIdNum),
+        getProjectWithActiveVersion(projectId),
+        getTaskCounts(projectId),
+        getTasks(projectId),
     ]);
 
     if (!project) {
@@ -30,7 +30,7 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
     const completedPercent = totalTasks > 0 ? Math.round((taskCounts.done / totalTasks) * 100) : 0;
 
     return (
-        <div className="p-6 space-y-6 bg-[#F6F6F6] ">
+        <div className=" space-y-4 bg-[#F6F6F6] ">
             {/* Header */}
             <div>
                 <h1 className="text-2xl font-bold">{project.name}</h1>
@@ -119,7 +119,7 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
                             <Clock className="h-4 w-4 text-orange-500" />
                             Working On Now
                         </h2>
-                        <Link href={`/projects/${projectId}/tasks`}>
+                        <Link href={`/projects/${projectId}/build`}>
                             <Button variant="ghost" size="sm">View All</Button>
                         </Link>
                     </div>
@@ -127,7 +127,7 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
                     {nowTasks.length === 0 ? (
                         <div className="text-center py-8 text-muted-foreground">
                             <p className="mb-3">No tasks in progress</p>
-                            <Link href={`/projects/${projectId}/tasks`}>
+                            <Link href={`/projects/${projectId}/build`}>
                                 <Button variant="outline" size="sm">
                                     <Plus className="h-4 w-4 mr-2" />
                                     Add Task
@@ -160,7 +160,7 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
                 <Card className="p-5">
                     <h2 className="font-semibold mb-4">Quick Actions</h2>
                     <div className="grid grid-cols-2 gap-3">
-                        <Link href={`/projects/${projectId}/tasks`}>
+                        <Link href={`/projects/${projectId}/build`}>
                             <Button variant="outline" className="w-full justify-start">
                                 <CheckSquare className="h-4 w-4 mr-2" />
                                 Manage Tasks

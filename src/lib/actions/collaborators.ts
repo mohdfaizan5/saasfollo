@@ -1,11 +1,37 @@
+/**
+ * Server actions for Project Collaborators
+ * Uses project nanoid for project lookups, collaborator nanoid for individual operations.
+ */
 'use server';
 
 import { createClient } from '@/lib/server';
 import { revalidatePath } from 'next/cache';
 import type { ProjectCollaborator, CollaboratorRole } from '@/lib/types/database';
 
-export async function getProjectCollaborators(projectId: number): Promise<ProjectCollaborator[]> {
+/**
+ * Helper: resolve a project nanoid to its internal numeric id
+ */
+async function resolveProjectId(projectNanoid: string): Promise<number> {
     const supabase = await createClient();
+    const { data, error } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('nanoid', projectNanoid)
+        .single();
+
+    if (error || !data) {
+        throw new Error('Project not found');
+    }
+    return data.id;
+}
+
+/**
+ * Get all collaborators for a project (by project nanoid)
+ */
+export async function getProjectCollaborators(projectNanoid: string): Promise<ProjectCollaborator[]> {
+    const supabase = await createClient();
+    const projectId = await resolveProjectId(projectNanoid);
+
     const { data, error } = await supabase
         .from('project_collaborators')
         .select('*')
@@ -19,11 +45,15 @@ export async function getProjectCollaborators(projectId: number): Promise<Projec
     return data || [];
 }
 
-export async function addCollaborator(projectId: number, email: string, role: CollaboratorRole) {
+/**
+ * Add a collaborator to a project (by project nanoid)
+ */
+export async function addCollaborator(projectNanoid: string, email: string, role: CollaboratorRole) {
     const supabase = await createClient();
+    const projectId = await resolveProjectId(projectNanoid);
     const { data: { user: currentUser } } = await supabase.auth.getUser();
 
-    // 1. Resolve email to user_id using RPC
+    // Resolve email to user_id using RPC
     const { data: userId, error: rpcError } = await supabase.rpc('get_user_id_by_email', { user_email: email });
 
     if (rpcError) {
@@ -35,7 +65,7 @@ export async function addCollaborator(projectId: number, email: string, role: Co
         throw new Error('User not found. They must sign up for the app first.');
     }
 
-    // 2. Insert into project_collaborators
+    // Insert into project_collaborators
     const { error } = await supabase.from('project_collaborators').insert({
         project_id: projectId,
         user_id: userId,
@@ -45,41 +75,47 @@ export async function addCollaborator(projectId: number, email: string, role: Co
     });
 
     if (error) {
-        if (error.code === '23505') { // Unique violation
+        if (error.code === '23505') {
             throw new Error('User is already a collaborator');
         }
         console.error('Error adding collaborator:', error);
         throw new Error('Failed to add collaborator');
     }
 
-    revalidatePath(`/projects/${projectId}/settings`);
+    revalidatePath(`/projects/${projectNanoid}/settings`);
     return { success: true };
 }
 
-export async function removeCollaborator(collaboratorId: number, projectId: number) {
+/**
+ * Remove a collaborator (by collaborator nanoid)
+ */
+export async function removeCollaborator(collaboratorNanoid: string, projectNanoid: string) {
     const supabase = await createClient();
     const { error } = await supabase
         .from('project_collaborators')
         .delete()
-        .eq('id', collaboratorId);
+        .eq('nanoid', collaboratorNanoid);
 
     if (error) {
         console.error('Error removing collaborator:', error);
         throw new Error('Failed to remove collaborator');
     }
-    revalidatePath(`/projects/${projectId}/settings`);
+    revalidatePath(`/projects/${projectNanoid}/settings`);
 }
 
-export async function updateCollaboratorRole(collaboratorId: number, role: CollaboratorRole, projectId: number) {
+/**
+ * Update a collaborator's role (by collaborator nanoid)
+ */
+export async function updateCollaboratorRole(collaboratorNanoid: string, role: CollaboratorRole, projectNanoid: string) {
     const supabase = await createClient();
     const { error } = await supabase
         .from('project_collaborators')
         .update({ role })
-        .eq('id', collaboratorId);
+        .eq('nanoid', collaboratorNanoid);
 
     if (error) {
         console.error('Error updating collaborator role:', error);
         throw new Error('Failed to update role');
     }
-    revalidatePath(`/projects/${projectId}/settings`);
+    revalidatePath(`/projects/${projectNanoid}/settings`);
 }

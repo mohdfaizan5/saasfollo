@@ -8,7 +8,7 @@ interface SecuritySettingsPageProps {
 
 export default async function SecuritySettingsPage({ params }: SecuritySettingsPageProps) {
     const { projectId } = await params;
-    const project = await getProject(parseInt(projectId, 10));
+    const project = await getProject(projectId);
 
     if (!project) notFound();
 
@@ -51,8 +51,6 @@ export default async function SecuritySettingsPage({ params }: SecuritySettingsP
                     </div>
                 </div>
             </div>
-
-
 
             {/* Danger Zone */}
             <div className="border border-destructive/50 rounded-lg p-6 bg-destructive/5">

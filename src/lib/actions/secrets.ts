@@ -1,3 +1,8 @@
+/**
+ * Server actions for Secrets
+ * Uses project nanoid for project lookups, secret nanoid for individual secret operations.
+ * PIN-related functions remain unchanged (they use user_id, not project_id).
+ */
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -20,7 +25,6 @@ function hashPin(pin: string): string {
 
 /**
  * Simple encode function (client-side obfuscation only)
- * NOT cryptographically secure - for UX protection only
  */
 function encodeValue(value: string): string {
     return Buffer.from(value).toString('base64');
@@ -31,6 +35,23 @@ function encodeValue(value: string): string {
  */
 function decodeValue(encoded: string): string {
     return Buffer.from(encoded, 'base64').toString('utf-8');
+}
+
+/**
+ * Helper: resolve a project nanoid to its internal numeric id
+ */
+async function resolveProjectId(projectNanoid: string): Promise<number> {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('nanoid', projectNanoid)
+        .single();
+
+    if (error || !data) {
+        throw new Error('Project not found');
+    }
+    return data.id;
 }
 
 /**
@@ -115,10 +136,11 @@ export async function verifyPin(pin: string): Promise<boolean> {
 }
 
 /**
- * Get all secrets for a project (values are encoded)
+ * Get all secrets for a project (by project nanoid)
  */
-export async function getSecrets(projectId: number): Promise<Secret[]> {
+export async function getSecrets(projectNanoid: string): Promise<Secret[]> {
     const supabase = await createClient();
+    const projectId = await resolveProjectId(projectNanoid);
 
     const { data, error } = await supabase
         .from('secrets')
@@ -136,17 +158,19 @@ export async function getSecrets(projectId: number): Promise<Secret[]> {
 
 /**
  * Create a new secret
+ * Accepts project nanoid, resolves internally
  */
-export async function createSecret(secret: SecretInsert): Promise<Secret> {
+export async function createSecret(projectNanoid: string, secret: Omit<SecretInsert, 'project_id'>): Promise<Secret> {
     const supabase = await createClient();
+    const projectId = await resolveProjectId(projectNanoid);
 
-    // Encode the value
     const encodedValue = encodeValue(secret.encrypted_value);
 
     const { data, error } = await supabase
         .from('secrets')
         .insert({
             ...secret,
+            project_id: projectId,
             encrypted_value: encodedValue,
         })
         .select()
@@ -157,15 +181,14 @@ export async function createSecret(secret: SecretInsert): Promise<Secret> {
         throw new Error('Failed to create secret');
     }
 
-    revalidatePath(`/projects/${secret.project_id}`);
+    revalidatePath(`/projects/${projectNanoid}`);
     return data;
 }
 
 /**
- * Reveal a secret value (requires PIN verification first)
+ * Reveal a secret value (by secret nanoid, requires PIN verification first)
  */
-export async function revealSecret(secretId: number, pin: string): Promise<string> {
-    // Verify PIN first
+export async function revealSecret(secretNanoid: string, pin: string): Promise<string> {
     const isValid = await verifyPin(pin);
     if (!isValid) {
         throw new Error('Invalid PIN');
@@ -176,7 +199,7 @@ export async function revealSecret(secretId: number, pin: string): Promise<strin
     const { data, error } = await supabase
         .from('secrets')
         .select('encrypted_value')
-        .eq('id', secretId)
+        .eq('nanoid', secretNanoid)
         .single();
 
     if (error) {
@@ -188,20 +211,20 @@ export async function revealSecret(secretId: number, pin: string): Promise<strin
 }
 
 /**
- * Delete a secret
+ * Delete a secret (by secret nanoid)
  */
-export async function deleteSecret(secretId: number, projectId: number): Promise<void> {
+export async function deleteSecret(secretNanoid: string, projectNanoid: string): Promise<void> {
     const supabase = await createClient();
 
     const { error } = await supabase
         .from('secrets')
         .delete()
-        .eq('id', secretId);
+        .eq('nanoid', secretNanoid);
 
     if (error) {
         console.error('Error deleting secret:', error);
         throw new Error('Failed to delete secret');
     }
 
-    revalidatePath(`/projects/${projectId}`);
+    revalidatePath(`/projects/${projectNanoid}`);
 }

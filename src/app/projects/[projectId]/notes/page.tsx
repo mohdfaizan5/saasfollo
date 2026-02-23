@@ -7,9 +7,9 @@ interface NotesPageProps {
 
 export default async function NotesPage({ params }: NotesPageProps) {
     const { projectId } = await params;
-    const projectIdNum = parseInt(projectId, 10);
 
-    const notes = await getNotes(projectIdNum);
+    // projectId is now the nanoid string
+    const notes = await getNotes(projectId);
 
-    return <NotesClient initialNotes={notes} projectId={projectIdNum} />;
+    return <NotesClient initialNotes={notes} projectId={projectId} />;
 }

@@ -7,16 +7,16 @@ interface SettingsPageProps {
 
 export default async function SettingsPage({ params }: SettingsPageProps) {
     const { projectId } = await params;
-    const project = await getProject(parseInt(projectId, 10));
+    const project = await getProject(projectId);
 
     if (!project) notFound();
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-4">
             <div>
                 <h2 className="text-lg font-semibold mb-1">General Settings</h2>
                 <p className="text-sm text-muted-foreground">
-                    Manage your project's general configuration.
+                    Manage your project&apos;s general configuration.
                 </p>
             </div>
 

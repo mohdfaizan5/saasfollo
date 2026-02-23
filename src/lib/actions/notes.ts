@@ -1,3 +1,7 @@
+/**
+ * Server actions for Notes
+ * Uses project nanoid for project lookups, note nanoid for individual note operations.
+ */
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -7,10 +11,28 @@ import type { Note, NoteInsert, NoteUpdate } from '@/lib/types/database';
 import type { NoteTemplateKey } from '@/lib/constants/note-templates';
 
 /**
- * Get all notes for a project
+ * Helper: resolve a project nanoid to its internal numeric id
  */
-export async function getNotes(projectId: number): Promise<Note[]> {
+async function resolveProjectId(projectNanoid: string): Promise<number> {
     const supabase = await createClient();
+    const { data, error } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('nanoid', projectNanoid)
+        .single();
+
+    if (error || !data) {
+        throw new Error('Project not found');
+    }
+    return data.id;
+}
+
+/**
+ * Get all notes for a project (by project nanoid)
+ */
+export async function getNotes(projectNanoid: string): Promise<Note[]> {
+    const supabase = await createClient();
+    const projectId = await resolveProjectId(projectNanoid);
 
     const { data, error } = await supabase
         .from('notes')
@@ -27,15 +49,15 @@ export async function getNotes(projectId: number): Promise<Note[]> {
 }
 
 /**
- * Get a single note by ID
+ * Get a single note by nanoid
  */
-export async function getNote(noteId: number): Promise<Note | null> {
+export async function getNote(noteNanoid: string): Promise<Note | null> {
     const supabase = await createClient();
 
     const { data, error } = await supabase
         .from('notes')
         .select('*')
-        .eq('id', noteId)
+        .eq('nanoid', noteNanoid)
         .single();
 
     if (error) {
@@ -51,13 +73,18 @@ export async function getNote(noteId: number): Promise<Note | null> {
 
 /**
  * Create a new note
+ * Accepts project nanoid, resolves internally
  */
-export async function createNote(note: NoteInsert): Promise<Note> {
+export async function createNote(projectNanoid: string, note: Omit<NoteInsert, 'project_id'>): Promise<Note> {
     const supabase = await createClient();
+    const projectId = await resolveProjectId(projectNanoid);
 
     const { data, error } = await supabase
         .from('notes')
-        .insert(note)
+        .insert({
+            ...note,
+            project_id: projectId,
+        })
         .select()
         .single();
 
@@ -66,7 +93,7 @@ export async function createNote(note: NoteInsert): Promise<Note> {
         throw new Error('Failed to create note');
     }
 
-    revalidatePath(`/projects/${note.project_id}`);
+    revalidatePath(`/projects/${projectNanoid}`);
     return data;
 }
 
@@ -74,22 +101,21 @@ export async function createNote(note: NoteInsert): Promise<Note> {
  * Create a note from a template
  */
 export async function createNoteFromTemplate(
-    projectId: number,
+    projectNanoid: string,
     templateKey: NoteTemplateKey
 ): Promise<Note> {
     const template = NOTE_TEMPLATES[templateKey];
 
-    return createNote({
-        project_id: projectId,
+    return createNote(projectNanoid, {
         title: template.title,
         content: template.content,
     });
 }
 
 /**
- * Update an existing note
+ * Update an existing note (lookup by note nanoid)
  */
-export async function updateNote(noteId: number, projectId: number, updates: NoteUpdate): Promise<Note> {
+export async function updateNote(noteNanoid: string, projectNanoid: string, updates: NoteUpdate): Promise<Note> {
     const supabase = await createClient();
 
     const { data, error } = await supabase
@@ -98,7 +124,7 @@ export async function updateNote(noteId: number, projectId: number, updates: Not
             ...updates,
             updated_at: new Date().toISOString(),
         })
-        .eq('id', noteId)
+        .eq('nanoid', noteNanoid)
         .select()
         .single();
 
@@ -107,25 +133,25 @@ export async function updateNote(noteId: number, projectId: number, updates: Not
         throw new Error('Failed to update note');
     }
 
-    revalidatePath(`/projects/${projectId}`);
+    revalidatePath(`/projects/${projectNanoid}`);
     return data;
 }
 
 /**
- * Delete a note
+ * Delete a note (lookup by note nanoid)
  */
-export async function deleteNote(noteId: number, projectId: number): Promise<void> {
+export async function deleteNote(noteNanoid: string, projectNanoid: string): Promise<void> {
     const supabase = await createClient();
 
     const { error } = await supabase
         .from('notes')
         .delete()
-        .eq('id', noteId);
+        .eq('nanoid', noteNanoid);
 
     if (error) {
         console.error('Error deleting note:', error);
         throw new Error('Failed to delete note');
     }
 
-    revalidatePath(`/projects/${projectId}`);
+    revalidatePath(`/projects/${projectNanoid}`);
 }

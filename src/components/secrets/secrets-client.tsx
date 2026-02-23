@@ -6,20 +6,21 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { createSecret, deleteSecret, revealSecret, setupPin, hasPinSetup } from '@/lib/actions/secrets';
 import type { Secret } from '@/lib/types/database';
 
 interface SecretsClientProps {
     initialSecrets: Secret[];
-    projectId: number;
+    projectId: string;
     hasPinInitially: boolean;
 }
 
 export function SecretsClient({ initialSecrets, projectId, hasPinInitially }: SecretsClientProps) {
     const [secrets, setSecrets] = useState<Secret[]>(initialSecrets);
     const [hasPin, setHasPin] = useState(hasPinInitially);
-    const [revealedSecrets, setRevealedSecrets] = useState<Record<number, string>>({});
+    const [revealedSecrets, setRevealedSecrets] = useState<Record<string, string>>({});
 
     // PIN setup
     const [isPinDialogOpen, setIsPinDialogOpen] = useState(!hasPinInitially);
@@ -37,7 +38,7 @@ export function SecretsClient({ initialSecrets, projectId, hasPinInitially }: Se
 
     // Reveal
     const [revealPin, setRevealPin] = useState('');
-    const [revealSecretId, setRevealSecretId] = useState<number | null>(null);
+    const [revealSecretId, setRevealSecretId] = useState<string | null>(null);
     const [revealError, setRevealError] = useState<string | null>(null);
     const [isRevealing, setIsRevealing] = useState(false);
 
@@ -82,8 +83,7 @@ export function SecretsClient({ initialSecrets, projectId, hasPinInitially }: Se
         setAddError(null);
 
         try {
-            const secret = await createSecret({
-                project_id: projectId,
+            const secret = await createSecret(projectId, {
                 key: newKey.trim(),
                 encrypted_value: newValue.trim(),
             });
@@ -122,14 +122,14 @@ export function SecretsClient({ initialSecrets, projectId, hasPinInitially }: Se
         }
     };
 
-    const handleDelete = async (secretId: number) => {
+    const handleDelete = async (secretNanoid: string) => {
         if (!confirm('Are you sure you want to delete this secret?')) return;
         try {
-            await deleteSecret(secretId, projectId);
-            setSecrets((prev) => prev.filter((s) => s.id !== secretId));
+            await deleteSecret(secretNanoid, projectId);
+            setSecrets((prev) => prev.filter((s) => s.nanoid !== secretNanoid));
             setRevealedSecrets((prev) => {
                 const copy = { ...prev };
-                delete copy[secretId];
+                delete copy[secretNanoid];
                 return copy;
             });
         } catch (err) {
@@ -137,10 +137,10 @@ export function SecretsClient({ initialSecrets, projectId, hasPinInitially }: Se
         }
     };
 
-    const hideSecret = (secretId: number) => {
+    const hideSecret = (secretNanoid: string) => {
         setRevealedSecrets((prev) => {
             const copy = { ...prev };
-            delete copy[secretId];
+            delete copy[secretNanoid];
             return copy;
         });
     };
@@ -296,25 +296,39 @@ export function SecretsClient({ initialSecrets, projectId, hasPinInitially }: Se
                 </div>
             ) : (
                 <div className="space-y-3">
+                    {isAdding && (
+                        <Card className="p-4">
+                            <div className="flex items-center justify-between gap-4">
+                                <div className="space-y-2 flex-1">
+                                    <Skeleton className="h-4 w-44" />
+                                    <Skeleton className="h-4 w-56" />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Skeleton className="h-8 w-8 rounded-lg" />
+                                    <Skeleton className="h-8 w-8 rounded-lg" />
+                                </div>
+                            </div>
+                        </Card>
+                    )}
                     {secrets.map((secret) => (
-                        <Card key={secret.id} className="p-4">
+                        <Card key={secret.nanoid} className="p-4">
                             <div className="flex items-center justify-between">
                                 <div className="flex-1">
                                     <p className="font-mono font-medium">{secret.key}</p>
                                     <p className="font-mono text-sm mt-1">
-                                        {revealedSecrets[secret.id] ? (
-                                            <span className="text-green-600">{revealedSecrets[secret.id]}</span>
+                                        {revealedSecrets[secret.nanoid] ? (
+                                            <span className="text-green-600">{revealedSecrets[secret.nanoid]}</span>
                                         ) : (
                                             <span className="text-muted-foreground">••••••••••••</span>
                                         )}
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    {revealedSecrets[secret.id] ? (
+                                    {revealedSecrets[secret.nanoid] ? (
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => hideSecret(secret.id)}
+                                            onClick={() => hideSecret(secret.nanoid)}
                                         >
                                             <EyeOff className="h-4 w-4" />
                                         </Button>
@@ -322,7 +336,7 @@ export function SecretsClient({ initialSecrets, projectId, hasPinInitially }: Se
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => setRevealSecretId(secret.id)}
+                                            onClick={() => setRevealSecretId(secret.nanoid)}
                                         >
                                             <Eye className="h-4 w-4" />
                                         </Button>
@@ -331,7 +345,7 @@ export function SecretsClient({ initialSecrets, projectId, hasPinInitially }: Se
                                         variant="ghost"
                                         size="sm"
                                         className="text-destructive hover:text-destructive"
-                                        onClick={() => handleDelete(secret.id)}
+                                        onClick={() => handleDelete(secret.nanoid)}
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </Button>

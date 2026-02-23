@@ -42,7 +42,7 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
             setDescription('');
 
             // Navigate to the new project
-            router.push(`/projects/${project.id}/dashboard`);
+            router.push(`/projects/${project.nanoid}/dashboard`);
         } catch (err) {
             console.error('Failed to create project:', err);
             setError('Failed to create project. Please try again.');

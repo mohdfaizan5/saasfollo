@@ -8,7 +8,7 @@ interface GeneralSettingsPageProps {
 
 export default async function GeneralSettingsPage({ params }: GeneralSettingsPageProps) {
     const { projectId } = await params;
-    const project = await getProject(parseInt(projectId, 10));
+    const project = await getProject(projectId);
 
     if (!project) notFound();
 
@@ -17,7 +17,7 @@ export default async function GeneralSettingsPage({ params }: GeneralSettingsPag
             <div>
                 <h2 className="text-lg font-semibold mb-1">General Settings</h2>
                 <p className="text-sm text-muted-foreground">
-                    Manage your project's general configuration.
+                    Manage your project&apos;s general configuration.
                 </p>
             </div>
 
@@ -29,7 +29,7 @@ export default async function GeneralSettingsPage({ params }: GeneralSettingsPag
                         Upload a custom icon for your project. This will be displayed in the dashboard and project list.
                     </p>
                 </div>
-                giiii
+
                 <ProjectIconUpload project={project} />
 
                 {/* Project Name Section */}
@@ -72,4 +72,3 @@ export default async function GeneralSettingsPage({ params }: GeneralSettingsPag
         </div>
     );
 }
-
