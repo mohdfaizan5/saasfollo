@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CubeIcon } from '@phosphor-icons/react/dist/ssr';
+import { PostHog } from 'posthog-node'
 
 export default async function GrowthPage({ params }: { params: Promise<{ projectId: string }> }) {
     const { projectId } = await params;
@@ -15,6 +16,16 @@ export default async function GrowthPage({ params }: { params: Promise<{ project
     if (!project) {
         notFound();
     }
+    const posthog = new PostHog(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
+        host: process.env.NEXT_PUBLIC_POSTHOG_HOST
+    })
+
+    posthog.capture({
+        distinctId: 'distinct_id_of_the_user',
+        event: 'event_name'
+    })
+
+    await posthog.shutdown()
 
     if (!project.active_version_id || !project.active_version) {
         return (

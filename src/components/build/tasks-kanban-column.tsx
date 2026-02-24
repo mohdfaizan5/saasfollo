@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import TasksKanbanCard from './tasks-kanban-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,6 +43,7 @@ export default function TasksKanbanColumn({
     onDelete,
     onEdit,
 }: TasksKanbanColumnProps) {
+    const shouldReduceMotion = useReducedMotion();
     const { setNodeRef, isOver } = useDroppable({
         id: `column:${column.nanoid}`,
     });
@@ -82,8 +83,9 @@ export default function TasksKanbanColumn({
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={shouldReduceMotion ? { duration: 0 } : undefined}
             className={cn(
                 "w-72 h-full rounded-2xl p-3 flex flex-col transition-colors border",
                 isOver ? 'bg-primary/5 ring-2 ring-primary/20' : 'bg-[#101204] border-border'
