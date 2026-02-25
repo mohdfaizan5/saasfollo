@@ -37,7 +37,8 @@ export async function getVersions(projectNanoid: string): Promise<Version[]> {
         .from('versions')
         .select('*')
         .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
+        .order('position', { ascending: true })
+        .order('created_at', { ascending: true });
 
     if (error) {
         console.error('Error fetching versions:', error);
@@ -78,11 +79,26 @@ export async function createVersion(projectNanoid: string, version: Omit<Version
     const supabase = await createClient();
     const projectId = await resolveProjectId(projectNanoid);
 
+    const { data: highestPositionRows, error: positionError } = await supabase
+        .from('versions')
+        .select('position')
+        .eq('project_id', projectId)
+        .order('position', { ascending: false })
+        .limit(1);
+
+    if (positionError) {
+        console.error('Error fetching version position:', positionError);
+        throw new Error('Failed to create version');
+    }
+
+    const nextPosition = (highestPositionRows?.[0]?.position ?? -1) + 1;
+
     const { data, error } = await supabase
         .from('versions')
         .insert({
             ...version,
             project_id: projectId,
+            position: nextPosition,
         })
         .select()
         .single();
@@ -193,4 +209,67 @@ export async function setVersionActive(versionNanoid: string, projectNanoid: str
     }
 
     revalidatePath(`/projects/${projectNanoid}`);
+}
+
+/**
+ * Move a version up or down in the ordered list.
+ */
+export async function moveVersion(
+    versionNanoid: string,
+    projectNanoid: string,
+    direction: 'up' | 'down'
+): Promise<Version[]> {
+    const supabase = await createClient();
+    const projectId = await resolveProjectId(projectNanoid);
+
+    const { data: versions, error: versionsError } = await supabase
+        .from('versions')
+        .select('id, nanoid, position, created_at')
+        .eq('project_id', projectId)
+        .order('position', { ascending: true })
+        .order('created_at', { ascending: true });
+
+    if (versionsError || !versions) {
+        console.error('Error fetching versions for reordering:', versionsError);
+        throw new Error('Failed to reorder versions');
+    }
+
+    if (versions.length < 2) {
+        return getVersions(projectNanoid);
+    }
+
+    const currentIndex = versions.findIndex((v) => v.nanoid === versionNanoid);
+    if (currentIndex === -1) {
+        throw new Error('Version not found');
+    }
+
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= versions.length) {
+        return getVersions(projectNanoid);
+    }
+
+    const reordered = [...versions];
+    const temp = reordered[currentIndex];
+    reordered[currentIndex] = reordered[targetIndex];
+    reordered[targetIndex] = temp;
+
+    const updates = reordered
+        .map((version, index) => ({ id: version.id, position: index, currentPosition: version.position }))
+        .filter((version) => version.currentPosition !== version.position);
+
+    for (const version of updates) {
+        const { error: updateError } = await supabase
+            .from('versions')
+            .update({ position: version.position, updated_at: new Date().toISOString() })
+            .eq('id', version.id)
+            .eq('project_id', projectId);
+
+        if (updateError) {
+            console.error('Error updating version position:', updateError);
+            throw new Error('Failed to reorder versions');
+        }
+    }
+
+    revalidatePath(`/projects/${projectNanoid}`);
+    return getVersions(projectNanoid);
 }

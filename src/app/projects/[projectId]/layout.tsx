@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { redirect, notFound } from 'next/navigation';
 import { createClient } from '@/lib/server';
 import { getProject, getUserProjectRole } from '@/lib/actions/projects';
@@ -12,6 +13,24 @@ import { Eye } from 'lucide-react';
 interface ProjectLayoutProps {
     children: React.ReactNode;
     params: Promise<{ projectId: string }>;
+}
+
+export async function generateMetadata({ params }: ProjectLayoutProps): Promise<Metadata> {
+    const { projectId } = await params;
+    const project = await getProject(projectId);
+
+    if (!project) {
+        return {
+            title: 'SaaSFollo',
+        };
+    }
+
+    return {
+        title: {
+            template: `%s | ${project.name} | SaaSFollo`,
+            default: `${project.name} | SaaSFollo`,
+        },
+    };
 }
 
 const roleColors: Record<string, string> = {

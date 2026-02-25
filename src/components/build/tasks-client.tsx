@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { CheckSquare, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -64,6 +64,8 @@ export function TasksClient({
     const [newPriority, setNewPriority] = useState<string>('');
     const [newCategory, setNewCategory] = useState<TaskCategory>(null);
     const [newAssignee, setNewAssignee] = useState<string>('');
+    const [newFilterNameInput, setNewFilterNameInput] = useState('');
+    const [newFilterValuesInput, setNewFilterValuesInput] = useState('');
     const [isCreating, setIsCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -74,6 +76,52 @@ export function TasksClient({
     const [selectedCategory] = useQueryState('category');
     const [selectedVersionId] = useQueryState('version');
     const [selectedAssignee] = useQueryState('assignee');
+
+    const defaultVersionId = useMemo(() => {
+        const queryVersion = selectedVersionId && versions.some((version) => version.id.toString() === selectedVersionId)
+            ? selectedVersionId
+            : null;
+        const activeVersion = versions.find((version) => version.is_active)?.id?.toString() ?? null;
+        const firstVersion = versions[0]?.id?.toString() ?? '';
+
+        return queryVersion || activeVersion || firstVersion;
+    }, [selectedVersionId, versions]);
+
+    const getColumnLabel = (columnNanoid: string) => {
+        const column = columns.find((item) => item.nanoid === columnNanoid);
+        return column?.title ?? 'Select column';
+    };
+
+    const getVersionLabel = (versionId: string) => {
+        const version = versions.find((item) => item.id.toString() === versionId);
+        return version?.name ?? 'Select version';
+    };
+
+    const initializeCreateForm = () => {
+        setNewStatus('next');
+        setNewColumnNanoid((prev) => {
+            if (prev && columns.some((column) => column.nanoid === prev)) return prev;
+            return columns[0]?.nanoid ?? '';
+        });
+        setNewVersionId(defaultVersionId);
+        setNewPriority('medium');
+        setNewCategory(null);
+        setNewAssignee('unassigned');
+        setNewFilterNameInput('');
+        setNewFilterValuesInput('');
+    };
+
+    useEffect(() => {
+        if (!isDialogOpen) return;
+
+        if (!newColumnNanoid || !columns.some((column) => column.nanoid === newColumnNanoid)) {
+            setNewColumnNanoid(columns[0]?.nanoid ?? '');
+        }
+
+        if (!newVersionId && defaultVersionId) {
+            setNewVersionId(defaultVersionId);
+        }
+    }, [isDialogOpen, columns, newColumnNanoid, newVersionId, defaultVersionId]);
 
     const addCategoryOption = (categoryName: string) => {
         const normalized = categoryName.trim();
@@ -142,15 +190,16 @@ export function TasksClient({
 
         try {
             const selectedColumn = columns.find((column) => column.nanoid === newColumnNanoid);
+            const effectiveVersionId = newVersionId || defaultVersionId;
             const taskData = {
                 title: newTitle.trim(),
                 description: newDescription.trim() || null,
                 status: selectedColumn?.is_done_column ? 'done' : newStatus,
                 kanban_column_nanoid: selectedColumn?.nanoid ?? null,
-                version_id: newVersionId ? parseInt(newVersionId, 10) : null,
-                priority: (newPriority as Task['priority']) || null,
+                version_id: effectiveVersionId ? parseInt(effectiveVersionId, 10) : null,
+                priority: newPriority === 'none' ? null : (newPriority as Task['priority']) || null,
                 category: newCategory,
-                assignee: newAssignee || null,
+                assignee: newAssignee === 'unassigned' ? null : (newAssignee || null),
                 is_completed: selectedColumn?.is_done_column ? true : newStatus === 'done',
             };
 
@@ -176,12 +225,35 @@ export function TasksClient({
     const resetForm = () => {
         setNewTitle('');
         setNewDescription('');
-        setNewStatus('next');
-        setNewColumnNanoid(columns[0]?.nanoid ?? '');
-        setNewVersionId('');
-        setNewPriority('');
-        setNewCategory(null);
-        setNewAssignee('');
+        initializeCreateForm();
+    };
+
+    const handleAddCategoryToOptions = () => {
+        const normalized = prompt('New category name')?.trim() ?? '';
+        if (!normalized) return;
+
+        addCategoryOption(normalized);
+        setNewCategory(normalized as TaskCategory);
+    };
+
+    const handleCreateFilterParameter = () => {
+        const filterName = newFilterNameInput.trim();
+        const rawValues = newFilterValuesInput
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean);
+
+        if (!filterName || rawValues.length === 0) {
+            setError('Please provide a filter name and at least one value.');
+            return;
+        }
+
+        const generatedCategories = rawValues.map((value) => `${filterName}: ${value}`);
+        generatedCategories.forEach((item) => addCategoryOption(item));
+        setNewCategory(generatedCategories[0] as TaskCategory);
+        setNewFilterNameInput('');
+        setNewFilterValuesInput('');
+        setError(null);
     };
 
     const handleQuickCreate = async (title: string, status: TaskStatus, columnNanoid?: string) => {
@@ -439,16 +511,24 @@ export function TasksClient({
                     <TaskViewToggle currentView={currentView} onViewChange={setCurrentView} />
 
                     {canEdit && (
-                        <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                        <AlertDialog
+                            open={isDialogOpen}
+                            onOpenChange={(open) => {
+                                setIsDialogOpen(open);
+                                if (open) {
+                                    initializeCreateForm();
+                                }
+                            }}
+                        >
                             <AlertDialogTrigger render={<Button><Plus className="h-4 w-4 mr-2" />New Task</Button>} />
-                            <AlertDialogContent className="max-w-md">
+                            <AlertDialogContent className="data-[size=default]:sm:max-w-3xl">
                                 <AlertDialogHeader>
-                                    <AlertDialogTitle>Create New Task</AlertDialogTitle>
+                                    <AlertDialogTitle className="text-xl font-semibold">Create New Task</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                        Add a task to track work for this project
+                                        Add a task to track work for this project.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
-                                <div className="space-y-4 py-4">
+                                <div className="space-y-5 py-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="task-title">Title</Label>
                                         <Input
@@ -460,7 +540,7 @@ export function TasksClient({
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="task-description">Description (optional)</Label>
+                                        <Label htmlFor="task-description">Description</Label>
                                         <Textarea
                                             id="task-description"
                                             placeholder="Additional details..."
@@ -468,14 +548,16 @@ export function TasksClient({
                                             onChange={(e) => setNewDescription(e.target.value)}
                                             disabled={isCreating}
                                             rows={2}
+                                            className="bg-card/60 border-border"
                                         />
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                             <Label>Column</Label>
                                             <Select value={newColumnNanoid} onValueChange={(v) => setNewColumnNanoid(v ?? '')}>
-                                                <SelectTrigger>
-                                                    <SelectValue />
+                                                <SelectTrigger className="bg-card/60 border-border">
+                                                    <SelectValue>{getColumnLabel(newColumnNanoid)}</SelectValue>
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     {columns.map((column) => (
@@ -489,10 +571,11 @@ export function TasksClient({
                                         <div className="space-y-2">
                                             <Label>Priority</Label>
                                             <Select value={newPriority} onValueChange={(v) => setNewPriority(v ?? '')}>
-                                                <SelectTrigger>
+                                                <SelectTrigger className="bg-card/60 border-border">
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
+                                                    <SelectItem value="none">None</SelectItem>
                                                     <SelectItem value="high">High</SelectItem>
                                                     <SelectItem value="medium">Medium</SelectItem>
                                                     <SelectItem value="low">Low</SelectItem>
@@ -500,24 +583,68 @@ export function TasksClient({
                                             </Select>
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                             <Label>Category</Label>
                                             <Select
-                                                value={newCategory || ''}
-                                                onValueChange={(v) => setNewCategory(v as TaskCategory || null)}
+                                                value={newCategory ?? 'none'}
+                                                onValueChange={(v) => {
+                                                    if (v === '__add_category__') {
+                                                        handleAddCategoryToOptions();
+                                                        return;
+                                                    }
+                                                    setNewCategory(v === 'none' ? null : (v as TaskCategory));
+                                                }}
                                             >
-                                                <SelectTrigger>
+                                                <SelectTrigger className="bg-card/60 border-border">
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
+                                                    <SelectItem value="none">None</SelectItem>
                                                     {categoryOptions.map((category) => (
                                                         <SelectItem key={category} value={category}>
                                                             {category}
                                                         </SelectItem>
                                                     ))}
+                                                    <SelectItem value="__add_category__">
+                                                        <span className="inline-flex items-center gap-2">
+                                                            <Plus className="h-3.5 w-3.5" />
+                                                            Add category
+                                                        </span>
+                                                    </SelectItem>
                                                 </SelectContent>
                                             </Select>
+                                            <div className="flex gap-2 pt-1">
+                                                <Input
+                                                    placeholder="New filter name (e.g. Stage)"
+                                                    value={newFilterNameInput}
+                                                    onChange={(e) => setNewFilterNameInput(e.target.value)}
+                                                    disabled={isCreating}
+                                                    className="bg-card/60 border-border"
+                                                />
+                                                <Input
+                                                    placeholder="Values comma separated (e.g. Draft, Review, Final)"
+                                                    value={newFilterValuesInput}
+                                                    onChange={(e) => setNewFilterValuesInput(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            handleCreateFilterParameter();
+                                                        }
+                                                    }}
+                                                    disabled={isCreating}
+                                                    className="bg-card/60 border-border"
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    onClick={handleCreateFilterParameter}
+                                                    disabled={isCreating || !newFilterNameInput.trim() || !newFilterValuesInput.trim()}
+                                                >
+                                                    Add Filter
+                                                </Button>
+                                            </div>
                                         </div>
                                         {collaborators.length > 0 && (
                                             <div className="space-y-2">
@@ -526,10 +653,11 @@ export function TasksClient({
                                                     value={newAssignee}
                                                     onValueChange={(v) => setNewAssignee(v ?? '')}
                                                 >
-                                                    <SelectTrigger>
+                                                    <SelectTrigger className="bg-card/60 border-border">
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
+                                                        <SelectItem value="unassigned">Unassigned</SelectItem>
                                                         {collaborators.map((collab) => (
                                                             <SelectItem key={collab.id} value={collab.user_id}>
                                                                 {collab.email.split('@')[0]}
@@ -541,12 +669,13 @@ export function TasksClient({
                                             </div>
                                         )}
                                     </div>
+
                                     {versions.length > 0 && (
                                         <div className="space-y-2">
-                                            <Label>Version (optional)</Label>
+                                            <Label>Version</Label>
                                             <Select value={newVersionId} onValueChange={(v) => setNewVersionId(v ?? '')}>
-                                                <SelectTrigger>
-                                                    <SelectValue />
+                                                <SelectTrigger className="bg-card/60 border-border">
+                                                    <SelectValue>{getVersionLabel(newVersionId)}</SelectValue>
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     {versions.map((v) => (

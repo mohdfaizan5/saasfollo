@@ -5,6 +5,10 @@ interface LinksPageProps {
     params: Promise<{ projectId: string }>;
 }
 
+export const metadata = {
+    title: 'Links',
+};
+
 export default async function LinksPage({ params }: LinksPageProps) {
     const { projectId } = await params;
 

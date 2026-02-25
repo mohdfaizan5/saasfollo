@@ -6,7 +6,12 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/server';
-import type { Link, LinkInsert, LinkType } from '@/lib/types/database';
+import type { Link, LinkInsert, LinkType, LinkUpdate } from '@/lib/types/database';
+
+function normalizeTag(tag?: string | null): string | null {
+    const normalized = tag?.trim().replace(/\s+/g, ' ') ?? '';
+    return normalized.length > 0 ? normalized : null;
+}
 
 /**
  * Detect the type of link based on URL
@@ -94,6 +99,7 @@ export async function createLink(projectNanoid: string, link: Omit<LinkInsert, '
 
     const detectedType = link.detected_type || detectLinkType(link.url);
     const label = link.label || extractLabel(link.url);
+    const tag = normalizeTag(link.tag);
 
     const { data, error } = await supabase
         .from('links')
@@ -102,6 +108,7 @@ export async function createLink(projectNanoid: string, link: Omit<LinkInsert, '
             project_id: projectId,
             detected_type: detectedType,
             label,
+            tag,
         })
         .select()
         .single();
@@ -118,8 +125,9 @@ export async function createLink(projectNanoid: string, link: Omit<LinkInsert, '
 /**
  * Create multiple links from a string (comma/space separated)
  */
-export async function createLinksFromString(projectNanoid: string, urlString: string): Promise<Link[]> {
+export async function createLinksFromString(projectNanoid: string, urlString: string, tagInput?: string | null): Promise<Link[]> {
     const projectId = await resolveProjectId(projectNanoid);
+    const tag = normalizeTag(tagInput);
 
     // Split by comma, space, or newline
     const urls = urlString
@@ -154,6 +162,7 @@ export async function createLinksFromString(projectNanoid: string, urlString: st
     const linksToInsert = urls.map((url) => ({
         project_id: projectId,
         url,
+        tag,
         detected_type: detectLinkType(url),
         label: extractLabel(url),
     }));
@@ -189,4 +198,62 @@ export async function deleteLink(linkNanoid: string, projectNanoid: string): Pro
     }
 
     revalidatePath(`/projects/${projectNanoid}`);
+}
+
+/**
+ * Update an existing link (lookup by link nanoid)
+ */
+export async function updateLink(
+    linkNanoid: string,
+    projectNanoid: string,
+    updates: Pick<LinkUpdate, 'url' | 'tag'>,
+): Promise<Link> {
+    const supabase = await createClient();
+
+    const payload: Pick<LinkUpdate, 'url' | 'tag' | 'detected_type' | 'label'> = {};
+
+    if (typeof updates.url === 'string') {
+        const trimmedUrl = updates.url.trim();
+        if (!trimmedUrl) {
+            throw new Error('URL cannot be empty');
+        }
+
+        const normalizedUrl =
+            trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')
+                ? trimmedUrl
+                : `https://${trimmedUrl}`;
+
+        try {
+            new URL(normalizedUrl);
+        } catch {
+            throw new Error('Invalid URL');
+        }
+
+        payload.url = normalizedUrl;
+        payload.detected_type = detectLinkType(normalizedUrl);
+        payload.label = extractLabel(normalizedUrl);
+    }
+
+    if ('tag' in updates) {
+        payload.tag = normalizeTag(updates.tag);
+    }
+
+    if (Object.keys(payload).length === 0) {
+        throw new Error('No fields to update');
+    }
+
+    const { data, error } = await supabase
+        .from('links')
+        .update(payload)
+        .eq('nanoid', linkNanoid)
+        .select()
+        .single();
+
+    if (error || !data) {
+        console.error('Error updating link:', error);
+        throw new Error('Failed to update link');
+    }
+
+    revalidatePath(`/projects/${projectNanoid}`);
+    return data;
 }

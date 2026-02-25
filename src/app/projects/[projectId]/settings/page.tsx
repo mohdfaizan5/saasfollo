@@ -1,6 +1,10 @@
 import { getProject } from '@/lib/actions/projects';
 import { notFound } from 'next/navigation';
 
+export const metadata = {
+    title: 'General',
+};
+
 interface SettingsPageProps {
     params: Promise<{ projectId: string }>;
 }

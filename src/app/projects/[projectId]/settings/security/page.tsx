@@ -2,6 +2,10 @@ import { getProject } from '@/lib/actions/projects';
 import { notFound } from 'next/navigation';
 import { DeleteProjectSection } from '@/components/projects/delete-project-section';
 
+export const metadata = {
+    title: 'Security',
+};
+
 interface SecuritySettingsPageProps {
     params: Promise<{ projectId: string }>;
 }

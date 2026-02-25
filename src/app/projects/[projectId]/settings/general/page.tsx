@@ -2,6 +2,10 @@ import { getProject } from '@/lib/actions/projects';
 import { notFound } from 'next/navigation';
 import { ProjectIconUpload } from '@/components/projects/project-icon-upload';
 
+export const metadata = {
+    title: 'General',
+};
+
 interface GeneralSettingsPageProps {
     params: Promise<{ projectId: string }>;
 }

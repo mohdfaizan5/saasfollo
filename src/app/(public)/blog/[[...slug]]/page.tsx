@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug?: st
     const { slug } = await params;
     if (!slug || slug.length === 0) {
         return {
-            title: 'SaaSFollo Blog',
+            title: 'Blog | SaaSFollo',
             description: 'Playbooks and field notes for solo founders shipping faster.',
         };
     }
@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug?: st
     const description = seo.seoDescription || page.data.description || 'No description available';
 
     return {
-        title,
+        title: `${title} | SaaSFollo`,
         description,
         keywords: seo.keywords,
         openGraph: {

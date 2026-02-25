@@ -11,6 +11,16 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ChevronLeft, ChevronRight, MoreVertical, Plus, Trash2 } from 'lucide-react';
 import type { KanbanColumn, Task, TaskStatus } from '@/lib/types/database';
 import { cn } from '@/lib/utils';
+import {
+    BugIcon,
+    CheckCircleIcon,
+    CubeIcon,
+    FileTextIcon,
+    MagnifyingGlassIcon,
+    RocketIcon,
+    SparkleIcon,
+    TargetIcon,
+} from '@phosphor-icons/react';
 
 interface TasksKanbanColumnProps {
     column: KanbanColumn;
@@ -26,6 +36,52 @@ interface TasksKanbanColumnProps {
     onTaskUpdate: (taskNanoid: string, status: TaskStatus, updates: Partial<Task>) => void;
     onDelete: (taskNanoid: string, status: TaskStatus) => void;
     onEdit: (task: Task) => void;
+}
+
+type ColumnIconRule = {
+    keywords: string[];
+    icon: React.ComponentType<any>;
+    weight: 'duotone';
+};
+
+const DONE_COLUMN_KEYWORDS = ['done', 'complete', 'completed', 'finish', 'finished', 'shipped', 'released', 'closed'];
+const START_COLUMN_KEYWORDS = ['in progress', 'start here', 'doing', 'active', 'working', 'current', 'now'];
+
+// Column icon keyword rules (editable): add your own keywords/icon pairs here.
+const COLUMN_ICON_RULES: ColumnIconRule[] = [
+    { keywords: ['review left', 'review', 'qa', 'test', 'verify', 'verification'], icon: MagnifyingGlassIcon, weight: 'duotone' },
+    { keywords: ['backlog', 'ideas', 'idea', 'brainstorm'], icon: SparkleIcon, weight: 'duotone' },
+    { keywords: ['plan', 'planning', 'goal', 'milestone'], icon: TargetIcon, weight: 'duotone' },
+    { keywords: ['spec', 'docs', 'documentation', 'notes'], icon: FileTextIcon, weight: 'duotone' },
+    { keywords: ['bug', 'blocked', 'blocker', 'issue', 'fix'], icon: BugIcon, weight: 'duotone' },
+    { keywords: ['build', 'dev', 'development', 'implement', 'coding'], icon: CubeIcon, weight: 'duotone' },
+    { keywords: ['progress', 'start', 'doing', 'wip'], icon: RocketIcon, weight: 'duotone' },
+];
+
+function getColumnSemantic(title: string, isDoneColumn: boolean) {
+    const normalizedTitle = title.toLowerCase().trim();
+    const isDoneByName = DONE_COLUMN_KEYWORDS.some((keyword) => normalizedTitle.includes(keyword));
+    const isStartByName = START_COLUMN_KEYWORDS.some((keyword) => normalizedTitle.includes(keyword));
+
+    const matchedRule = COLUMN_ICON_RULES.find((rule) =>
+        rule.keywords.some((keyword) => normalizedTitle.includes(keyword)),
+    );
+
+    if (isDoneColumn || isDoneByName) {
+        return {
+            isDoneLike: true,
+            isStartLike: false,
+            icon: CheckCircleIcon,
+            iconWeight: 'duotone' as const,
+        };
+    }
+
+    return {
+        isDoneLike: false,
+        isStartLike: isStartByName,
+        icon: matchedRule?.icon ?? CubeIcon,
+        iconWeight: matchedRule?.weight ?? ('duotone' as const),
+    };
 }
 
 export default function TasksKanbanColumn({
@@ -51,6 +107,8 @@ export default function TasksKanbanColumn({
     const [descriptionDraft, setDescriptionDraft] = useState(column.description ?? '');
     const [isAddingTask, setIsAddingTask] = useState(false);
     const [newTaskTitle, setNewTaskTitle] = useState('');
+    const semantic = getColumnSemantic(column.title, column.is_done_column);
+    const Icon = semantic.icon;
 
     useEffect(() => {
         setTitleDraft(column.title);
@@ -87,21 +145,28 @@ export default function TasksKanbanColumn({
             animate={{ opacity: 1, y: 0 }}
             transition={shouldReduceMotion ? { duration: 0 } : undefined}
             className={cn(
-                "w-72 h-full rounded-2xl p-3 flex flex-col transition-colors border",
+                "w-72 h-full rounded-2xl p-3 flex flex-col transition-colors border relative",
+                // COLUMN STYLE HOOK: tweak these classes to control done-column appearance.
+                semantic.isDoneLike ? 'bg-[#10140f] border-white/15' : '',
+                // COLUMN STYLE HOOK: tweak these classes to control "start from here" emphasis.
+                semantic.isStartLike ? 'bg-[#14150f] border-white/20 ring-1 ring-white/15' : '',
                 isOver ? 'bg-primary/5 ring-2 ring-primary/20' : 'bg-[#101204] border-border'
             )}
         >
             {/* Column Header */}
-            <div className="mb-3 pl-1 space-y-2">
+            <div className="mb-3 pl-1 space-y-2 ">
                 <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
-                        <Input
-                            value={titleDraft}
-                            onChange={(event) => setTitleDraft(event.target.value)}
-                            onBlur={handleSaveColumnMeta}
-                            disabled={!canEdit}
-                            className="h-8 bg-transparent border-none px-1 mb-0! text-[#cecfd2] text-lg! font-semibold shadow-none focus-visible:ring-1"
-                        />
+                        <div className="flex items-center gap-1 text-[#cecfd2]">
+                            <Icon className="h-4 w-4 shrink-0 opacity-70" weight={semantic.iconWeight} />
+                            <Input
+                                value={titleDraft}
+                                onChange={(event) => setTitleDraft(event.target.value)}
+                                onBlur={handleSaveColumnMeta}
+                                disabled={!canEdit}
+                                className="h-8 bg-transparent border-none px-1 mb-0! text-[#cecfd2] text-lg! font-semibold shadow-none focus-visible:ring-1"
+                            />
+                        </div>
                         <Input
                             value={descriptionDraft}
                             onChange={(event) => setDescriptionDraft(event.target.value)}
@@ -142,6 +207,26 @@ export default function TasksKanbanColumn({
                         </div>
                     )}
                 </div>
+
+                {semantic.isStartLike && !semantic.isDoneLike && (
+                    // COLUMN STYLE HOOK: tweak this callout copy/classes for your "start here" lane.
+                    <div className="px-2 py-1 rounded-md text-[10px] font-medium bg-white/8 text-white/80 w-fit">
+                        Start from here
+                    </div>
+                )}
+                {semantic.isStartLike && !semantic.isDoneLike && (
+                    // COLUMN STYLE HOOK: tweak this callout copy/classes for your "start here" lane.
+                    <span className="text-xs size-2 animate-pulse bg-green-700 absolute top-0 right-0 rounded-full">
+                    </span>
+                    
+                )}
+
+                {semantic.isDoneLike && (
+                    // COLUMN STYLE HOOK: tweak this done-lane marker to adjust finished column UI.
+                    <div className="px-2 py-1 rounded-md text-[10px] font-medium bg-white/8 text-white/80 w-fit">
+                        Completed lane
+                    </div>
+                )}
 
                 <div className="px-1 text-xs text-white/50">
                     {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}

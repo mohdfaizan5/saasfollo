@@ -9,6 +9,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { CubeIcon } from '@phosphor-icons/react/dist/ssr';
 import { PostHog } from 'posthog-node'
 
+export const metadata = {
+    title: 'Growth',
+};
+
 export default async function GrowthPage({ params }: { params: Promise<{ projectId: string }> }) {
     const { projectId } = await params;
     const project = await getProjectWithActiveVersion(projectId);
@@ -51,13 +55,16 @@ export default async function GrowthPage({ params }: { params: Promise<{ project
     if (!growthPlan) {
         return (
             <div className=" space-y-4 max-w-6xl">
-                <Card className="border-border/70">
+                {/* <Card className="border-border/70">
                     <CardContent className="p-6 flex flex-col gap-1">
                         <h1 className="text-2xl font-bold tracking-tight">Growth</h1>
                         <p className="text-muted-foreground">Create a focused growth sprint for <span className="font-medium text-foreground">{project.active_version.name}</span>.</p>
                     </CardContent>
-                </Card>
-
+                </Card> */}
+                <div>
+                    <h2 className="text-3xl font-bold tracking-tight">Growth Plan for {project.active_version.name}</h2>
+                    <p className="text-muted-foreground mt-1">What channels do you want to focus on? Pick the ones you'll actually use.</p>
+                </div>
                 <Card className="border-border/70">
                     <CardContent className="p-6 md:p-8">
                         <GrowthOnboarding

@@ -1,5 +1,12 @@
 import { SettingsNav } from '@/components/settings/settings-nav';
 
+export const metadata = {
+    title: {
+        template: '%s | Settings',
+        default: 'Settings',
+    },
+};
+
 interface SettingsLayoutProps {
     children: React.ReactNode;
 }

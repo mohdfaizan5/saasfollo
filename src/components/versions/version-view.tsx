@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Circle, Clock, Layers, Layout, Users, MoreVertical, Play, Save, Trash2 } from 'lucide-react';
+import { Circle, Clock, Layers, Layout, Users, MoreVertical, Play, Save, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 import {
   Tabs, TabsList, TabsTrigger,
 } from '@/components/ui/tabs';
@@ -33,10 +33,11 @@ interface VersionViewProps {
   onSetActive: (version: Version) => void;
   onDelete: (version: Version) => void;
   onUpdateVersion: (version: Version, updates: Partial<Version>) => Promise<void>;
+  onMoveVersion: (version: Version, direction: 'up' | 'down') => Promise<void>;
 }
 
-export default function VersionView({ versions, currentActiveId, tasks, collaborators, currentUserId, canEdit, onSetActive, onDelete, onUpdateVersion }: VersionViewProps) {
-  const [currentStep, setCurrentStep] = useState(1);
+export default function VersionView({ versions, currentActiveId, tasks, collaborators, currentUserId, canEdit, onSetActive, onDelete, onUpdateVersion, onMoveVersion }: VersionViewProps) {
+  const [selectedVersionNanoid, setSelectedVersionNanoid] = useState<string | null>(versions[0]?.nanoid ?? null);
   const [prdDraft, setPrdDraft] = useState('');
   const [isSavingPrd, setIsSavingPrd] = useState(false);
   const [prdError, setPrdError] = useState<string | null>(null);
@@ -56,19 +57,32 @@ export default function VersionView({ versions, currentActiveId, tasks, collabor
     if (versionId) {
       const step = parseInt(versionId, 10);
       if (step >= 1 && step <= versions.length) {
-        setCurrentStep(step);
-      }
-    } else if (currentActiveId) {
-      // Find the index of the active version
-      const activeIndex = versions.findIndex(v => v.nanoid === currentActiveId);
-      if (activeIndex >= 0) {
-        setCurrentStep(activeIndex + 1);
+        setSelectedVersionNanoid(versions[step - 1]?.nanoid ?? null);
+        return;
       }
     }
+
+    if (currentActiveId && versions.some((version) => version.nanoid === currentActiveId)) {
+      setSelectedVersionNanoid(currentActiveId);
+      return;
+    }
+
+    setSelectedVersionNanoid((previous) => {
+      if (previous && versions.some((version) => version.nanoid === previous)) {
+        return previous;
+      }
+      return versions[0]?.nanoid ?? null;
+    });
   }, [versions, currentActiveId, searchParams]);
 
+  const selectedVersion = versions.find((version) => version.nanoid === selectedVersionNanoid) ?? versions[0];
+  const currentStep = selectedVersion ? versions.findIndex((version) => version.nanoid === selectedVersion.nanoid) + 1 : 1;
+  const selectedVersionIndex = selectedVersion ? versions.findIndex((version) => version.nanoid === selectedVersion.nanoid) : -1;
+
   const handleStepClick = (step: number) => {
-    setCurrentStep(step);
+    const version = versions[step - 1];
+    if (!version) return;
+    setSelectedVersionNanoid(version.nanoid);
     router.push(`?versionId=${step}`);
   };
 
@@ -76,12 +90,10 @@ export default function VersionView({ versions, currentActiveId, tasks, collabor
     const index = versions.findIndex((version) => version.nanoid === versionNanoid);
     if (index >= 0) {
       const step = index + 1;
-      setCurrentStep(step);
+      setSelectedVersionNanoid(versionNanoid);
       router.push(`?versionId=${step}`);
     }
   };
-
-  const selectedVersion = versions[currentStep - 1];
 
   useEffect(() => {
     if (!selectedVersion) return;
@@ -144,7 +156,7 @@ export default function VersionView({ versions, currentActiveId, tasks, collabor
     <div className="space-y-6">
       {/* Stepper */}
       <div className=" max-w-4xl px-4">
-        <Stepper onValueChange={setCurrentStep} value={currentStep}>
+        <Stepper value={currentStep}>
           {versions.map((version, index) => (
             <StepperItem
               className="not-last:flex-1 cursor-pointer"
@@ -204,6 +216,7 @@ export default function VersionView({ versions, currentActiveId, tasks, collabor
               </div>
 
               <div className="flex items-center justify-start gap-2">
+                -
                 <Badge
                   variant={selectedVersion.status === 'active' ? 'default' : 'secondary'}
                   className="text-sm"
@@ -217,6 +230,20 @@ export default function VersionView({ versions, currentActiveId, tasks, collabor
                       <MoreVertical className="h-4 w-4" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => onMoveVersion(selectedVersion, 'up')}
+                        disabled={selectedVersionIndex <= 0}
+                      >
+                        <ArrowUp className="h-4 w-4 mr-2" />
+                        Move Version Up
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => onMoveVersion(selectedVersion, 'down')}
+                        disabled={selectedVersionIndex < 0 || selectedVersionIndex >= versions.length - 1}
+                      >
+                        <ArrowDown className="h-4 w-4 mr-2" />
+                        Move Version Down
+                      </DropdownMenuItem>
                       {selectedVersion.status !== 'active' && (
                         <DropdownMenuItem onClick={() => onSetActive(selectedVersion)}>
                           <Play className="h-4 w-4 mr-2" />
@@ -279,17 +306,28 @@ export default function VersionView({ versions, currentActiveId, tasks, collabor
               <VersionRadialProgressChart stats={stats} />
 
 
-
-              <Card className="cursor-pointer hover:border-blue-500/50 transition-colors">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-                  <Clock className="h-4 w-4 text-blue-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.inProgressTasks}</div>
-                  <p className="text-xs text-muted-foreground">Active tasks</p>
-                </CardContent>
-              </Card>
+              <div>
+                <Card className="cursor-pointer hover:border-blue-500/50 transition-colors">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">In Progress</CardTitle>
+                    <Clock className="h-4 w-4 text-blue-500" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.inProgressTasks}</div>
+                    <p className="text-xs text-muted-foreground">Active tasks</p>
+                  </CardContent>
+                </Card>
+                <Card className="cursor-pointer hover:border-blue-500/50 transition-colors">
+                  {/* <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Started</CardTitle>
+                    <Clock className="h-4 w-4 text-blue-500" />
+                  </CardHeader> */}
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.inProgressTasks}</div>
+                    <p className="text-xs text-muted-foreground">Active tasks</p>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
 
             {/* Content Sections */}

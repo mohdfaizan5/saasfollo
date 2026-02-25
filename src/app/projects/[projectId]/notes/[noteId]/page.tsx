@@ -2,6 +2,10 @@ import { notFound } from 'next/navigation';
 import { getNote } from '@/lib/actions/notes';
 import { NoteEditor } from '@/components/notes/note-editor';
 
+export const metadata = {
+    title: 'Note',
+};
+
 interface NotePageProps {
     params: Promise<{ projectId: string; noteId: string }>;
 }

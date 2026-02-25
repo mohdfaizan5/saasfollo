@@ -1,6 +1,10 @@
 import { getSecrets, hasPinSetup } from '@/lib/actions/secrets';
 import { SecretsClient } from '@/components/secrets/secrets-client';
 
+export const metadata = {
+    title: 'Secrets',
+};
+
 interface SecretsPageProps {
     params: Promise<{ projectId: string }>;
 }

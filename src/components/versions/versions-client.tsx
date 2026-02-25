@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { createVersion, setVersionActive, deleteVersion, updateVersion } from '@/lib/actions/versions';
+import { createVersion, setVersionActive, deleteVersion, updateVersion, moveVersion } from '@/lib/actions/versions';
 import { useProjectRole } from '@/hooks/use-project-role';
 import type { Version, Task, ProjectCollaborator } from '@/lib/types/database';
 import VersionView from './version-view';
@@ -66,7 +66,7 @@ export function VersionsClient({ initialVersions, projectId, activeVersionId, ta
                 goals: newGoals.trim() || null,
                 deadline: newDeadline || null,
             });
-            setVersions((prev) => [version, ...prev]);
+            setVersions((prev) => [...prev, version]);
             setIsDialogOpen(false);
             setStep(1);
             setNewName('');
@@ -114,6 +114,15 @@ export function VersionsClient({ initialVersions, projectId, activeVersionId, ta
     const handleUpdateVersion = async (version: Version, updates: Partial<Version>) => {
         const updatedVersion = await updateVersion(version.nanoid, projectId, updates);
         setVersions((prev) => prev.map((v) => (v.id === updatedVersion.id ? updatedVersion : v)));
+    };
+
+    const handleMoveVersion = async (version: Version, direction: 'up' | 'down') => {
+        try {
+            const reorderedVersions = await moveVersion(version.nanoid, projectId, direction);
+            setVersions(reorderedVersions);
+        } catch (err) {
+            console.error('Failed to reorder version:', err);
+        }
     };
 
     return (
@@ -237,6 +246,7 @@ export function VersionsClient({ initialVersions, projectId, activeVersionId, ta
                 onSetActive={handleSetActive}
                 onDelete={handleDelete}
                 onUpdateVersion={handleUpdateVersion}
+                onMoveVersion={handleMoveVersion}
             />
         </div>
     );

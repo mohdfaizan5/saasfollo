@@ -31,12 +31,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const perk = getPerkByCompany(companyName);
 
   if (!perk) {
-    return { title: 'Perk Not Found' };
+    return { title: 'Perk Not Found | SaaSFollo' };
   }
 
 
   return {
-    title: `${perk.companyName} - ${perk.perkName} | Startup Perks`,
+    title: `${perk.companyName} - ${perk.perkName} | Startup Perks | SaaSFollo`,
     description: perk.description,
     openGraph: {
       title: `${perk.companyName} - ${perk.perkName}`,

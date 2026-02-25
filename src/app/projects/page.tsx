@@ -4,6 +4,10 @@ import { createClient } from '@/lib/server';
 import { getProjects } from '@/lib/actions/projects';
 import { ProjectCard, CreateProjectDialog, ProjectsHeader } from '@/components/projects';
 
+export const metadata = {
+    title: 'Projects | SaaSFollo',
+};
+
 export default async function ProjectsPage() {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.getClaims();

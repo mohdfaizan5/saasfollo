@@ -142,7 +142,7 @@ export default function TasksKanbanCard({ task, onUpdate, onDelete, onEdit, isDr
                         onClick={handleToggleComplete}
                     >
                         {task.is_completed ? (
-                            <CheckCircleIcon className="w-4 h-4" weight="fill" />
+                            <CheckCircleIcon className="w-4 h-4 " weight="duotone"  color='#fff'/>
                         ) : (
                             <CircleIcon className="w-4 h-4 group-hover:opacity-100" weight="duotone" color="white" />
                         )}
@@ -175,7 +175,8 @@ export default function TasksKanbanCard({ task, onUpdate, onDelete, onEdit, isDr
                 <div className="flex items-center justify-between text-[10px] mt-2">
                     <div className="flex flex-wrap gap-1">
                         {task.category && (
-                            <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium capitalize select-none">
+                            // CATEGORY STYLE HOOK: tweak these classes if you want stronger/lighter category contrast.
+                            <span className="px-1.5 py-0.5 rounded border border-white/25 bg-white/10 text-white font-medium capitalize select-none">
                                 {task.category}
                             </span>
                         )}

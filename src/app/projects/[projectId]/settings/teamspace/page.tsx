@@ -4,6 +4,10 @@ import { notFound, redirect } from 'next/navigation';
 import { CollaboratorsClient } from '@/components/projects/collaborators-client';
 import { createClient } from '@/lib/server';
 
+export const metadata = {
+    title: 'Teamspace',
+};
+
 interface TeamspaceSettingsPageProps {
     params: Promise<{ projectId: string }>;
 }

@@ -1,5 +1,11 @@
 import { NoteEditorSkeleton } from '@/components/skeletons/project-page-skeletons';
+import { LoadingTitle } from '@/components/seo/loading-title';
 
 export default function Loading() {
-    return <NoteEditorSkeleton />;
+    return (
+        <>
+            <LoadingTitle />
+            <NoteEditorSkeleton />
+        </>
+    );
 }

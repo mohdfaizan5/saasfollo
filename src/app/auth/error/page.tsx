@@ -1,5 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
+export const metadata = {
+  title: 'Auth Error | SaaSFollo',
+}
+
 export default async function Page({ searchParams }: { searchParams: Promise<{ error: string }> }) {
   const params = await searchParams
 

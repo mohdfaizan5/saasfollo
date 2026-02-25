@@ -1,7 +1,22 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { getSupabasePublishableKey, getSupabaseUrl } from '@/lib/supabase-env'
 
 export async function updateSession(request: NextRequest) {
+  const pathname = request.nextUrl.pathname
+  const isPublicPath =
+    pathname === '/' ||
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/auth') ||
+    pathname.startsWith('/changelog') ||
+    pathname.startsWith('/blog') ||
+    pathname.startsWith('/resources') ||
+    pathname.startsWith('/startupperks')
+
+  if (isPublicPath && pathname !== '/') {
+    return NextResponse.next({ request })
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -9,8 +24,8 @@ export async function updateSession(request: NextRequest) {
   // With Fluid compute, don't put this client in a global environment
   // variable. Always create a new one on each request.
   const supabase = createServerClient(
-    process.env.PUBLIC_SUPABASE_URL!,
-    process.env.PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY!,
+    getSupabaseUrl(),
+    getSupabasePublishableKey(),
     {
       cookies: {
         getAll() {
@@ -29,24 +44,40 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // Do not run code between createServerClient and
-  // supabase.auth.getClaims(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
+  // Guard this call so transient network failures do not crash middleware.
+  let user: unknown = null
 
-  // IMPORTANT: If you remove getClaims() and you use server-side rendering
-  // with the Supabase client, your users may be randomly logged out.
-  const { data } = await supabase.auth.getClaims()
-  const user = data?.claims
+  try {
+    const { data, error } = await supabase.auth.getClaims()
+    if (error) {
+      throw error
+    }
+    user = data?.claims ?? null
+  } catch (claimsError) {
+    const message = claimsError instanceof Error ? claimsError.message : ''
+    const isNetworkFailure = /fetch failed|timeout|connect/i.test(message)
+
+    if (isNetworkFailure) {
+      console.warn('[auth] Supabase unreachable in middleware, skipping getUser fallback')
+      user = null
+    } else {
+      console.warn('[auth] getClaims failed in middleware, trying getUser fallback')
+      try {
+        const { data, error } = await supabase.auth.getUser()
+        if (error) {
+          throw error
+        }
+        user = data?.user ?? null
+      } catch (userError) {
+        console.error('[auth] getUser fallback also failed in middleware')
+        user = null
+      }
+    }
+  }
   // console.log("---", request.nextUrl.pathname.match('/'))
   if (
     !user &&
-    request.nextUrl.pathname !== '/' &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/changelog') &&
-    !request.nextUrl.pathname.startsWith('/auth') &&
-    !request.nextUrl.pathname.startsWith('/blog') &&
-    !request.nextUrl.pathname.startsWith('/resources') &&
-    !request.nextUrl.pathname.startsWith('/startupperks') 
+    pathname !== '/'
   ) {
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone()
@@ -55,7 +86,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Redirect authenticated users from / to /projects
-  if (user && request.nextUrl.pathname === '/') {
+  if (user && pathname === '/') {
     const url = request.nextUrl.clone()
     url.pathname = '/projects'
     return NextResponse.redirect(url)
@@ -76,3 +107,12 @@ export async function updateSession(request: NextRequest) {
 
   return supabaseResponse
 }
+
+
+// request.nextUrl.pathname !== '/' &&
+//   !request.nextUrl.pathname.startsWith('/login') &&
+//   !request.nextUrl.pathname.startsWith('/changelog') &&
+//   !request.nextUrl.pathname.startsWith('/auth') &&
+//   !request.nextUrl.pathname.startsWith('/blog') &&
+//   !request.nextUrl.pathname.startsWith('/resources') &&
+//   !request.nextUrl.pathname.startsWith('/startupperks') 

@@ -36,6 +36,7 @@ export interface Version {
   id: number;
   nanoid: string;
   project_id: number;
+  position: number;
   name: string;
   description: string | null;
   status: VersionStatus;
@@ -71,6 +72,7 @@ export interface Link {
   nanoid: string;
   project_id: number;
   url: string;
+  tag: string | null;
   detected_type: LinkType;
   icon: string | null;
   label: string | null;
@@ -119,6 +121,7 @@ export interface ProjectInsert {
 
 export interface VersionInsert {
   project_id: number;
+  position?: number;
   name: string;
   description?: string | null;
   status?: VersionStatus;
@@ -144,6 +147,7 @@ export interface TaskInsert {
 export interface LinkInsert {
   project_id: number;
   url: string;
+  tag?: string | null;
   detected_type?: LinkType;
   icon?: string | null;
   label?: string | null;
@@ -178,6 +182,7 @@ export interface ProjectUpdate {
 }
 
 export interface VersionUpdate {
+  position?: number;
   name?: string;
   description?: string | null;
   status?: VersionStatus;
@@ -201,6 +206,7 @@ export interface TaskUpdate {
 
 export interface LinkUpdate {
   url?: string;
+  tag?: string | null;
   detected_type?: LinkType;
   icon?: string | null;
   label?: string | null;

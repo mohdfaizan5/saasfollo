@@ -1,14 +1,26 @@
 'use client';
 
-import { useState } from 'react';
-import { Link2, Plus, Trash2, ExternalLink } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link2, Plus, Trash2, ExternalLink, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { createLinksFromString, deleteLink } from '@/lib/actions/links';
+import {
+    createLinksFromString,
+    deleteLink,
+    updateLink,
+} from '@/lib/actions/links';
 import { useProjectRole } from '@/hooks/use-project-role';
 import type { Link as LinkType } from '@/lib/types/database';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
 // React Icons imports
 import {
@@ -190,6 +202,7 @@ interface LinkCardProps {
     link: LinkType;
     projectId: string;
     onDelete: (id: string) => void;
+    onEdit: (link: LinkType) => void;
     span: string;
     isFeatured: boolean;
     canEdit: boolean;
@@ -205,7 +218,7 @@ function getDomain(url: string): string {
     }
 }
 
-function LinkCard({ link, projectId, onDelete, span, isFeatured, canEdit }: LinkCardProps) {
+function LinkCard({ link, projectId, onDelete, onEdit, span, isFeatured, canEdit }: LinkCardProps) {
     const [isDeleting, setIsDeleting] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const [faviconError, setFaviconError] = useState(false);
@@ -229,6 +242,12 @@ function LinkCard({ link, projectId, onDelete, span, isFeatured, canEdit }: Link
         } finally {
             setIsDeleting(false);
         }
+    };
+
+    const handleEdit = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onEdit(link);
     };
 
     // Create hex with opacity
@@ -293,6 +312,14 @@ function LinkCard({ link, projectId, onDelete, span, isFeatured, canEdit }: Link
                         </button>
                         {canEdit && (
                             <button
+                                className="p-1.5 rounded-lg bg-black/20 backdrop-blur-sm hover:bg-black/30 transition-colors"
+                                onClick={handleEdit}
+                            >
+                                <Pencil className="h-3.5 w-3.5 text-white" />
+                            </button>
+                        )}
+                        {canEdit && (
+                            <button
                                 className="p-1.5 rounded-lg bg-red-500/80 backdrop-blur-sm hover:bg-red-500 transition-colors"
                                 onClick={handleDelete}
                                 disabled={isDeleting}
@@ -331,12 +358,98 @@ interface LinksClientProps {
     projectId: string;
 }
 
+function normalizeTag(tag: string): string {
+    return tag.trim().replace(/\s+/g, ' ');
+}
+
 export function LinksClient({ initialLinks, projectId }: LinksClientProps) {
     const { canEdit } = useProjectRole();
     const [links, setLinks] = useState<LinkType[]>(initialLinks);
     const [urlInput, setUrlInput] = useState('');
+    const [tagInput, setTagInput] = useState('');
     const [isAdding, setIsAdding] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isTagSuggestionsOpen, setIsTagSuggestionsOpen] = useState(false);
+    const tagInputContainerRef = useRef<HTMLDivElement>(null);
+    const [editingLink, setEditingLink] = useState<LinkType | null>(null);
+    const [editUrlInput, setEditUrlInput] = useState('');
+    const [editTagInput, setEditTagInput] = useState('');
+    const [isSavingEdit, setIsSavingEdit] = useState(false);
+    const [editError, setEditError] = useState<string | null>(null);
+    const [isEditTagSuggestionsOpen, setIsEditTagSuggestionsOpen] = useState(false);
+    const editTagInputContainerRef = useRef<HTMLDivElement>(null);
+
+    const existingTags = useMemo(() => {
+        return Array.from(
+            new Set(
+                links
+                    .map((link) => (link.tag ? normalizeTag(link.tag) : ''))
+                    .filter(Boolean),
+            ),
+        ).sort((a, b) => a.localeCompare(b));
+    }, [links]);
+
+    const normalizedTagInput = normalizeTag(tagInput);
+
+    const filteredTagSuggestions = useMemo(() => {
+        const query = normalizedTagInput.toLowerCase();
+        if (!query) return existingTags;
+        return existingTags.filter((tag) => tag.toLowerCase().includes(query));
+    }, [existingTags, normalizedTagInput]);
+
+    const canCreateTag = normalizedTagInput.length > 0 && !existingTags.some(
+        (tag) => tag.toLowerCase() === normalizedTagInput.toLowerCase(),
+    );
+
+    const groupedLinks = useMemo(() => {
+        const map = new Map<string, LinkType[]>();
+
+        for (const link of links) {
+            const normalized = normalizeTag(link.tag ?? '');
+            const groupKey = normalized || 'untagged';
+            const current = map.get(groupKey) ?? [];
+            current.push(link);
+            map.set(groupKey, current);
+        }
+
+        return Array.from(map.entries())
+            .sort(([left], [right]) => {
+                if (left === 'untagged') return 1;
+                if (right === 'untagged') return -1;
+                return left.localeCompare(right);
+            });
+    }, [links]);
+
+    useEffect(() => {
+        const handleOutsideClick = (event: MouseEvent) => {
+            if (!tagInputContainerRef.current) return;
+            if (!tagInputContainerRef.current.contains(event.target as Node)) {
+                setIsTagSuggestionsOpen(false);
+            }
+
+            if (!editTagInputContainerRef.current) return;
+            if (!editTagInputContainerRef.current.contains(event.target as Node)) {
+                setIsEditTagSuggestionsOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleOutsideClick);
+        return () => {
+            document.removeEventListener('mousedown', handleOutsideClick);
+        };
+    }, []);
+
+    const selectTag = (value: string) => {
+        const normalized = normalizeTag(value);
+        setTagInput(normalized);
+        setIsTagSuggestionsOpen(false);
+    };
+
+    const selectEditTag = (value: string) => {
+        const normalized = normalizeTag(value);
+        setEditTagInput(normalized);
+        setIsEditTagSuggestionsOpen(false);
+    };
 
     const handleAddLinks = async () => {
         if (!urlInput.trim()) {
@@ -348,9 +461,12 @@ export function LinksClient({ initialLinks, projectId }: LinksClientProps) {
         setError(null);
 
         try {
-            const newLinks = await createLinksFromString(projectId, urlInput);
+            const tag = normalizeTag(tagInput);
+            const newLinks = await createLinksFromString(projectId, urlInput, tag || null);
             setLinks((prev) => [...newLinks, ...prev]);
             setUrlInput('');
+            setTagInput('');
+            setIsTagSuggestionsOpen(false);
         } catch (err) {
             console.error('Failed to add links:', err);
             setError('Failed to add links. Please check your URLs.');
@@ -361,6 +477,44 @@ export function LinksClient({ initialLinks, projectId }: LinksClientProps) {
 
     const handleDelete = (linkNanoid: string) => {
         setLinks((prev) => prev.filter((l) => l.nanoid !== linkNanoid));
+    };
+
+    const handleStartEdit = (link: LinkType) => {
+        setEditingLink(link);
+        setEditUrlInput(link.url);
+        setEditTagInput(link.tag ?? '');
+        setEditError(null);
+        setIsEditTagSuggestionsOpen(false);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingLink) return;
+
+        const trimmedUrl = editUrlInput.trim();
+        if (!trimmedUrl) {
+            setEditError('URL is required');
+            return;
+        }
+
+        setEditError(null);
+        setIsSavingEdit(true);
+
+        try {
+            const updated = await updateLink(editingLink.nanoid, projectId, {
+                url: trimmedUrl,
+                tag: normalizeTag(editTagInput) || null,
+            });
+
+            setLinks((prev) => prev.map((item) => (item.nanoid === updated.nanoid ? updated : item)));
+            setEditingLink(null);
+            setEditUrlInput('');
+            setEditTagInput('');
+        } catch (err) {
+            console.error('Failed to update link:', err);
+            setEditError('Failed to update link. Please check URL and try again.');
+        } finally {
+            setIsSavingEdit(false);
+        }
     };
 
     return (
@@ -380,8 +534,8 @@ export function LinksClient({ initialLinks, projectId }: LinksClientProps) {
 
             {/* Add Links */}
             {canEdit && (
-                <Card className="p-4">
-                    <div className="flex gap-3">
+                <Card className="p-4 overflow-visible">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_240px_auto] md:items-start">
                         <Input
                             placeholder="Paste URLs here (comma or space separated)..."
                             value={urlInput}
@@ -394,14 +548,156 @@ export function LinksClient({ initialLinks, projectId }: LinksClientProps) {
                                 }
                             }}
                         />
+
+                        <div className="relative" ref={tagInputContainerRef}>
+                            <Input
+                                placeholder="Tag (optional)"
+                                value={tagInput}
+                                onFocus={() => setIsTagSuggestionsOpen(true)}
+                                onChange={(e) => {
+                                    setTagInput(e.target.value);
+                                    setIsTagSuggestionsOpen(true);
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        if (filteredTagSuggestions.length > 0) {
+                                            selectTag(filteredTagSuggestions[0]);
+                                            return;
+                                        }
+                                        if (canCreateTag) {
+                                            selectTag(normalizedTagInput);
+                                        }
+                                    }
+                                }}
+                                disabled={isAdding}
+                            />
+                            {isTagSuggestionsOpen && (
+                                <div className="absolute z-20 mt-1 w-full rounded-md border bg-popover p-1 shadow-md max-h-32 overflow-y-auto">
+                                    {filteredTagSuggestions.length === 0 && !canCreateTag && (
+                                        <p className="px-2 py-1.5 text-sm text-muted-foreground">No tags found</p>
+                                    )}
+
+                                    {filteredTagSuggestions.slice(0, 3).map((tag) => (
+                                        <button
+                                            key={tag}
+                                            type="button"
+                                            className="w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
+                                            onClick={() => selectTag(tag)}
+                                        >
+                                            {tag}
+                                        </button>
+                                    ))}
+
+                                    {canCreateTag && (
+                                        <button
+                                            type="button"
+                                            className="w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
+                                            onClick={() => selectTag(normalizedTagInput)}
+                                        >
+                                            Create "{normalizedTagInput}"
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
                         <Button onClick={handleAddLinks} disabled={isAdding}>
                             <Plus className="h-4 w-4 mr-2" />
                             {isAdding ? 'Adding...' : 'Add'}
                         </Button>
                     </div>
+                    <p className="-mt-2 text-xs text-muted-foreground">Tag is optional and links are grouped by tag.</p>
                     {error && <p className="text-sm text-destructive mt-2">{error}</p>}
                 </Card>
             )}
+
+            <Dialog
+                open={!!editingLink}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setEditingLink(null);
+                        setEditError(null);
+                        setIsEditTagSuggestionsOpen(false);
+                    }
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Edit Link</DialogTitle>
+                        <DialogDescription>Update URL and optional tag.</DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-3">
+                        <Input
+                            placeholder="https://example.com"
+                            value={editUrlInput}
+                            onChange={(e) => setEditUrlInput(e.target.value)}
+                            disabled={isSavingEdit}
+                        />
+
+                        <div className="relative" ref={editTagInputContainerRef}>
+                            <Input
+                                placeholder="Tag (optional)"
+                                value={editTagInput}
+                                onFocus={() => setIsEditTagSuggestionsOpen(true)}
+                                onChange={(e) => {
+                                    setEditTagInput(e.target.value);
+                                    setIsEditTagSuggestionsOpen(true);
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        const normalized = normalizeTag(editTagInput);
+                                        const matching = existingTags.filter((tag) =>
+                                            tag.toLowerCase().includes(normalized.toLowerCase()),
+                                        );
+
+                                        if (matching.length > 0) {
+                                            selectEditTag(matching[0]);
+                                            return;
+                                        }
+
+                                        if (normalized) {
+                                            selectEditTag(normalized);
+                                        }
+                                    }
+                                }}
+                                disabled={isSavingEdit}
+                            />
+
+                            {isEditTagSuggestionsOpen && (
+                                <div className="absolute z-20 mt-1 w-full rounded-md border bg-popover p-1 shadow-md max-h-32 overflow-y-auto">
+                                    {existingTags.length === 0 && (
+                                        <p className="px-2 py-1.5 text-sm text-muted-foreground">No tags found</p>
+                                    )}
+                                    {existingTags.slice(0, 3).map((tag) => (
+                                        <button
+                                            key={`edit-${tag}`}
+                                            type="button"
+                                            className="w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
+                                            onClick={() => selectEditTag(tag)}
+                                        >
+                                            {tag}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {editError && <p className="text-sm text-destructive">{editError}</p>}
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditingLink(null)} disabled={isSavingEdit}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleSaveEdit} disabled={isSavingEdit}>
+                            {isSavingEdit ? 'Saving...' : 'Save'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Bento Grid */}
             {links.length === 0 ? (
@@ -418,22 +714,37 @@ export function LinksClient({ initialLinks, projectId }: LinksClientProps) {
                     <p className="text-sm">Add links to Figma, GitHub, Vercel, and more</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 auto-rows-fr">
-                    {isAdding && Array.from({ length: 4 }).map((_, index) => (
-                        <div key={`loading-${index}`} className="col-span-1">
-                            <Skeleton className="h-36 w-full rounded-2xl" />
+                <div className="space-y-5">
+                    {isAdding && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 auto-rows-fr">
+                            {Array.from({ length: 4 }).map((_, index) => (
+                                <div key={`loading-${index}`} className="col-span-1">
+                                    <Skeleton className="h-36 w-full rounded-2xl" />
+                                </div>
+                            ))}
                         </div>
-                    ))}
-                    {links.map((link, index) => (
-                        <LinkCard
-                            key={link.nanoid}
-                            link={link}
-                            projectId={projectId}
-                            onDelete={handleDelete}
-                            span={getBentoSpan(index, links.length)}
-                            isFeatured={false}
-                            canEdit={canEdit}
-                        />
+                    )}
+
+                    {groupedLinks.map(([tag, groupLinks]) => (
+                        <div key={tag} className="space-y-2">
+                            <p className="text-sm font-medium text-muted-foreground">
+                                {tag === 'untagged' ? 'Untagged' : tag}
+                            </p>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 auto-rows-fr">
+                                {groupLinks.map((link, index) => (
+                                    <LinkCard
+                                        key={link.nanoid}
+                                        link={link}
+                                        projectId={projectId}
+                                        onDelete={handleDelete}
+                                        onEdit={handleStartEdit}
+                                        span={getBentoSpan(index, groupLinks.length)}
+                                        isFeatured={false}
+                                        canEdit={canEdit}
+                                    />
+                                ))}
+                            </div>
+                        </div>
                     ))}
                 </div>
             )}

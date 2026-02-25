@@ -1,5 +1,9 @@
 import { redirect } from 'next/navigation';
 
+export const metadata = {
+    title: 'SaaSFollo',
+};
+
 interface ProjectPageProps {
     params: Promise<{ projectId: string }>;
 }

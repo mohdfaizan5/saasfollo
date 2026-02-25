@@ -1,14 +1,6 @@
 import { createBrowserClient } from '@supabase/ssr'
+import { getSupabasePublishableKey, getSupabaseUrl } from '@/lib/supabase-env'
 
 export function createClient() {
-  return createBrowserClient(
-    "https://kjowcookmfwbeydpkqgl.supabase.co",
-    "sb_publishable_nRvi2SUP2Ak_z1lyQFSrNg_IlBcCsDU"
-  )
+  return createBrowserClient(getSupabaseUrl(), getSupabasePublishableKey())
 }
-// export function createClient() {
-//   return createBrowserClient(
-//     process.env.PUBLIC_SUPABASE_URL!,
-//     process.env.PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY!
-//   )
-// }

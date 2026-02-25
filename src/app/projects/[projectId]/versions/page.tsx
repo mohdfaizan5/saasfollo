@@ -5,6 +5,10 @@ import { getProjectCollaborators } from '@/lib/actions/collaborators';
 import { VersionsClient } from '@/components/versions/versions-client';
 import { createClient } from '@/lib/server';
 
+export const metadata = {
+    title: 'Versions',
+};
+
 interface VersionsPageProps {
     params: Promise<{ projectId: string }>;
 }

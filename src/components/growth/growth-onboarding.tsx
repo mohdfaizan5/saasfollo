@@ -121,14 +121,13 @@ export function GrowthOnboarding({ projectId, versionId, versionName }: GrowthOn
     if (step === 1) {
         return (
             <div className="space-y-6">
-                <Card className="border-border/70 bg-muted/20">
-                    <CardContent className="p-6">
-                        <h2 className="text-3xl font-bold tracking-tight">Growth Plan for {versionName}</h2>
-                        <p className="text-muted-foreground mt-1">What channels do you want to focus on? Pick the ones you'll actually use.</p>
-                    </CardContent>
-                </Card>
+                {/* <Card className="border-border/70 bg-muted/20">
+                    <CardContent className="p-6"> */}
+                
+                {/* </CardContent>
+                </Card> */}
 
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
                     {ACTIVITY_DEF.map(def => {
                         const Icon = def.icon;
                         const isSelected = selectedTypes.includes(def.type);
@@ -264,8 +263,8 @@ export function GrowthOnboarding({ projectId, versionId, versionName }: GrowthOn
         <div className="space-y-6">
             <Card className="border-border/70 bg-muted/20">
                 <CardContent className="text-center py-6">
-                <h2 className="text-3xl font-bold tracking-tight">Here's your plan</h2>
-                <p className="text-muted-foreground mt-2">{remainingDays} days to hit these numbers. Here's what that looks like day-to-day.</p>
+                    <h2 className="text-3xl font-bold tracking-tight">Here's your plan</h2>
+                    <p className="text-muted-foreground mt-2">{remainingDays} days to hit these numbers. Here's what that looks like day-to-day.</p>
                 </CardContent>
             </Card>
 

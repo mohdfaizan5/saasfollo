@@ -2,6 +2,10 @@ import React from 'react';
 import Link from 'next/link';
 import { PenTool, Search, FileText, Sparkles } from 'lucide-react';
 
+export const metadata = {
+    title: 'Resources | SaaSFollo',
+};
+
 const resources = [
     {
         title: "Copywriting",

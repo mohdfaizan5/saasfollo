@@ -10,6 +10,10 @@ import { TasksClient } from '@/components/build/tasks-client';
 // for frontend nomenclature change from "tasks" to "build" while keeping backend logic unchanged
 import type { TaskView } from '@/components/build/task-view-toggle';
 
+export const metadata = {
+    title: 'Build',
+};
+
 interface TasksPageProps {
     params: Promise<{ projectId: string }>;
     searchParams: Promise<{ view?: string }>;
@@ -35,6 +39,13 @@ export default async function TasksPage({ params, searchParams }: TasksPageProps
     // Validate view param - default to kanban
     const initialView: TaskView = view === 'todo' ? 'todo' : 'kanban';
 
+    // Comments I added(for easy tweaking)
+    // Column icon keyword rules (editable): add your own keywords/icon pairs here.
+    // COLUMN STYLE HOOK: tweak these classes to control done-column appearance.
+    // COLUMN STYLE HOOK: tweak these classes to control "start from here" emphasis.
+    // COLUMN STYLE HOOK: tweak this callout copy/classes for your "start here" lane.
+    // COLUMN STYLE HOOK: tweak this done-lane marker to adjust finished column UI.
+    // CATEGORY STYLE HOOK: tweak these classes if you want stronger/lighter category contrast.
     return (
         <TasksClient
             initialTasks={tasksByStatus}

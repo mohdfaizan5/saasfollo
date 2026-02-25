@@ -14,7 +14,7 @@ VERSIONS:
 BUILD
 1. Let us give an option to add a 'Section' tag for each task
 2. make the each card ui that is broken due to checkbox better✅
-3. give users the ability to create custom columns 
+3. give users the ability to create custom columns ✅
 4. make the input of task creation better - by removing the redundant fields and making it simple & and increase the width of the card.
 
 

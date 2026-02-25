@@ -3,8 +3,8 @@ import { ChangelogEntry } from '@/components/changelog/changelog-entry';
 import { Sparkle } from 'lucide-react';
 
 export const metadata = {
-    title: 'Changelog - ContentCreator OS',
-    description: 'Latest updates, improvements, and fixes for ContentCreator OS',
+    title: 'Changelog | SaaSFollo',
+    description: 'Latest updates, improvements, and fixes for SaaSFollo.',
 };
 
 export default function ChangelogPage() {

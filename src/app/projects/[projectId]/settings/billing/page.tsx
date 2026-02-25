@@ -2,6 +2,10 @@ import { Button } from '@/components/ui/button';
 import { getProject } from '@/lib/actions/projects';
 import { notFound } from 'next/navigation';
 
+export const metadata = {
+    title: 'Billing',
+};
+
 interface BillingSettingsPageProps {
     params: Promise<{ projectId: string }>;
 }

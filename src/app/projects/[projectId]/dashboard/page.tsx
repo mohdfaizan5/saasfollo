@@ -1,42 +1,279 @@
-import { Layers, CheckSquare, Clock, CheckCircle2, Plus } from 'lucide-react';
+import { Layers, CheckSquare, Clock, CheckCircle2, Plus, TrendingUp, CalendarDays, Target } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getProjectWithActiveVersion } from '@/lib/actions/projects';
-import { getTaskCounts, getTasks } from '@/lib/actions/tasks';
+import { getTasks } from '@/lib/actions/tasks';
+import { getGrowthPlan } from '@/lib/actions/growth';
+import { getProjectCollaborators } from '@/lib/actions/collaborators';
+import { createClient } from '@/lib/server';
+import { DashboardRangeToggle } from '@/components/dashboard/dashboard-range-toggle';
+import { DashboardChartsSection } from '@/components/dashboard/dashboard-charts-section';
 import Link from 'next/link';
 import { Coolshape } from 'coolshapes-react';
+import type { Task } from '@/lib/types/database';
+
+export const metadata = {
+    title: 'Dashboard',
+};
 
 interface DashboardPageProps {
     params: Promise<{ projectId: string }>;
+    searchParams: Promise<{ range?: string }>;
 }
 
-export default async function DashboardPage({ params }: DashboardPageProps) {
-    const { projectId } = await params;
+type DashboardRange = 'today' | 'week' | 'month';
 
-    // projectId is now the nanoid string - pass directly
-    const [project, taskCounts, recentTasks] = await Promise.all([
+const RANGE_DAYS: Record<DashboardRange, number> = {
+    today: 1,
+    week: 7,
+    month: 30,
+};
+
+function parseRange(value?: string): DashboardRange {
+    if (value === 'today' || value === 'week' || value === 'month') {
+        return value;
+    }
+    return 'week';
+}
+
+function startOfDay(date: Date): Date {
+    const next = new Date(date);
+    next.setHours(0, 0, 0, 0);
+    return next;
+}
+
+function getRangeWindow(range: DashboardRange) {
+    const now = new Date();
+    if (range === 'today') {
+        const start = startOfDay(now);
+        const previousStart = new Date(start);
+        previousStart.setDate(previousStart.getDate() - 1);
+        return {
+            now,
+            start,
+            previousStart,
+            previousEnd: start,
+            days: 1,
+        };
+    }
+
+    const days = RANGE_DAYS[range];
+    const end = now;
+    const start = startOfDay(new Date(end));
+    start.setDate(start.getDate() - (days - 1));
+    const previousStart = new Date(start);
+    previousStart.setDate(previousStart.getDate() - days);
+
+    return {
+        now: end,
+        start,
+        previousStart,
+        previousEnd: start,
+        days,
+    };
+}
+
+function isInWindow(value: string, start: Date, end: Date): boolean {
+    const date = new Date(value);
+    return date >= start && date <= end;
+}
+
+function isInPreviousWindow(value: string, previousStart: Date, previousEnd: Date): boolean {
+    const date = new Date(value);
+    return date >= previousStart && date < previousEnd;
+}
+
+function formatTimeLeft(deadline?: string | null): string {
+    if (!deadline) return 'No deadline set';
+
+    const now = new Date();
+    const target = new Date(deadline);
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const diffDays = Math.ceil((target.getTime() - now.getTime()) / msPerDay);
+
+    if (diffDays < 0) return `${Math.abs(diffDays)} days overdue`;
+    if (diffDays === 0) return 'Due today';
+    if (diffDays < 7) return `${diffDays} days left`;
+
+    const weeks = Math.ceil(diffDays / 7);
+    return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} left`;
+}
+
+function formatFinishLineEstimate(days: number | null): string {
+    if (!days || !Number.isFinite(days)) return 'Need more completed tasks to estimate';
+    if (days < 1) return 'Likely finish within a day';
+    if (days < 7) return `${Math.ceil(days)} days to finish at current pace`;
+    const weeks = Math.ceil(days / 7);
+    return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} to finish at current pace`;
+}
+
+function formatAxisLabel(date: Date, range: DashboardRange): string {
+    if (range === 'today') {
+        return `${date.getHours().toString().padStart(2, '0')}:00`;
+    }
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+function buildDailySeries(tasks: Task[], start: Date, days: number, range: DashboardRange) {
+    return Array.from({ length: days }).map((_, index) => {
+        const dayStart = new Date(start);
+        dayStart.setDate(start.getDate() + index);
+        const dayEnd = new Date(dayStart);
+        dayEnd.setDate(dayStart.getDate() + 1);
+
+        const created = tasks.filter((task) => {
+            const createdAt = new Date(task.created_at);
+            return createdAt >= dayStart && createdAt < dayEnd;
+        }).length;
+
+        const completed = tasks.filter((task) => {
+            const updatedAt = new Date(task.updated_at);
+            return task.is_completed && updatedAt >= dayStart && updatedAt < dayEnd;
+        }).length;
+
+        return {
+            label: formatAxisLabel(dayStart, range),
+            created,
+            completed,
+        };
+    });
+}
+
+export default async function DashboardPage({ params, searchParams }: DashboardPageProps) {
+    const { projectId } = await params;
+    const { range: rangeParam } = await searchParams;
+    const range = parseRange(rangeParam);
+    const window = getRangeWindow(range);
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const [project, allTasks, collaborators] = await Promise.all([
         getProjectWithActiveVersion(projectId),
-        getTaskCounts(projectId),
         getTasks(projectId),
+        getProjectCollaborators(projectId),
     ]);
 
     if (!project) {
         return <div>Project not found</div>;
     }
 
-    const nowTasks = recentTasks.filter(t => t.status === 'now').slice(0, 5);
-    const totalTasks = taskCounts.now + taskCounts.next + taskCounts.later + taskCounts.done;
-    const completedPercent = totalTasks > 0 ? Math.round((taskCounts.done / totalTasks) * 100) : 0;
+    const scopedTasks = project.active_version_id
+        ? allTasks.filter((task) => task.version_id === project.active_version_id)
+        : allTasks;
+
+    const growthPlan = project.active_version_id
+        ? await getGrowthPlan(project.active_version_id)
+        : null;
+
+    const completedInRange = scopedTasks.filter((task) =>
+        task.is_completed && isInWindow(task.updated_at, window.start, window.now),
+    );
+    const createdInRange = scopedTasks.filter((task) =>
+        isInWindow(task.created_at, window.start, window.now),
+    );
+
+    const completedInPreviousRange = scopedTasks.filter((task) =>
+        task.is_completed && isInPreviousWindow(task.updated_at, window.previousStart, window.previousEnd),
+    );
+
+    const openTasks = scopedTasks.filter((task) => task.status !== 'done');
+    const nowTasks = scopedTasks.filter((task) => task.status === 'now').slice(0, 5);
+    const nextTasksCount = scopedTasks.filter((task) => task.status === 'next').length;
+    const laterTasksCount = scopedTasks.filter((task) => task.status === 'later').length;
+
+    const totalScopedTasks = scopedTasks.length;
+    const completedScopedTasks = scopedTasks.filter((task) => task.status === 'done').length;
+    const completedPercent = totalScopedTasks > 0
+        ? Math.round((completedScopedTasks / totalScopedTasks) * 100)
+        : 0;
+
+    const workDonePercent = (completedInRange.length + createdInRange.length) > 0
+        ? Math.round((completedInRange.length / (completedInRange.length + createdInRange.length)) * 100)
+        : 0;
+    const netProgress = completedInRange.length - createdInRange.length;
+    const velocityPerDay = completedInRange.length / window.days;
+    const finishLineDays = velocityPerDay > 0 ? openTasks.length / velocityPerDay : null;
+    const completedDeltaVsPrevious = completedInRange.length - completedInPreviousRange.length;
+
+    const collaboratorNameById = new Map(
+        collaborators.map((collab) => [collab.user_id, collab.email.split('@')[0]]),
+    );
+    const completedByAssignee = completedInRange.reduce<Record<string, number>>((acc, task) => {
+        const key = task.assignee || 'unassigned';
+        acc[key] = (acc[key] ?? 0) + 1;
+        return acc;
+    }, {});
+    const topContributor = Object.entries(completedByAssignee)
+        .sort((left, right) => right[1] - left[1])[0];
+
+    const topContributorLabel = topContributor
+        ? topContributor[0] === 'unassigned'
+            ? 'Unassigned'
+            : topContributor[0] === user?.id
+                ? 'You'
+                : collaboratorNameById.get(topContributor[0]) ?? topContributor[0]
+        : null;
+
+    const growthLogsInRange = growthPlan
+        ? growthPlan.activities.flatMap((activity) =>
+            activity.logs.filter((log) => isInWindow(log.created_at, window.start, window.now)),
+        )
+        : [];
+    const growthQuantityInRange = growthLogsInRange.reduce((sum, log) => sum + log.quantity, 0);
+    const progressedActivitiesInRange = growthPlan
+        ? growthPlan.activities.filter((activity) =>
+            activity.logs.some((log) => isInWindow(log.created_at, window.start, window.now)),
+        ).length
+        : 0;
+    const stuckActivities = growthPlan
+        ? growthPlan.activities.filter((activity) =>
+            activity.completed_value < activity.target_value &&
+            !activity.logs.some((log) => isInWindow(log.created_at, window.start, window.now)),
+        ).length
+        : 0;
+
+    const activeVersionDeadline = project.active_version?.deadline ?? null;
+    const timeLeftText = formatTimeLeft(activeVersionDeadline);
+
+    const throughputSeries = buildDailySeries(scopedTasks, window.start, window.days, range);
+    const statusBreakdown = [
+        { status: 'Now', count: scopedTasks.filter((task) => task.status === 'now').length },
+        { status: 'Next', count: scopedTasks.filter((task) => task.status === 'next').length },
+        { status: 'Later', count: scopedTasks.filter((task) => task.status === 'later').length },
+        { status: 'Done', count: scopedTasks.filter((task) => task.status === 'done').length },
+    ];
+    const growthSeries = Array.from({ length: window.days }).map((_, index) => {
+        const dayStart = new Date(window.start);
+        dayStart.setDate(window.start.getDate() + index);
+        const dayEnd = new Date(dayStart);
+        dayEnd.setDate(dayStart.getDate() + 1);
+
+        const quantity = growthLogsInRange
+            .filter((log) => {
+                const createdAt = new Date(log.created_at);
+                return createdAt >= dayStart && createdAt < dayEnd;
+            })
+            .reduce((sum, log) => sum + log.quantity, 0);
+
+        return {
+            label: formatAxisLabel(dayStart, range),
+            quantity,
+        };
+    });
 
     return (
         <div className=" space-y-4 bg-[#F6F6F6] ">
             {/* Header */}
-            <div>
-                <h1 className="text-2xl font-bold">{project.name}</h1>
-                {project.description && (
-                    <p className="text-muted-foreground mt-1">{project.description}</p>
-                )}
+            <div className="flex items-start justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold">{project.name}</h1>
+                    {project.description && (
+                        <p className="text-muted-foreground mt-1">{project.description}</p>
+                    )}
+                </div>
+                <DashboardRangeToggle />
             </div>
 
             {/* Stats Grid */}
@@ -52,6 +289,10 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
                             <p className="font-semibold">
                                 {project.active_version?.name || 'No active version'}
                             </p>
+                            <p className="text-xs text-white/80 mt-1">
+                                {timeLeftText}
+                                {activeVersionDeadline ? ` • ${new Date(activeVersionDeadline).toLocaleDateString()}` : ''}
+                            </p>
                         </div>
                         <Coolshape className='absolute -top-8 -left-8' type="star" index={3} size={80} noise={true} />
                     </div>
@@ -62,9 +303,9 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
                             <Layers className="h-5 w-5 text-primary" />
                         </div>
                         <div>
-                            <p className="text-sm text-muted-foreground">Active Version</p>
+                            <p className="text-sm text-muted-foreground">Version Progress</p>
                             <p className="font-semibold">
-                                {project.active_version?.name || 'No active version'}
+                                {completedPercent}% complete
                             </p>
                         </div>
                     </div>
@@ -77,8 +318,8 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
                             <Clock className="h-5 w-5 text-orange-500" />
                         </div>
                         <div>
-                            <p className="text-sm text-muted-foreground">Working On</p>
-                            <p className="font-semibold">{taskCounts.now} tasks</p>
+                            <p className="text-sm text-muted-foreground">Completed ({range})</p>
+                            <p className="font-semibold">{completedInRange.length} tasks</p>
                         </div>
                     </div>
                 </Card>
@@ -90,8 +331,8 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
                             <CheckSquare className="h-5 w-5 text-blue-500" />
                         </div>
                         <div>
-                            <p className="text-sm text-muted-foreground">Up Next</p>
-                            <p className="font-semibold">{taskCounts.next} tasks</p>
+                            <p className="text-sm text-muted-foreground">Created ({range})</p>
+                            <p className="font-semibold">{createdInRange.length} tasks</p>
                         </div>
                     </div>
                 </Card>
@@ -100,19 +341,78 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
                 <Card className="p-4">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-green-500/10">
-                            <CheckCircle2 className="h-5 w-5 text-green-500" />
+                            <TrendingUp className="h-5 w-5 text-green-500" />
                         </div>
                         <div>
-                            <p className="text-sm text-muted-foreground">Completed</p>
-                            <p className="font-semibold">{completedPercent}% done</p>
+                            <p className="text-sm text-muted-foreground">Net Progress</p>
+                            <p className="font-semibold">{netProgress >= 0 ? `+${netProgress}` : netProgress}</p>
                         </div>
                     </div>
                 </Card>
             </div>
 
-            {/* Current Focus */}
+            {/* Working On + Left To Do */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Now Tasks */}
+                <Card className="p-5">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="font-semibold flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-orange-500" />
+                            Working On
+                        </h2>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="rounded-lg bg-muted/50 p-3">
+                            <p className="text-xs text-muted-foreground">Work Done %</p>
+                            <p className="text-lg font-semibold">{workDonePercent}%</p>
+                        </div>
+                        <div className="rounded-lg bg-muted/50 p-3">
+                            <p className="text-xs text-muted-foreground">Velocity</p>
+                            <p className="text-lg font-semibold">{velocityPerDay.toFixed(1)}/day</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2 text-sm">
+                        <p>
+                            {completedDeltaVsPrevious >= 0 ? '↑' : '↓'} {Math.abs(completedDeltaVsPrevious)} vs previous period
+                        </p>
+                        {topContributorLabel && topContributor && (
+                            <p>
+                                {topContributorLabel} completed the most tasks ({topContributor[1]}) this {range}
+                            </p>
+                        )}
+                    </div>
+                </Card>
+
+                <Card className="p-5">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="font-semibold flex items-center gap-2">
+                            <Target className="h-4 w-4 text-blue-500" />
+                            Left To Do
+                        </h2>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3 mb-4">
+                        <div className="rounded-lg bg-muted/50 p-3">
+                            <p className="text-xs text-muted-foreground">Now</p>
+                            <p className="text-lg font-semibold">{scopedTasks.filter((task) => task.status === 'now').length}</p>
+                        </div>
+                        <div className="rounded-lg bg-muted/50 p-3">
+                            <p className="text-xs text-muted-foreground">Next</p>
+                            <p className="text-lg font-semibold">{nextTasksCount}</p>
+                        </div>
+                        <div className="rounded-lg bg-muted/50 p-3">
+                            <p className="text-xs text-muted-foreground">Later</p>
+                            <p className="text-lg font-semibold">{laterTasksCount}</p>
+                        </div>
+                    </div>
+
+                    <p className="text-sm text-muted-foreground">{formatFinishLineEstimate(finishLineDays)}</p>
+                </Card>
+            </div>
+
+            {/* Current Focus + Growth Pulse */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card className="p-5">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="font-semibold flex items-center gap-2">
@@ -156,25 +456,47 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
                     )}
                 </Card>
 
-                {/* Quick Actions */}
                 <Card className="p-5">
-                    <h2 className="font-semibold mb-4">Quick Actions</h2>
-                    <div className="grid grid-cols-2 gap-3">
-                        <Link href={`/projects/${projectId}/build`}>
-                            <Button variant="outline" className="w-full justify-start">
-                                <CheckSquare className="h-4 w-4 mr-2" />
-                                Manage Tasks
-                            </Button>
-                        </Link>
-                        <Link href={`/projects/${projectId}/versions`}>
-                            <Button variant="outline" className="w-full justify-start">
-                                <Layers className="h-4 w-4 mr-2" />
-                                Versions
-                            </Button>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="font-semibold flex items-center gap-2">
+                            <CalendarDays className="h-4 w-4 text-violet-500" />
+                            Growth Pulse
+                        </h2>
+                        <Link href={`/projects/${projectId}/growth`}>
+                            <Button variant="ghost" size="sm">Open Growth</Button>
                         </Link>
                     </div>
+
+                    <div className="grid grid-cols-3 gap-3 mb-4">
+                        <div className="rounded-lg bg-muted/50 p-3">
+                            <p className="text-xs text-muted-foreground">Log Volume</p>
+                            <p className="text-lg font-semibold">{growthQuantityInRange}</p>
+                        </div>
+                        <div className="rounded-lg bg-muted/50 p-3">
+                            <p className="text-xs text-muted-foreground">Active Activities</p>
+                            <p className="text-lg font-semibold">{progressedActivitiesInRange}</p>
+                        </div>
+                        <div className="rounded-lg bg-muted/50 p-3">
+                            <p className="text-xs text-muted-foreground">Stuck</p>
+                            <p className="text-lg font-semibold">{stuckActivities}</p>
+                        </div>
+                    </div>
+
+                    {project.active_version?.name ? (
+                        <Badge variant="secondary">Active version: {project.active_version.name}</Badge>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">No active version selected.</p>
+                    )}
                 </Card>
             </div>
+
+            <DashboardChartsSection
+                range={range}
+                throughputSeries={throughputSeries}
+                growthSeries={growthSeries}
+                statusBreakdown={statusBreakdown}
+                completionPercent={completedPercent}
+            />
         </div>
     );
 }

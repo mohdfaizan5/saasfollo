@@ -16,6 +16,14 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
+function getAuthErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : ''
+  if (/failed to fetch|fetch failed|network|timeout/i.test(message)) {
+    return 'Unable to reach authentication server. Please check your internet connection and try again.'
+  }
+  return error instanceof Error ? error.message : 'An error occurred'
+}
+
 export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutRef<'div'>) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -47,7 +55,7 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
       if (error) throw error
       router.push('/auth/sign-up-success')
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'An error occurred')
+      setError(getAuthErrorMessage(error))
     } finally {
       setIsLoading(false)
     }

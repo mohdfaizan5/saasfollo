@@ -1,6 +1,10 @@
 import { getNotes } from '@/lib/actions/notes';
 import { NotesClient } from '@/components/notes/notes-client';
 
+export const metadata = {
+    title: 'Notes',
+};
+
 interface NotesPageProps {
     params: Promise<{ projectId: string }>;
 }
