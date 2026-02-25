@@ -22,6 +22,7 @@ import {
     CubeIcon,
     LinkIcon,
     FileTextIcon,
+    BrainIcon,
     GearIcon
 } from '@phosphor-icons/react';
 
@@ -39,6 +40,7 @@ const NAV_ITEMS: NavItem[] = [
     { href: 'build', label: 'Build', icon: CheckSquareIcon },
     { href: 'growth', label: 'Growth', icon: TrendUpIcon },
     { href: 'versions', label: 'Versions', icon: CubeIcon },
+    { href: 'aicofounder', label: 'AI Cofounder', icon: BrainIcon },
     { href: 'links', label: 'Links', icon: LinkIcon },
     { href: 'notes', label: 'Notes', icon: FileTextIcon },
     // { href: 'secrets', label: 'Secrets', icon: Lock, hideForReader: true },
@@ -112,7 +114,14 @@ export function ProjectSidebar({ project, userRole = 'owner' }: ProjectSidebarPr
                                 onClick={() => router.push(`${baseUrl}/${item.href}`)}
                             >
                                 <item.icon size={56} weight="duotone"  />
-                                <span>{item.label} </span>
+                                <span className="inline-flex items-center gap-2">
+                                    <span>{item.label}</span>
+                                    {item.href === 'aicofounder' && (
+                                        <span className="rounded-full border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-700">
+                                            Beta
+                                        </span>
+                                    )}
+                                </span>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                     ))}
