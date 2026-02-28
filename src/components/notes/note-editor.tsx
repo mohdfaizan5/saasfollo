@@ -16,6 +16,8 @@ interface NoteEditorProps {
     projectId: string;
 }
 
+const NOTES_EDITOR_BLOCK_GAP = '0.5rem';
+
 export function NoteEditor({ note, projectId }: NoteEditorProps) {
     const router = useRouter();
     const { canEdit } = useProjectRole();
@@ -129,7 +131,10 @@ export function NoteEditor({ note, projectId }: NoteEditorProps) {
             />
 
             {/* Editor.js Content */}
-            <div className="border-none rounded-lg p-4 bg-transparent min-h-[50vh]">
+            <div
+                className="notes-editor-shell border-none rounded-lg p-4 bg-transparent min-h-[50vh]"
+                style={{ ['--notes-editor-block-gap' as string]: NOTES_EDITOR_BLOCK_GAP }}
+            >
                 <EditorJSWrapper
 
                     data={initialEditorData}

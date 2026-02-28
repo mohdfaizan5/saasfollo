@@ -265,19 +265,19 @@ function LinkCard({ link, projectId, onDelete, onEdit, span, isFeatured, canEdit
             <div
                 className={`
           group relative overflow-hidden rounded-2xl transition-all duration-300
-          hover:scale-[1.02] hover:shadow-xl h-36
-          flex flex-col justify-between p-4
+          hover:scale-[1.02] hover:shadow-xl h-24
+          flex items-baseline justify-between p-4
         `}
                 style={{ backgroundColor: bgColorWithOpacity }}
             >
                 {/* Icon */}
-                <div className="flex items-start justify-between">
+                <div className="flex items-start">
                     {showFavicon ? (
                         <img
                             src={faviconUrl}
                             alt=""
                             className={`
-                rounded-lg object-contain h-10 w-10
+                rounded-lg object-contain h-12 w-12
               `}
                             onError={() => setFaviconError(true)}
                         />
@@ -297,37 +297,39 @@ function LinkCard({ link, projectId, onDelete, onEdit, span, isFeatured, canEdit
                             />
                         </div>
                     )}
+                </div>
 
-                    {/* Actions - hover only */}
-                    <div className={`
-            flex gap-1
+                {/* Actions - hover only (right-most) */}
+                <div
+                    className={`
+            absolute top-3 right-3 z-10 flex gap-1
             transform transition-all duration-300
             ${isHovered ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'}
-          `}>
+          `}
+                >
+                    <button
+                        className="p-1.5 rounded-lg bg-black/20 backdrop-blur-sm hover:bg-black/30 transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <ExternalLink className="h-3.5 w-3.5 text-white" />
+                    </button>
+                    {canEdit && (
                         <button
                             className="p-1.5 rounded-lg bg-black/20 backdrop-blur-sm hover:bg-black/30 transition-colors"
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={handleEdit}
                         >
-                            <ExternalLink className="h-3.5 w-3.5 text-white" />
+                            <Pencil className="h-3.5 w-3.5 text-white" />
                         </button>
-                        {canEdit && (
-                            <button
-                                className="p-1.5 rounded-lg bg-black/20 backdrop-blur-sm hover:bg-black/30 transition-colors"
-                                onClick={handleEdit}
-                            >
-                                <Pencil className="h-3.5 w-3.5 text-white" />
-                            </button>
-                        )}
-                        {canEdit && (
-                            <button
-                                className="p-1.5 rounded-lg bg-red-500/80 backdrop-blur-sm hover:bg-red-500 transition-colors"
-                                onClick={handleDelete}
-                                disabled={isDeleting}
-                            >
-                                <Trash2 className="h-3.5 w-3.5 text-white" />
-                            </button>
-                        )}
-                    </div>
+                    )}
+                    {canEdit && (
+                        <button
+                            className="p-1.5 rounded-lg bg-red-500/80 backdrop-blur-sm hover:bg-red-500 transition-colors"
+                            onClick={handleDelete}
+                            disabled={isDeleting}
+                        >
+                            <Trash2 className="h-3.5 w-3.5 text-white" />
+                        </button>
+                    )}
                 </div>
 
                 {/* Label - always visible */}

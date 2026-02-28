@@ -27,6 +27,7 @@ import {
     ChartBarIcon,
     TargetIcon
 } from '@phosphor-icons/react';
+import Gauge from '../gauge';
 
 interface GrowthDashboardProps {
     plan: GrowthPlanWithDetails;
@@ -199,30 +200,33 @@ export function GrowthDashboard({ plan, versionName }: GrowthDashboardProps) {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                <Card className="p-4 border-border/70">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-orange-500/10">
-                            <FireIcon weight="fill" className="w-5 h-5 text-orange-500" />
-                        </div>
-                        <div>
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Streak</p>
-                            <p className="font-semibold">{streak > 0 ? `${streak} day${streak > 1 ? 's' : ''}` : 'Start today'}</p>
-                        </div>
-                    </div>
-                </Card>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div>
 
-                <Card className="p-4 border-border/70">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-primary/10">
-                            <FlagIcon className="w-5 h-5 text-primary" weight="duotone" />
+                    <Card className="p-4 border-border/70">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-orange-500/10">
+                                <FireIcon weight="fill" className="w-5 h-5 text-orange-500" />
+                            </div>
+                            <div>
+                                <p className="text-xs uppercase tracking-wide text-muted-foreground">Streak</p>
+                                <p className="font-semibold">{streak > 0 ? `${streak} day${streak > 1 ? 's' : ''}` : 'Start today'}</p>
+                            </div>
                         </div>
-                        <div>
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Days Left</p>
-                            <p className="font-semibold">{deadlinePassed ? 'Deadline passed' : `${remainingDays} days`}</p>
+                    </Card>
+
+                    <Card className="p-4 border-border/70">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-primary/10">
+                                <FlagIcon className="w-5 h-5 text-primary" weight="duotone" />
+                            </div>
+                            <div>
+                                <p className="text-xs uppercase tracking-wide text-muted-foreground">Days Left</p>
+                                <p className="font-semibold">{deadlinePassed ? 'Deadline passed' : `${remainingDays} days`}</p>
+                            </div>
                         </div>
-                    </div>
-                </Card>
+                    </Card>
+                </div>
 
                 {/* <Card className="p-4 border-border/70">
                     <div className="flex items-center gap-3">
@@ -236,16 +240,54 @@ export function GrowthDashboard({ plan, versionName }: GrowthDashboardProps) {
                     </div>
                 </Card> */}
 
-                <Card className="p-4 border-border/70">
-                    <div className="flex items-center gap-3">
+                <Card className="p-4 border-border/70 max-h-40 overflow-hidden">
+                    {/* <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-green-500/10">
                             <ChartBarIcon className="w-5 h-5 text-green-500" weight="duotone" />
                         </div>
                         <div>
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Overall Progress</p>
-                            <p className="font-semibold">{completionRate}% complete</p>
-                        </div>
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Overall Progress </p>
+                            <p className="font-semibold">{completionRate}% complete</p> */}
+                    <div className="flex justify-center items-center  w-full h-[400px] py-2">
+                        <Gauge value={completionRate} size={250} gap={2} thickness={4} activeColor='bg-emerald-950' />
                     </div>
+                    {/* </div>
+                    </div> */}
+                </Card>
+                <Card className="border-border/70">
+                    <CardHeader className="border-b bg-muted/20">
+                        <CardTitle className="tracking-tight text-base text-foreground">Progress Visualization</CardTitle>
+                    </CardHeader>
+                    <CardContent className="px-6 space-y-2">
+                        {plan.activities.map((act) => {
+                            const percentage = Math.min(100, Math.round((act.completed_value / act.target_value) * 100));
+                            const name = act.custom_name || act.type;
+                            return (
+                                <div key={act.id} className="space-y-4">
+                                    <div className="flex justify-between items-end mb-1">
+                                        <span className="font-light capitalize tracking-tight text-foreground text-sm flex gap-2 items-center">
+                                            <div className="bg-primary/10 font-medium text-primary px-2 py-0.5 rounded text-xs">
+                                                {percentage}%
+                                            </div>
+                                            {name.replace(/_/g, ' ')}
+                                        </span>
+                                        <span className="text-xs font-medium text-muted-foreground uppercase opacity-80 bg-muted px-2 py-1 rounded-sm">
+                                            {act.completed_value} / {act.target_value}
+                                        </span>
+                                    </div>
+                                    {/* Native progress visualization simulating the ASCII request */}
+                                    <div className="h-4 w-full bg-muted/50 rounded-full overflow-hidden border border-border/60">
+                                        <div
+                                            className="h-full bg-linear-to-r from-primary to-primary/80 transition-all duration-1000 ease-in-out relative"
+                                            style={{ width: `${percentage}%` }}
+                                        >
+                                            <div className="absolute inset-0 bg-white/20" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px)' }} />
+                                        </div>
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </CardContent>
                 </Card>
             </div>
 

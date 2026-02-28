@@ -1,52 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import EditorJS from '@editorjs/editorjs';
 import type { OutputData, API } from '@editorjs/editorjs';
-
-// @ts-ignore - These packages don't have type definitions
-import Header from '@editorjs/header';
-// @ts-ignore
-import List from '@editorjs/list';
-// @ts-ignore
-import Checklist from '@editorjs/checklist';
-// @ts-ignore
-import Code from '@editorjs/code';
-// @ts-ignore
-import Quote from '@editorjs/quote';
-// @ts-ignore
-import InlineCode from '@editorjs/inline-code';
-// @ts-ignore
-import Paragraph from '@editorjs/paragraph';
-
-// Editor.js tools configuration
-const EDITOR_TOOLS = {
-    header: {
-        class: Header,
-        config: {
-            levels: [1, 2, 3, 4],
-            defaultLevel: 2,
-        },
-    },
-    list: {
-        class: List,
-        inlineToolbar: true,
-    },
-    checklist: {
-        class: Checklist,
-        inlineToolbar: true,
-    },
-    code: Code,
-    quote: {
-        class: Quote,
-        inlineToolbar: true,
-    },
-    inlineCode: InlineCode,
-    paragraph: {
-        class: Paragraph,
-        inlineToolbar: true,
-    },
-};
 
 interface EditorJSWrapperProps {
     data?: OutputData | null;
@@ -61,13 +16,15 @@ export function EditorJSWrapper({
     readOnly = false,
     placeholder = 'Start writing...',
 }: EditorJSWrapperProps) {
-    const editorRef = useRef<EditorJS | null>(null);
+    const editorRef = useRef<{ destroy?: () => void } | null>(null);
     const holderRef = useRef<HTMLDivElement>(null);
     const isReady = useRef(false);
 
     // Initialize editor
     useEffect(() => {
         if (!holderRef.current || editorRef.current) return;
+
+        let isMounted = true;
 
         const initialData: OutputData = data && typeof data === 'object' && 'blocks' in data
             ? data
@@ -77,31 +34,79 @@ export function EditorJSWrapper({
                 version: '2.28.0',
             };
 
-        const editor = new EditorJS({
-            holder: holderRef.current,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            tools: EDITOR_TOOLS as any,
-            data: initialData,
-            readOnly,
-            placeholder,
-            minHeight: 200,
-            onChange: async (api: API) => {
-                if (!onChange || !isReady.current) return;
-                try {
-                    const savedData = await api.saver.save();
-                    onChange(savedData);
-                } catch (error) {
-                    console.error('Failed to save editor data:', error);
-                }
-            },
-            onReady: () => {
-                isReady.current = true;
-            },
+        const initEditor = async () => {
+            const [{ default: EditorJS }, { default: Header }, { default: List }, { default: Checklist }, { default: Code }, { default: Quote }, { default: InlineCode }, { default: Paragraph }] = await Promise.all([
+                import('@editorjs/editorjs'),
+                import('@editorjs/header'),
+                import('@editorjs/list'),
+                import('@editorjs/checklist'),
+                import('@editorjs/code'),
+                import('@editorjs/quote'),
+                import('@editorjs/inline-code'),
+                import('@editorjs/paragraph'),
+            ]);
+
+            if (!isMounted || !holderRef.current || editorRef.current) {
+                return;
+            }
+
+            const editor = new EditorJS({
+                holder: holderRef.current,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                tools: {
+                    header: {
+                        class: Header,
+                        config: {
+                            levels: [1, 2, 3, 4],
+                            defaultLevel: 2,
+                        },
+                    },
+                    list: {
+                        class: List,
+                        inlineToolbar: true,
+                    },
+                    checklist: {
+                        class: Checklist,
+                        inlineToolbar: true,
+                    },
+                    code: Code,
+                    quote: {
+                        class: Quote,
+                        inlineToolbar: true,
+                    },
+                    inlineCode: InlineCode,
+                    paragraph: {
+                        class: Paragraph,
+                        inlineToolbar: true,
+                    },
+                } as any,
+                data: initialData,
+                readOnly,
+                placeholder,
+                minHeight: 200,
+                onChange: async (api: API) => {
+                    if (!onChange || !isReady.current) return;
+                    try {
+                        const savedData = await api.saver.save();
+                        onChange(savedData);
+                    } catch (error) {
+                        console.error('Failed to save editor data:', error);
+                    }
+                },
+                onReady: () => {
+                    isReady.current = true;
+                },
+            });
+
+            editorRef.current = editor;
+        };
+
+        initEditor().catch((error) => {
+            console.error('Failed to initialize Editor.js:', error);
         });
 
-        editorRef.current = editor;
-
         return () => {
+            isMounted = false;
             if (editorRef.current && editorRef.current.destroy) {
                 editorRef.current.destroy();
                 editorRef.current = null;
@@ -110,10 +115,31 @@ export function EditorJSWrapper({
         };
     }, []); // Only run once on mount
 
+    useEffect(() => {
+        const holder = holderRef.current;
+        if (!holder) return;
+
+        const handleUndoRedo = (event: KeyboardEvent) => {
+            const key = event.key.toLowerCase();
+            const isUndo = (event.ctrlKey || event.metaKey) && !event.shiftKey && key === 'z';
+            const isRedo = (event.ctrlKey || event.metaKey) && ((event.shiftKey && key === 'z') || key === 'y');
+
+            if (isUndo || isRedo) {
+                event.stopPropagation();
+            }
+        };
+
+        holder.addEventListener('keydown', handleUndoRedo, true);
+
+        return () => {
+            holder.removeEventListener('keydown', handleUndoRedo, true);
+        };
+    }, []);
+
     return (
         <div
             ref={holderRef}
-            className="prose prose-sm dark:prose-invert max-w-none min-h-[300px] [&_.ce-block__content]:max-w-none [&_.ce-toolbar__content]:max-w-none bg-transparent"
+            className="notes-editor-content max-w-none min-h-75 [&_.ce-block__content]:max-w-none [&_.ce-toolbar__content]:max-w-none bg-transparent"
         />
     );
 }

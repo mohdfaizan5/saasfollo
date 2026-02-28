@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { startupPerks, categories, type StartupPerk } from '@/data/startupperks';
 import { cn } from '@/lib/utils';
 import { useQueryState } from 'nuqs';
+import useLocalStorageState from 'use-local-storage-state';
 import {
   GoogleLogoIcon,
   CloudIcon,
@@ -50,7 +51,9 @@ import {
   PaintBrushIcon,
   WalletIcon,
   MoneyIcon,
-  UsersIcon
+  UsersIcon,
+  ArrowSquareOutIcon,
+  BookmarkSimpleIcon
 } from '@phosphor-icons/react';
 
 const companyIcons: Record<string, React.ComponentType<any>> = {
@@ -97,6 +100,15 @@ const companyIcons: Record<string, React.ComponentType<any>> = {
   "Gusto": UsersIcon,
 };
 
+const toPerkId = (perk: StartupPerk) =>
+  `${perk.companyName}-${perk.perkName}`
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+
+const hasValidApplyLink = (link: string) => /^https?:\/\//i.test(link);
+
 function CategoryFilter() {
   const [selectedCategory, setSelectedCategory] = useQueryState('category');
 
@@ -126,13 +138,24 @@ function CategoryFilter() {
   );
 }
 
-function PerkCard({ perk, index }: { perk: StartupPerk; index: number }) {
+function PerkCard({
+  perk,
+  perkId,
+  isBookmarked,
+  onToggleBookmark,
+}: {
+  perk: StartupPerk;
+  perkId: string;
+  isBookmarked: boolean;
+  onToggleBookmark: (perkId: string) => void;
+}) {
   const categoryInfo = categories.find(c => c.value === perk.category);
   const Icon = companyIcons[perk.companyName];
+  const canVisit = hasValidApplyLink(perk.applyLink);
 
   return (
     <Link href={`/startupperks/${perk.companyName.toLowerCase().replace(/\s+/g, '-')}`}>
-      <Card className="h-full hover:shadow-xl transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-[#2C4839] bg-white group overflow-hidden">
+      <Card className="relative h-full hover:shadow-xl transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-[#2C4839] bg-white group overflow-hidden">
         <div
           className="h-2 w-full"
           style={{ backgroundColor: categoryInfo?.color || '#2C4839' }}
@@ -152,7 +175,7 @@ function PerkCard({ perk, index }: { perk: StartupPerk; index: number }) {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="pt-2">
+        <CardContent className="pt-2 ">
           <div className="mb-3">
             <span
               className="inline-flex items-center gap-1 text-sm font-bold px-3 py-1 rounded-md"
@@ -165,9 +188,42 @@ function PerkCard({ perk, index }: { perk: StartupPerk; index: number }) {
           <p className="text-sm text-[#0C1510]/70 line-clamp-3 mb-4">
             {perk.description}
           </p>
-          <div className="flex items-center text-[#2C4839] font-medium text-sm group-hover:translate-x-1 transition-transform">
-            View details
-            <ChevronRight className="h-4 w-4 ml-1" />
+          <div className="">
+            <div className="flex items-center text-[#2C4839] font-medium text-sm group-hover:translate-x-1 transition-transform">
+              View details
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </div>
+
+            <div className="absolute bottom-0 right-0 flex items-center gap-2 p-2">
+              {canVisit && (
+                <Button
+                  aria-label="Visit website"
+                  title="Visit website"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    window.open(perk.applyLink, '_blank', 'noopener,noreferrer');
+                  }}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#A6AEA4]/50 bg-white text-[#2C4839] opacity-0 transition-all duration-200 group-hover:opacity-100 hover:bg-[#F6F1EA]"
+                >
+                  <ArrowSquareOutIcon size={16} />
+                </Button>
+              )}
+              <Button
+                aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark perk'}
+                title={isBookmarked ? 'Remove bookmark' : 'Bookmark perk'}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onToggleBookmark(perkId);
+                }}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#A6AEA4]/50 bg-white text-[#2C4839] transition-colors hover:bg-[#F6F1EA]"
+              >
+                <BookmarkSimpleIcon size={16} weight={isBookmarked ? 'fill' : 'regular'} />
+              </Button>
+
+
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -178,25 +234,60 @@ function PerkCard({ perk, index }: { perk: StartupPerk; index: number }) {
 function StartupPerksContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory] = useQueryState('category');
+  const [bookmarkedItems, setBookmarkedItems] = useLocalStorageState<string[]>('bookmarkedItems', {
+    defaultValue: ['siddz-ui', 'shadcn-space', 'trable-craft', 'the-gridcn'],
+  });
+
+  const bookmarkedSet = useMemo(() => new Set(bookmarkedItems ?? []), [bookmarkedItems]);
+
+  const toggleBookmark = (perkId: string) => {
+    setBookmarkedItems((prev) => {
+      const current = prev ?? [];
+      if (current.includes(perkId)) {
+        return current.filter((item) => item !== perkId);
+      }
+      return [...current, perkId];
+    });
+  };
 
   const filteredPerks = useMemo(() => {
-    let perks = selectedCategory && selectedCategory !== 'all'
-      ? startupPerks.filter(p => p.category === selectedCategory)
-      : startupPerks;
+    let perks = startupPerks
+      .map((perk, originalIndex) => {
+        const bookmarkId = toPerkId(perk);
+        return {
+          perk,
+          originalIndex,
+          bookmarkId,
+          renderKey: `${bookmarkId}-${originalIndex}`,
+        };
+      });
+
+    if (selectedCategory && selectedCategory !== 'all') {
+      perks = perks.filter(({ perk }) => perk.category === selectedCategory);
+    }
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       perks = perks.filter(
-        p =>
-          p.companyName.toLowerCase().includes(query) ||
-          p.perkName.toLowerCase().includes(query) ||
-          p.description.toLowerCase().includes(query) ||
-          p.category?.toLowerCase().includes(query)
+        ({ perk }) =>
+          perk.companyName.toLowerCase().includes(query) ||
+          perk.perkName.toLowerCase().includes(query) ||
+          perk.description.toLowerCase().includes(query) ||
+          perk.category?.toLowerCase().includes(query)
       );
     }
 
+    perks.sort((a, b) => {
+      const aBookmarked = bookmarkedSet.has(a.bookmarkId);
+      const bBookmarked = bookmarkedSet.has(b.bookmarkId);
+      if (aBookmarked === bBookmarked) {
+        return a.originalIndex - b.originalIndex;
+      }
+      return aBookmarked ? -1 : 1;
+    });
+
     return perks;
-  }, [searchQuery, selectedCategory]);
+  }, [searchQuery, selectedCategory, bookmarkedSet]);
 
   const parseValue = (value: string): number => {
     // Match patterns like "$350,000", "€100,000", "up to $2,500"
@@ -216,8 +307,8 @@ function StartupPerksContent() {
     return num;
   };
 
-  const totalValue = filteredPerks.reduce((acc, perk) => {
-    return acc + parseValue(perk.valueOrDiscount);
+  const totalValue = filteredPerks.reduce((acc, item) => {
+    return acc + parseValue(item.perk.valueOrDiscount);
   }, 0);
 
   const formatValue = (val: number) => {
@@ -293,7 +384,13 @@ function StartupPerksContent() {
         {filteredPerks.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {filteredPerks.map((perk, index) => (
-              <PerkCard key={perk.companyName} perk={perk} index={index} />
+              <PerkCard
+                key={perk.renderKey}
+                perk={perk.perk}
+                perkId={perk.bookmarkId}
+                isBookmarked={bookmarkedSet.has(perk.bookmarkId)}
+                onToggleBookmark={toggleBookmark}
+              />
             ))}
           </div>
         ) : (

@@ -49,13 +49,13 @@ export async function POST(req: Request) {
       projectId,
       persona,
       model,
-      webSearch,
+      quickChat,
     }: {
       messages?: UIMessage[]
       projectId?: string
       persona?: string
       model?: string
-      webSearch?: boolean
+      quickChat?: boolean
     } = await req.json()
 
     if (!projectId) {
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
     }
 
     const projectSummary = buildProjectSummary(tasks, versions)
-    const systemPrompt = buildSystemPrompt(personaValue, projectSummary)
+    const systemPrompt = buildSystemPrompt(personaValue, projectSummary, quickChat)
 
     const modelMessages = await convertToModelMessages(messages)
 

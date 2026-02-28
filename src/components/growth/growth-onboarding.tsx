@@ -176,7 +176,8 @@ export function GrowthOnboarding({ projectId, versionId, versionName }: GrowthOn
                             <p className="text-sm text-muted-foreground">When are you wrapping this up?</p>
                         </div>
                         <Popover>
-                            <PopoverTrigger>
+                            {/*  */}
+                            <PopoverTrigger asChild>
                                 <Button
                                     variant="outline"
                                     className={cn(

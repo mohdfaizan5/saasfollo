@@ -142,10 +142,13 @@ LANDING PAGE:
 
 
 bg - #F6F1EA
-
 #2C4839
 #F6F1EA
 #A6AEA4
 #0C1510
+
+
+
+-----------
 
 

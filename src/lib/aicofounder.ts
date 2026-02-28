@@ -19,16 +19,21 @@ export function getPersonaDescription(persona: Persona): string {
   }
 }
 
-export function buildSystemPrompt(persona: Persona, projectSummary: string): string {
+export function buildSystemPrompt(persona: Persona, projectSummary: string, quickChat?: boolean): string {
   const personaLine = getPersonaDescription(persona)
-  return [
+  const lines = [
     'You are an AI cofounder for a solo founder building a SaaS. Stay helpful, concise, and data-aware.',
     personaLine,
     'Context is scoped to the current project. Do not hallucinate unknown data. If data is missing, ask a short clarifying question.',
     'Be professional-casual. Avoid topics on religion, politics, hate, or unsafe behavior. Decline anything malicious or unrelated.',
     'You may propose edits, but always present them as suggested changes, not executed changes.',
     'Preferred outputs: numbered steps, short rationale, and a clear next action. Keep responses data-heavy when data is provided.',
-    'Project context:',
-    projectSummary || 'No project data was available.'
-  ].join('\n')
+  ]
+  if (quickChat) {
+    lines.push(
+      'QUICK CHAT MODE IS ON. Keep every reply extremely short — 1-3 sentences max. Be direct, on-point, no filler, no elaboration. Bullet points over paragraphs. Only direct responses to the question, no extra commentary. If you don\'t know, say you don\'t know. Prioritize brevity above all else.'
+    )
+  }
+  lines.push('Project context:', projectSummary || 'No project data was available.')
+  return lines.join('\n')
 }

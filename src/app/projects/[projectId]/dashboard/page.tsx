@@ -9,9 +9,12 @@ import { getProjectCollaborators } from '@/lib/actions/collaborators';
 import { createClient } from '@/lib/server';
 import { DashboardRangeToggle } from '@/components/dashboard/dashboard-range-toggle';
 import { DashboardChartsSection } from '@/components/dashboard/dashboard-charts-section';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import Link from 'next/link';
 import { Coolshape } from 'coolshapes-react';
 import type { Task } from '@/lib/types/database';
+import Gauge from '@/components/gauge';
+import { HourglassSimpleLowIcon, MegaphoneIcon, UsersIcon } from '@phosphor-icons/react/dist/ssr';
 
 export const metadata = {
     title: 'Dashboard',
@@ -106,6 +109,17 @@ function formatFinishLineEstimate(days: number | null): string {
     if (days < 7) return `${Math.ceil(days)} days to finish at current pace`;
     const weeks = Math.ceil(days / 7);
     return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} to finish at current pace`;
+}
+
+function getInitials(value: string): string {
+    const parts = value
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2);
+
+    if (parts.length === 0) return 'NA';
+    return parts.map((part) => part[0]?.toUpperCase() ?? '').join('');
 }
 
 function formatAxisLabel(date: Date, range: DashboardRange): string {
@@ -216,6 +230,46 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                 : collaboratorNameById.get(topContributor[0]) ?? topContributor[0]
         : null;
 
+    const totalCompletedInVersion = scopedTasks.filter((task) => task.is_completed).length;
+    const completedByAssigneeInVersion = scopedTasks
+        .filter((task) => task.is_completed)
+        .reduce<Record<string, number>>((acc, task) => {
+            const key = task.assignee || 'unassigned';
+            acc[key] = (acc[key] ?? 0) + 1;
+            return acc;
+        }, {});
+
+    const collaboratorById = new Map(
+        collaborators.map((collab) => [collab.user_id, collab]),
+    );
+
+    const contributorsInVersion = Object.entries(completedByAssigneeInVersion)
+        .sort((left, right) => right[1] - left[1])
+        .map(([assigneeId, completedCount]) => {
+            if (assigneeId === 'unassigned') {
+                return {
+                    id: assigneeId,
+                    label: 'Unassigned',
+                    completedCount,
+                    contributionPercent: totalCompletedInVersion > 0
+                        ? Math.round((completedCount / totalCompletedInVersion) * 100)
+                        : 0,
+                };
+            }
+
+            const collaborator = collaboratorById.get(assigneeId);
+            const fallbackLabel = collaborator?.email?.split('@')[0] ?? assigneeId;
+
+            return {
+                id: assigneeId,
+                label: assigneeId === user?.id ? 'You' : fallbackLabel,
+                completedCount,
+                contributionPercent: totalCompletedInVersion > 0
+                    ? Math.round((completedCount / totalCompletedInVersion) * 100)
+                    : 0,
+            };
+        });
+
     const growthLogsInRange = growthPlan
         ? growthPlan.activities.flatMap((activity) =>
             activity.logs.filter((log) => isInWindow(log.created_at, window.start, window.now)),
@@ -277,9 +331,9 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-12 gap-4">
                 {/* Active Version */}
-                <Card className="p-4 col-span-4 bg-primary relative text-white">
+                <Card className="p-4 col-span-12 bg-primary relative text-white">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-primary/10">
                             <Layers className="h-5 w-5 text-primary" />
@@ -297,7 +351,7 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                         <Coolshape className='absolute -top-8 -left-8' type="star" index={3} size={80} noise={true} />
                     </div>
                 </Card>
-                <Card className="p-4">
+                {/* <Card className="p-4 col-span-12 md:col-span-6 lg:col-span-3">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-primary/10">
                             <Layers className="h-5 w-5 text-primary" />
@@ -309,10 +363,10 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                             </p>
                         </div>
                     </div>
-                </Card>
+                </Card> */}
 
                 {/* Now Tasks */}
-                <Card className="p-4">
+                <Card className="p-4 col-span-12 md:col-span-6 lg:col-span-3">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-orange-500/10">
                             <Clock className="h-5 w-5 text-orange-500" />
@@ -325,7 +379,7 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                 </Card>
 
                 {/* Next Tasks */}
-                <Card className="p-4">
+                <Card className="p-4 col-span-12 md:col-span-6 lg:col-span-3">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-blue-500/10">
                             <CheckSquare className="h-5 w-5 text-blue-500" />
@@ -338,7 +392,7 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                 </Card>
 
                 {/* Completed */}
-                <Card className="p-4">
+                {/* <Card className="p-4 col-span-12 md:col-span-6 lg:col-span-3">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-green-500/10">
                             <TrendingUp className="h-5 w-5 text-green-500" />
@@ -348,34 +402,35 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                             <p className="font-semibold">{netProgress >= 0 ? `+${netProgress}` : netProgress}</p>
                         </div>
                     </div>
-                </Card>
+                </Card> */}
             </div>
 
             {/* Working On + Left To Do */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="p-5">
+            <div className="grid grid-cols-12 gap-6 max-h-56">
+                <Card className="p-5 col-span-12 lg:col-span-4">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="font-semibold flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-orange-500" />
+                            {/* <Clock className="h-4 w-4 text-orange-500" /> */}
+                            <HourglassSimpleLowIcon size={20} weight="duotone" />
                             Working On
                         </h2>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                        <div className="rounded-lg bg-muted/50 p-3">
+                    <div className="grid grid-cols-12 gap-3 mb-4">
+                        <div className="rounded-lg bg-muted/50 p-3 col-span-6">
                             <p className="text-xs text-muted-foreground">Work Done %</p>
                             <p className="text-lg font-semibold">{workDonePercent}%</p>
                         </div>
-                        <div className="rounded-lg bg-muted/50 p-3">
+                        <div className="rounded-lg bg-muted/50 p-3 col-span-6">
                             <p className="text-xs text-muted-foreground">Velocity</p>
                             <p className="text-lg font-semibold">{velocityPerDay.toFixed(1)}/day</p>
                         </div>
                     </div>
 
                     <div className="space-y-2 text-sm">
-                        <p>
+                        {/* <p>
                             {completedDeltaVsPrevious >= 0 ? '↑' : '↓'} {Math.abs(completedDeltaVsPrevious)} vs previous period
-                        </p>
+                        </p> */}
                         {topContributorLabel && topContributor && (
                             <p>
                                 {topContributorLabel} completed the most tasks ({topContributor[1]}) this {range}
@@ -383,8 +438,21 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                         )}
                     </div>
                 </Card>
-
-                <Card className="p-5">
+                <Card className="p-4 border-border/70 max-h-52 overflow-hidden col-span-12 lg:col-span-4">
+                    {/* <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-green-500/10">
+                            <ChartBarIcon className="w-5 h-5 text-green-500" weight="duotone" />
+                        </div>
+                        <div>
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Overall Progress </p>
+                            <p className="font-semibold">{completionRate}% complete</p> */}
+                    <div className="flex justify-center items-center  w-full h-100 py-2">
+                        <Gauge value={completedPercent} size={250} gap={2} thickness={3} label={`${project.active_version?.name} Progress`} />
+                    </div>
+                    {/* </div>
+                    </div> */}
+                </Card>
+                {/* <Card className="p-5 col-span-12 lg:col-span-4">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="font-semibold flex items-center gap-2">
                             <Target className="h-4 w-4 text-blue-500" />
@@ -392,28 +460,62 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                         </h2>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3 mb-4">
-                        <div className="rounded-lg bg-muted/50 p-3">
+                    <div className="grid grid-cols-12 gap-3 mb-4">
+                        <div className="rounded-lg bg-muted/50 p-3 col-span-4">
                             <p className="text-xs text-muted-foreground">Now</p>
                             <p className="text-lg font-semibold">{scopedTasks.filter((task) => task.status === 'now').length}</p>
                         </div>
-                        <div className="rounded-lg bg-muted/50 p-3">
+                        <div className="rounded-lg bg-muted/50 p-3 col-span-4">
                             <p className="text-xs text-muted-foreground">Next</p>
                             <p className="text-lg font-semibold">{nextTasksCount}</p>
                         </div>
-                        <div className="rounded-lg bg-muted/50 p-3">
+                        <div className="rounded-lg bg-muted/50 p-3 col-span-4">
                             <p className="text-xs text-muted-foreground">Later</p>
                             <p className="text-lg font-semibold">{laterTasksCount}</p>
                         </div>
                     </div>
 
                     <p className="text-sm text-muted-foreground">{formatFinishLineEstimate(finishLineDays)}</p>
+                </Card> */}
+                <Card className="p-5 col-span-12 lg:col-span-4 ">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="font-semibold flex items-center gap-2">
+                            <UsersIcon size={20} weight="duotone" color="#2C4839" />
+                            {/* <Target className="h-4 w-4 text-[#2C4839]" /> */}
+                            People involved in this version
+                        </h2>
+                    </div>
+
+                    {contributorsInVersion.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No completed tasks yet in this version.</p>
+                    ) : (
+                        <ul className="space-y-3">
+                            {contributorsInVersion.map((person) => (
+                                <li
+                                    key={person.id}
+                                    className="flex items-center justify-between rounded-lg border border-border/70 bg-muted/40 py-1 px-3"
+                                >
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <Avatar size="sm">
+                                            <AvatarFallback>{getInitials(person.label)}</AvatarFallback>
+                                        </Avatar>
+                                        <p className="text-sm font-medium truncate">{person.label}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs font-semibold">{person.completedCount} completed</p>
+                                        <p className="text-xs text-muted-foreground">{person.contributionPercent}% contribution</p>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                 </Card>
             </div>
 
             {/* Current Focus + Growth Pulse */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="p-5">
+            <div className="grid grid-cols-12 gap-6">
+                {/* TODO: come back later and reflect on how you can improve. */}
+                {/* <Card className="p-5">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="font-semibold flex items-center gap-2">
                             <Clock className="h-4 w-4 text-orange-500" />
@@ -454,12 +556,13 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                             ))}
                         </ul>
                     )}
-                </Card>
+                </Card> */}
 
-                <Card className="p-5">
+                <Card className="p-5 col-span-12">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="font-semibold flex items-center gap-2">
-                            <CalendarDays className="h-4 w-4 text-violet-500" />
+                            {/* <CalendarDays className="h-4 w-4 text-violet-500" /> */}
+                            <MegaphoneIcon size={20} weight="duotone"  className='rotate-12'/>
                             Growth Pulse
                         </h2>
                         <Link href={`/projects/${projectId}/growth`}>
@@ -467,16 +570,16 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                         </Link>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3 mb-4">
-                        <div className="rounded-lg bg-muted/50 p-3">
+                    <div className="grid grid-cols-12 gap-3 mb-4">
+                        <div className="rounded-lg bg-muted/50 p-3 col-span-4">
                             <p className="text-xs text-muted-foreground">Log Volume</p>
                             <p className="text-lg font-semibold">{growthQuantityInRange}</p>
                         </div>
-                        <div className="rounded-lg bg-muted/50 p-3">
+                        <div className="rounded-lg bg-muted/50 p-3 col-span-4">
                             <p className="text-xs text-muted-foreground">Active Activities</p>
                             <p className="text-lg font-semibold">{progressedActivitiesInRange}</p>
                         </div>
-                        <div className="rounded-lg bg-muted/50 p-3">
+                        <div className="rounded-lg bg-muted/50 p-3 col-span-4">
                             <p className="text-xs text-muted-foreground">Stuck</p>
                             <p className="text-lg font-semibold">{stuckActivities}</p>
                         </div>

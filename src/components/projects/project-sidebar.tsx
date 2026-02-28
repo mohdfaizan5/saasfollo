@@ -113,7 +113,7 @@ export function ProjectSidebar({ project, userRole = 'owner' }: ProjectSidebarPr
                                 tooltip={item.label}
                                 onClick={() => router.push(`${baseUrl}/${item.href}`)}
                             >
-                                <item.icon size={56} weight="duotone"  />
+                                <item.icon size={56} weight="duotone" />
                                 <span className="inline-flex items-center gap-2">
                                     <span>{item.label}</span>
                                     {item.href === 'aicofounder' && (
@@ -129,6 +129,23 @@ export function ProjectSidebar({ project, userRole = 'owner' }: ProjectSidebarPr
             </SidebarContent>
             {canManage && (
                 <SidebarFooter>
+                    <div className="mx-2 p-3 rounded-xl bg-linear-to-br from-blue-500/90 to-blue-600/90 text-white group-data-[collapsible=icon]:hidden">
+                        <p className="text-sm font-medium leading-snug">
+                            We're actively building this tool!
+                        </p>
+                        <p className="text-xs text-white/80 mt-1">
+                            Got feedback or questions? We'd love to hear from you.
+                        </p>
+                        <div className="grid grid-cols-3 gap-2 mt-3">
+                            <button className="flex-1 col-span-2 px-3 py-1.5 text-xs font-medium bg-white text-blue-600 rounded-lg hover:bg-white/90 transition-colors">
+                                Give Feedback
+                            </button>
+                            <button className="flex-1 px-3 py-1.5 text-xs font-medium bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors">
+                                Learn More
+                            </button>
+                        </div>
+                    </div>
+
                     <SidebarMenu>
                         <SidebarMenuItem>
                             <SidebarMenuButton
