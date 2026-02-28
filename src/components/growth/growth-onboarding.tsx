@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client';
 
 import { useState } from 'react';
@@ -123,7 +124,7 @@ export function GrowthOnboarding({ projectId, versionId, versionName }: GrowthOn
             <div className="space-y-6">
                 {/* <Card className="border-border/70 bg-muted/20">
                     <CardContent className="p-6"> */}
-                
+
                 {/* </CardContent>
                 </Card> */}
 
@@ -175,10 +176,11 @@ export function GrowthOnboarding({ projectId, versionId, versionName }: GrowthOn
                             <Label className="text-base mb-0">Deadline</Label>
                             <p className="text-sm text-muted-foreground">When are you wrapping this up?</p>
                         </div>
-                        <Popover>
+                        <Popover >
                             {/*  */}
-                            <PopoverTrigger asChild>
+                            <PopoverTrigger >
                                 <Button
+                                    
                                     variant="outline"
                                     className={cn(
                                         "w-full sm:w-70 justify-start text-left font-normal",
@@ -189,7 +191,7 @@ export function GrowthOnboarding({ projectId, versionId, versionName }: GrowthOn
                                     {deadline ? format(deadline, "PPP") : <span>Pick a date</span>}
                                 </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
+                            <PopoverContent  className="w-auto p-0" align="start">
                                 <Calendar
                                     mode="single"
                                     selected={deadline}

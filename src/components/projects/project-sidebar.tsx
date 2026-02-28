@@ -25,6 +25,7 @@ import {
     BrainIcon,
     GearIcon
 } from '@phosphor-icons/react';
+import { FeedbackModal } from '@/components/feedback-modal';
 
 interface NavItem {
     href: string;
@@ -49,11 +50,13 @@ const NAV_ITEMS: NavItem[] = [
 interface ProjectSidebarProps {
     project: Project;
     userRole?: UserProjectRole;
+    userEmail?: string;
 }
 
-export function ProjectSidebar({ project, userRole = 'owner' }: ProjectSidebarProps) {
+export function ProjectSidebar({ project, userRole = 'owner', userEmail = '' }: ProjectSidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
+    const [feedbackOpen, setFeedbackOpen] = React.useState(false);
     const baseUrl = `/projects/${project.nanoid}`;
     const isReader = userRole === 'reader';
     const canManage = userRole === 'owner';
@@ -137,7 +140,10 @@ export function ProjectSidebar({ project, userRole = 'owner' }: ProjectSidebarPr
                             Got feedback or questions? We'd love to hear from you.
                         </p>
                         <div className="grid grid-cols-3 gap-2 mt-3">
-                            <button className="flex-1 col-span-2 px-3 py-1.5 text-xs font-medium bg-white text-blue-600 rounded-lg hover:bg-white/90 transition-colors">
+                            <button
+                                onClick={() => setFeedbackOpen(true)}
+                                className="flex-1 col-span-2 px-3 py-1.5 text-xs font-medium bg-white text-blue-600 rounded-lg hover:bg-white/90 transition-colors"
+                            >
                                 Give Feedback
                             </button>
                             <button className="flex-1 px-3 py-1.5 text-xs font-medium bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors">
@@ -161,6 +167,7 @@ export function ProjectSidebar({ project, userRole = 'owner' }: ProjectSidebarPr
                 </SidebarFooter>
             )}
             <SidebarRail />
+            <FeedbackModal open={feedbackOpen} onOpenChange={setFeedbackOpen} userEmail={userEmail} />
         </Sidebar>
     );
 }

@@ -5,17 +5,13 @@ import { useChat } from '@ai-sdk/react'
 import { Card, CardDescription, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { AICofounderInput } from '@/components/ai-input'
+import { ToolRenderer } from '@/components/ai-tools/registry'
 import { Streamdown } from 'streamdown'
 import { code } from '@streamdown/code'
 import { useParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CubeIcon, GearFineIcon, PencilCircleIcon, SparkleIcon } from '@phosphor-icons/react/dist/ssr'
-
-type MessageType = {
-  key: string
-  from: 'user' | 'assistant'
-  versions: { id: string; content: string }[]
-}
+import { CubeIcon, GearFineIcon, PencilCircleIcon, SparkleIcon } from '@phosphor-icons/react'
+import { Fragment } from 'react'
 
 // const models = [
 //   { chef: 'OpenAI', id: 'gpt-4o', name: 'GPT-4o' },
@@ -48,7 +44,7 @@ export default function Chat() {
         title: 'Build my roadmap',
         description: 'Find the next best task to ship now.',
         icon: CubeIcon,
-        bgClass: 'bg-gradient-to-br from-primary/80 via-primary/65 to-primary/45',
+        bgClass: 'bg-[#2c4839]',
         textClass: 'text-primary-foreground',
       },
       {
@@ -64,7 +60,7 @@ export default function Chat() {
         title: 'Polish my pitch',
         description: 'Rewrite this feature to convert better.',
         icon: PencilCircleIcon,
-        bgClass: 'bg-gradient-to-br from-accent via-primary/40 to-secondary/75',
+        bgClass: 'bg-[#f6f1ea]',
         textClass: 'text-accent-foreground',
       },
     ],
@@ -90,26 +86,6 @@ export default function Chat() {
   })
 
   const isLoading = status === 'submitted' || status === 'streaming'
-
-  const normalizedMessages = useMemo<MessageType[]>(() => {
-    return messages.map((message) => {
-      const textParts = message.parts
-        .filter((part) => part.type === 'text')
-        .map((part) => (part.type === 'text' ? part.text : ''))
-        .join('\n')
-
-      return {
-        key: message.id,
-        from: message.role === 'user' ? 'user' : 'assistant',
-        versions: [
-          {
-            id: message.id,
-            content: textParts,
-          },
-        ],
-      }
-    })
-  }, [messages])
 
   const handleSubmit = useCallback(
     async (textToSend: string) => {
@@ -137,10 +113,10 @@ export default function Chat() {
   }, [messages.length, isLoading])
 
   return (
-    <div className="relative flex h-[calc(90svh-72px)] w-full max-w-5xl mx-auto flex-col">
-      <ScrollArea className="flex-1 min-h-0">
+    <ScrollArea className="flex-1 min-h-0">
+      <div className="relative flex h-[calc(90svh-72px)] w-full max-w-5xl mx-auto flex-col">
         <div className="flex flex-col gap-3 p-3 md:p-4">
-          {normalizedMessages.length === 0 ? (
+          {messages.length === 0 ? (
             <div className="flex flex-col items-center gap-4 mt-10">
               <SparkleIcon size={48} weight="duotone" className='animate-pulse' />
               <p className='text-center'>
@@ -178,67 +154,84 @@ export default function Chat() {
               </div>
             </div>
 
-          ): ( <div className="flex flex-col items-center gap-4 mt-10">
-              <SparkleIcon size={48} weight="duotone" className='animate-pulse' />
-              <p className='text-center'>
-                How's it going?
-              </p>
-              <h1 className="text-5xl text-center font-serif">
+          ) : (<div className="flex flex-col items-center gap-4 mt-10">
+            <SparkleIcon size={48} weight="duotone" className='animate-pulse' />
+            <p className='text-center'>
+              How's it going?
+            </p>
+            <h1 className="text-5xl text-center font-serif">
 
-                I'm your AI CoFounder!
-              </h1>
-             
-            </div>
-)}
+              I'm your AI CoFounder!
+            </h1>
 
-          {normalizedMessages.map(({ versions, ...message }) => (
-            <div key={message.key} className="flex flex-col gap-2">
-              {versions.map((version) =>
-                message.from === 'user' ? (
-                  <div
-                    key={`${message.key}-${version.id}`}
-                    className="rounded-lg px-3 py-2 text-sm whitespace-pre-wrap max-w-[90%] bg-primary text-primary-foreground ml-auto"
-                  >
-                    {version.content}
-                  </div>
-                ) : (
-                  <div
-                    key={`${message.key}-${version.id}`}
-                    className="text- text-foreground mr-auto max-w-[90%]"
-                  >
-                    <Streamdown
-                      plugins={{ code }}
-                      isAnimating={isLoading}
+          </div>
+          )}
+
+          {messages.map((message) => (
+            <Fragment key={message.id}>
+              {message.parts.map((part, i) => {
+                if (part.type === 'text') {
+                  return message.role === 'user' ? (
+                    <div
+                      key={`${message.id}-${i}`}
+                      className="rounded-lg px-3 py-2 text-sm whitespace-pre-wrap max-w-[90%] bg-primary text-primary-foreground ml-auto"
                     >
-                      {version.content}
-                    </Streamdown>
-                  </div>
-                )
-              )}
-            </div>
+                      {part.text}
+                    </div>
+                  ) : (
+                    <div
+                      key={`${message.id}-${i}`}
+                      className="text-sm text-foreground mr-auto max-w-[90%] mb-20"
+                    >
+                      <Streamdown plugins={{ code }} isAnimating={isLoading}>
+                        {part.text}
+                      </Streamdown>
+                    </div>
+                  )
+                }
+
+                // Tool parts have type "tool-<toolName>" in AI SDK v5
+                if (part.type.startsWith('tool-')) {
+                  const toolName = part.type.slice(5) // strip "tool-" prefix
+                  const toolPart = part as { state: string; output?: unknown }
+                  return (
+                    <div key={`${message.id}-${i}`} className="mr-auto max-w-[90%]">
+                      <ToolRenderer
+                        toolName={toolName}
+                        state={toolPart.state}
+                        result={toolPart.state === 'output-available' ? toolPart.output : undefined}
+                      />
+                    </div>
+                  )
+                }
+
+                return null
+              })}
+            </Fragment>
           ))}
 
           {isLoading && <div className="text-sm text-muted-foreground">Thinking...</div>}
           {error && <div className="text-sm text-red-500">{error.message}</div>}
           <div ref={bottomRef} />
         </div>
-      </ScrollArea>
 
-      <div className="shrink-0 z-20 px-3 pb-3 md:px-4 md:pb-4">
-        <AICofounderInput
-          value={text}
-          onValueChange={setText}
-          onSubmit={() => handleSubmit(text)}
-          isLoading={isLoading}
-          disabled={!projectId}
-          placeholder="Ask your AI cofounder anything about this project..."
-          personas={personas}
-          selectedPersona={persona}
-          onPersonaChange={setPersona}
-          quickChat={quickChat}
-          onQuickChatChange={setQuickChat}
-        />
+        <div className="fixed w-full max-w-4xl bottom-0 shrink-0 z-20 px-3 pb-3 md:px-4 md:pb-4 ">
+          <AICofounderInput
+            value={text}
+            onValueChange={setText}
+            onSubmit={() => handleSubmit(text)}
+            isLoading={isLoading}
+            disabled={!projectId}
+            placeholder="Ask your AI cofounder anything about this project..."
+            personas={personas}
+            selectedPersona={persona}
+            onPersonaChange={setPersona}
+            quickChat={quickChat}
+            onQuickChatChange={setQuickChat}
+          />
+        </div>
       </div>
-    </div>
+    </ScrollArea>
+
   )
 }

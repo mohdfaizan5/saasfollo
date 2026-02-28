@@ -1,17 +1,21 @@
 'use client';
 
-import Link from 'next/link';
+import { useState } from 'react';
 import { HelpCircle, Search } from 'lucide-react';
 import Logo from '@/components/logo';
 import { UserProfileDropdown } from '@/components/user-profile-dropdown';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { FeedbackModal } from '@/components/feedback-modal';
 
 interface ProjectsHeaderProps {
     userEmail: string;
 }
 
 export function ProjectsHeader({ userEmail }: ProjectsHeaderProps) {
+    const [feedbackOpen, setFeedbackOpen] = useState(false);
+
     return (
+        <>
         <header className="h-12 bg-[#1a1a1a] border-b border-[#2a2a2a] flex items-center justify-between px-4">
             {/* Left side - Logo and Projects */}
             <div className="flex items-center gap-2">
@@ -23,12 +27,12 @@ export function ProjectsHeader({ userEmail }: ProjectsHeaderProps) {
             {/* Right side - Feedback, Search, Help, User */}
             <div className="flex items-center gap-4">
                 {/* Feedback Link */}
-                <Link
-                    href="#"
-                    className="text-[#4ade80] hover:text-[#22c55e] text-sm font-medium transition-colors"
+                <button
+                    onClick={() => setFeedbackOpen(true)}
+                    className="text-[#4ade80] hover:text-[#22c55e] text-sm font-medium transition-colors cursor-pointer"
                 >
                     Feedback
-                </Link>
+                </button>
 
                 {/* Search */}
                 <Tooltip>
@@ -62,6 +66,8 @@ export function ProjectsHeader({ userEmail }: ProjectsHeaderProps) {
                 <UserProfileDropdown email={userEmail} />
             </div>
         </header>
+        <FeedbackModal open={feedbackOpen} onOpenChange={setFeedbackOpen} userEmail={userEmail} />
+        </>
     );
 }
 

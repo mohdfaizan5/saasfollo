@@ -46,12 +46,13 @@ interface DashboardChartsSectionProps {
 }
 
 const throughputConfig = {
-  created: { label: 'Created', color: 'var(--chart-2)' },
-  completed: { label: 'Completed', color: 'var(--chart-1)' },
+  completed: { label: 'Development', color: '#2C4839' },
+  growth: { label: 'Growth', color: 'var(--chart-4)' },
 } satisfies ChartConfig;
 
-const statusConfig = {
-  count: { label: 'Tasks', color: 'var(--chart-3)' },
+const weeklyWorkConfig = {
+  completed: { label: 'Development', color: 'var(--primary)' },
+  growth: { label: 'Growth', color: '#2C4839' },
 } satisfies ChartConfig;
 
 const growthConfig = {
@@ -59,9 +60,33 @@ const growthConfig = {
 } satisfies ChartConfig;
 
 const radialConfig = {
-  completion: { label: 'Completion', color: 'var(--chart-1)' },
+  completion: { label: 'Completion', color: '#2C4839' },
   remaining: { label: 'Remaining', color: 'var(--chart-5)' },
 } satisfies ChartConfig;
+
+// Custom tick for two-line labels: "Mon|28Feb" → line1: Mon, line2: 28Feb
+function DayDateTick({ x, y, payload }: { x: number; y: number; payload: { value: string } }) {
+  const value = payload.value;
+  const parts = value.split('|');
+  if (parts.length === 2) {
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <text x={0} y={0} dy={4} textAnchor="middle" fontSize={11} fontWeight={600} fill="currentColor">
+          {parts[0]}
+        </text>
+        <text x={0} y={0} dy={18} textAnchor="middle" fontSize={10} fill="var(--muted-foreground, #888)">
+          {parts[1]}
+        </text>
+      </g>
+    );
+  }
+  // Fallback for "today" range (just hours)
+  return (
+    <text x={x} y={y} dy={10} textAnchor="middle" fontSize={11} fill="currentColor">
+      {value}
+    </text>
+  );
+}
 
 export function DashboardChartsSection({
   range,
@@ -79,32 +104,74 @@ export function DashboardChartsSection({
     },
   ];
 
+  // Merge throughput + growth into a single series for the dual-line chart
+  const devVsGrowthSeries = throughputSeries.map((point, i) => ({
+    label: point.label,
+    completed: point.completed,
+    growth: growthSeries[i]?.quantity ?? 0,
+  }));
+
   return (
     <section className="space-y-4">
       <h2 className="text-lg font-semibold">Charts ({range})</h2>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <Card className="p-4">
-          <p className="text-sm font-medium mb-2">Created vs Completed</p>
+          <div className="flex items-center gap-4 mb-3">
+            <p className="text-sm font-medium">Development vs Growth</p>
+            <div className="flex items-center gap-3 ml-auto">
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: '#2C4839' }} />
+                Development
+              </span>
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: 'var(--chart-4)' }} />
+                Growth
+              </span>
+            </div>
+          </div>
           <ChartContainer config={throughputConfig} className="h-56 w-full">
-            <AreaChart data={throughputSeries}>
-              <CartesianGrid vertical={false} />
-              <XAxis dataKey="label" tickLine={false} axisLine={false} />
+            <AreaChart data={devVsGrowthSeries}>
+              <defs>
+                <linearGradient id="fillCompleted" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#2C4839" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#2C4839" stopOpacity={0.02} />
+                </linearGradient>
+                <linearGradient id="fillGrowth" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--chart-4)" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="var(--chart-4)" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid vertical={false} strokeDasharray="4 4" />
+              <XAxis dataKey="label" tickLine={false} axisLine={false} tick={DayDateTick as any} height={40} />
               <ChartTooltip content={<ChartTooltipContent />} />
-              <Area type="monotone" dataKey="created" stroke="var(--color-created)" fill="var(--color-created)" fillOpacity={0.22} />
-              <Area type="monotone" dataKey="completed" stroke="var(--color-completed)" fill="var(--color-completed)" fillOpacity={0.28} />
+              <Area type="natural" dataKey="completed" stroke="var(--color-completed)" fill="url(#fillCompleted)" strokeWidth={2.5} dot={{ r: 3, fill: 'var(--color-completed)', strokeWidth: 0 }} activeDot={{ r: 5 }} />
+              <Area type="natural" dataKey="growth" stroke="var(--color-growth)" fill="url(#fillGrowth)" strokeWidth={2.5} dot={{ r: 3, fill: 'var(--color-growth)', strokeWidth: 0 }} activeDot={{ r: 5 }} />
             </AreaChart>
           </ChartContainer>
         </Card>
 
         <Card className="p-4">
-          <p className="text-sm font-medium mb-2">Status Breakdown</p>
-          <ChartContainer config={statusConfig} className="h-56 w-full">
-            <BarChart data={statusBreakdown}>
-              <CartesianGrid vertical={false} />
-              <XAxis dataKey="status" tickLine={false} axisLine={false} />
+          <div className="flex items-center gap-4 mb-3">
+            <p className="text-sm font-medium">Weekly Work Output</p>
+            <div className="flex items-center gap-3 ml-auto">
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="inline-block w-2.5 h-2.5 rounded" style={{ background: 'var(--primary)' }} />
+                Development
+              </span>
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="inline-block w-2.5 h-2.5 rounded" style={{ background: '#2C4839' }} />
+                Growth
+              </span>
+            </div>
+          </div>
+          <ChartContainer config={weeklyWorkConfig} className="h-56 w-full">
+            <BarChart data={devVsGrowthSeries}>
+              <CartesianGrid vertical={false} strokeDasharray="4 4" />
+              <XAxis dataKey="label" tickLine={false} axisLine={false} tick={DayDateTick as any} height={40} />
               <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="count" fill="var(--color-count)" radius={6} />
+              <Bar dataKey="completed" fill="var(--color-completed)" stackId="work" radius={[0, 0, 4, 4]} />
+              <Bar dataKey="growth" fill="var(--color-growth)" stackId="work" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ChartContainer>
         </Card>
@@ -121,7 +188,7 @@ export function DashboardChartsSection({
           </ChartContainer>
         </Card>
 
-        <Card className="p-4 flex flex-col">
+        {/* <Card className="p-4 flex flex-col">
           <p className="text-sm font-medium mb-2">Active Version Completion</p>
           <div className="h-56">
             <ChartContainer config={radialConfig} className="h-full w-full">
@@ -134,7 +201,7 @@ export function DashboardChartsSection({
             </ChartContainer>
           </div>
           <p className="text-xs text-muted-foreground mt-2">{safeCompletion}% complete</p>
-        </Card>
+        </Card> */}
       </div>
     </section>
   );

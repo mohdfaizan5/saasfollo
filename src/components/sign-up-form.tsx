@@ -52,15 +52,19 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { error, data } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/protected`,
-        },
       })
       if (error) throw error
-      router.push('/auth/sign-up-success')
+      // If email verification is disabled, session is returned immediately.
+      // Use full navigation so the fresh auth cookie reaches the server.
+      if (data.session) {
+        window.location.href = '/onboarding'
+      } else {
+        // Fallback: email verification is enabled
+        router.push('/auth/sign-up-success')
+      }
     } catch (error: unknown) {
       setError(getAuthErrorMessage(error))
     } finally {

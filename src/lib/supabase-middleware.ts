@@ -11,7 +11,8 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith('/changelog') ||
     pathname.startsWith('/blog') ||
     pathname.startsWith('/resources') ||
-    pathname.startsWith('/startupperks')
+    pathname.startsWith('/startupperks') ||
+    pathname.startsWith('/onboarding')
 
   if (isPublicPath && pathname !== '/') {
     return NextResponse.next({ request })

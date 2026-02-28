@@ -14,12 +14,44 @@ import Link from 'next/link';
 import { Coolshape } from 'coolshapes-react';
 import type { Task } from '@/lib/types/database';
 import Gauge from '@/components/gauge';
-import { HourglassSimpleLowIcon, MegaphoneIcon, UsersIcon } from '@phosphor-icons/react/dist/ssr';
 
 export const metadata = {
     title: 'Dashboard',
 };
+import type { GrowthActivityType } from '@/lib/types/database';
 
+import {
+    CheckCircleIcon, HourglassSimpleLowIcon, MegaphoneIcon, UsersIcon,
+    FileTextIcon,
+    ChatTextIcon,
+    EnvelopeSimpleIcon,
+    CurrencyDollarIcon,
+    FlaskIcon,
+    ChartLineUpIcon,
+    SmileyIcon,
+    CursorClickIcon,
+    RocketLaunchIcon,
+    RedditLogoIcon,
+    CalendarStarIcon,
+    WrenchIcon,
+    MoneyIcon,
+    SparkleIcon
+} from '@phosphor-icons/react/dist/ssr';
+const ACTIVITY_ICON_MAP: Record<GrowthActivityType, React.ComponentType<any>> = {
+    SEO: FileTextIcon,
+    COLD_DM: ChatTextIcon,
+    COLD_EMAIL: EnvelopeSimpleIcon,
+    PAID_ADS: CurrencyDollarIcon,
+    AB_TEST: FlaskIcon,
+    ANALYTICS: ChartLineUpIcon,
+    USER_FEEDBACK: SmileyIcon,
+    PRICING_OPTIMIZATION: MoneyIcon,
+    CRO: CursorClickIcon,
+    ACCELERATOR: RocketLaunchIcon,
+    REDDIT: RedditLogoIcon,
+    EVENTS: CalendarStarIcon,
+    CUSTOM: WrenchIcon,
+};
 interface DashboardPageProps {
     params: Promise<{ projectId: string }>;
     searchParams: Promise<{ range?: string }>;
@@ -331,9 +363,9 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-12 gap-4">
+            <div className="grid grid-cols-12 grid-rows-2 gap-4 max-h-52">
                 {/* Active Version */}
-                <Card className="p-4 col-span-12 bg-primary relative text-white">
+                <Card className="p-4 col-span-9 row-span-1 bg-primary relative text-white">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-primary/10">
                             <Layers className="h-5 w-5 text-primary" />
@@ -351,6 +383,16 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                         <Coolshape className='absolute -top-8 -left-8' type="star" index={3} size={80} noise={true} />
                     </div>
                 </Card>
+                <Card className="col-span-3 row-span-1 p-4 bg-[#2C4839] text-white">
+                    <Link href="/ai-cofounder" className="flex items-center gap-3">
+                        <SparkleIcon size={38} weight='duotone' />
+                        <div>
+                            <p className="text-lg font-semibold">Your AI Cofounder</p>
+                            <p className=" text-white/80">AI-powered assistant for your project</p>
+
+                        </div>
+                    </Link>
+                </Card>
                 {/* <Card className="p-4 col-span-12 md:col-span-6 lg:col-span-3">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-primary/10">
@@ -366,7 +408,7 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                 </Card> */}
 
                 {/* Now Tasks */}
-                <Card className="p-4 col-span-12 md:col-span-6 lg:col-span-3">
+                <Card className="p-4 col-start-1 col-end-4">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-orange-500/10">
                             <Clock className="h-5 w-5 text-orange-500" />
@@ -391,6 +433,17 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                     </div>
                 </Card>
 
+                <Card className="p-4 col-span-12 md:col-span-6 lg:col-span-6">
+                    <div className="flex items-center gap-3">
+                        {/* <div className="p-2 rounded-lg bg-green-500/10"> */}
+                        <SparkleIcon className="" size={22} weight='duotone' />
+                        {/* </div> */}
+                        <div>
+                            <p className="text-sm text-muted-foreground">Net Progress</p>
+                            <p className="font-semibold">{netProgress >= 0 ? `+${netProgress}` : netProgress}</p>
+                        </div>
+                    </div>
+                </Card>
                 {/* Completed */}
                 {/* <Card className="p-4 col-span-12 md:col-span-6 lg:col-span-3">
                     <div className="flex items-center gap-3">
@@ -562,28 +615,86 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="font-semibold flex items-center gap-2">
                             {/* <CalendarDays className="h-4 w-4 text-violet-500" /> */}
-                            <MegaphoneIcon size={20} weight="duotone"  className='rotate-12'/>
+                            <MegaphoneIcon size={20} weight="duotone" className='rotate-12' />
                             Growth Pulse
                         </h2>
                         <Link href={`/projects/${projectId}/growth`}>
                             <Button variant="ghost" size="sm">Open Growth</Button>
                         </Link>
                     </div>
+                    <section className='grid grid-cols-12'>
 
-                    <div className="grid grid-cols-12 gap-3 mb-4">
-                        <div className="rounded-lg bg-muted/50 p-3 col-span-4">
-                            <p className="text-xs text-muted-foreground">Log Volume</p>
-                            <p className="text-lg font-semibold">{growthQuantityInRange}</p>
+                        <div className=" gap-3 mb-4 col-span-3">
+                            <div className="rounded-lg bg-muted/50 p-3 col-span-4">
+                                <p className="text-xs text-muted-foreground">Log Volume</p>
+                                <p className="text-lg font-semibold">{growthQuantityInRange}</p>
+                            </div>
+                            <div className="rounded-lg bg-muted/50 p-3 col-span-4">
+                                <p className="text-xs text-muted-foreground">Active Activities</p>
+                                <p className="text-lg font-semibold">{progressedActivitiesInRange}</p>
+                            </div>
+                            <div className="rounded-lg bg-muted/50 p-3 col-span-4">
+                                <p className="text-xs text-muted-foreground">Stuck</p>
+                                <p className="text-lg font-semibold">{stuckActivities}</p>
+                            </div>
                         </div>
-                        <div className="rounded-lg bg-muted/50 p-3 col-span-4">
-                            <p className="text-xs text-muted-foreground">Active Activities</p>
-                            <p className="text-lg font-semibold">{progressedActivitiesInRange}</p>
+                        <div className="col-span-9 gap-3 rounded-xl border border-border/70 bg-background py-2">
+                            <p className="px-4 text-lg font-medium mb-1">Growth Activities</p>
+                            {growthPlan?.activities.map((act) => {
+                                const percentage = act.target_value > 0
+                                    ? Math.min(100, Math.round((act.completed_value / act.target_value) * 100))
+                                    : 0;
+                                const name = act.custom_name || act.type;
+                                const Icon = ACTIVITY_ICON_MAP[act.type] || WrenchIcon;
+
+                                return (
+                                    <div
+                                        key={act.id}
+                                        className="flex items-center gap-3  p-2.5 px-4 transition-shadow hover:shadow-sm"
+                                    >
+                                        {/* Left: Icon */}
+                                        {/* <div className="shrink-0 mt-0.5 flex items-center justify-center w-9 h-9 rounded-lg bg-muted/60"> */}
+                                        <Icon size={24} weight="duotone" className="text-foreground/70" />
+                                        {/* </div> */}
+
+                                        {/* Right: Name + Progress */}
+                                        <div className="flex-1 min-w-0 space-y-1">
+                                            {/* Top row: name + count */}
+                                            <div className="flex items-baseline justify-between gap-2">
+                                                <span className="text-sm font-semibold  truncate">
+                                                    {name.replace(/_/g, ' ')}
+                                                </span>
+                                                <span className="shrink-0 text-xs text-muted-foreground font-medium">
+                                                    ({act.completed_value}/{act.target_value})
+                                                </span>
+                                            </div>
+
+                                            {/* Progress bar with circle indicator */}
+                                            <div className="relative h-3">
+                                                {/* Track */}
+                                                <div className="absolute inset-0 rounded-full bg-muted/60 border border-border/40" />
+                                                {/* Fill */}
+                                                <div
+                                                    className="absolute inset-y-0 left-0 rounded-full bg-primary transition-all duration-700 ease-out"
+                                                    style={{ width: `${percentage}%` }}
+                                                />
+                                                {/* Percentage circle at end of fill */}
+                                                <div
+                                                    className="absolute top-1/2 -translate-y-1/2 flex items-center justify-center size-6 rounded-full border-2 border-primary bg-background shadow-sm transition-all duration-700 ease-out"
+                                                    style={{ left: `clamp(0px, calc(${percentage}% - 14px), calc(100% - 28px))` }}
+                                                >
+                                                    {percentage === 100 ? (<CheckCircleIcon className="size-5 text-green-500" weight="fill" />) : (
+                                                        <span className="text-[9px] font-bold text-primary leading-none">
+                                                            {percentage}%
+                                                        </span>)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
-                        <div className="rounded-lg bg-muted/50 p-3 col-span-4">
-                            <p className="text-xs text-muted-foreground">Stuck</p>
-                            <p className="text-lg font-semibold">{stuckActivities}</p>
-                        </div>
-                    </div>
+                    </section>
 
                     {project.active_version?.name ? (
                         <Badge variant="secondary">Active version: {project.active_version.name}</Badge>

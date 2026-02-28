@@ -25,9 +25,39 @@ import {
     CalendarBlankIcon,
     FlagIcon,
     ChartBarIcon,
-    TargetIcon
+    TargetIcon,
+    FileTextIcon,
+    ChatTextIcon,
+    EnvelopeSimpleIcon,
+    CurrencyDollarIcon,
+    FlaskIcon,
+    ChartLineUpIcon,
+    SmileyIcon,
+    CursorClickIcon,
+    RocketLaunchIcon,
+    RedditLogoIcon,
+    CalendarStarIcon,
+    WrenchIcon,
+    MoneyIcon
 } from '@phosphor-icons/react';
 import Gauge from '../gauge';
+import type { GrowthActivityType } from '@/lib/types/database';
+
+const ACTIVITY_ICON_MAP: Record<GrowthActivityType, React.ComponentType<any>> = {
+    SEO: FileTextIcon,
+    COLD_DM: ChatTextIcon,
+    COLD_EMAIL: EnvelopeSimpleIcon,
+    PAID_ADS: CurrencyDollarIcon,
+    AB_TEST: FlaskIcon,
+    ANALYTICS: ChartLineUpIcon,
+    USER_FEEDBACK: SmileyIcon,
+    PRICING_OPTIMIZATION: MoneyIcon,
+    CRO: CursorClickIcon,
+    ACCELERATOR: RocketLaunchIcon,
+    REDDIT: RedditLogoIcon,
+    EVENTS: CalendarStarIcon,
+    CUSTOM: WrenchIcon,
+};
 
 interface GrowthDashboardProps {
     plan: GrowthPlanWithDetails;
@@ -254,118 +284,71 @@ export function GrowthDashboard({ plan, versionName }: GrowthDashboardProps) {
                     {/* </div>
                     </div> */}
                 </Card>
-                <Card className="border-border/70">
-                    <CardHeader className="border-b bg-muted/20">
-                        <CardTitle className="tracking-tight text-base text-foreground">Progress Visualization</CardTitle>
-                    </CardHeader>
-                    <CardContent className="px-6 space-y-2">
-                        {plan.activities.map((act) => {
-                            const percentage = Math.min(100, Math.round((act.completed_value / act.target_value) * 100));
-                            const name = act.custom_name || act.type;
-                            return (
-                                <div key={act.id} className="space-y-4">
-                                    <div className="flex justify-between items-end mb-1">
-                                        <span className="font-light capitalize tracking-tight text-foreground text-sm flex gap-2 items-center">
-                                            <div className="bg-primary/10 font-medium text-primary px-2 py-0.5 rounded text-xs">
-                                                {percentage}%
-                                            </div>
+                <div className=" gap-3 rounded-xl border border-border/70 bg-background py-2">
+                    <p className="px-4 text-lg font-medium mb-1">Growth Activities</p>
+                    {plan.activities.map((act) => {
+                        const percentage = act.target_value > 0
+                            ? Math.min(100, Math.round((act.completed_value / act.target_value) * 100))
+                            : 0;
+                        const name = act.custom_name || act.type;
+                        const Icon = ACTIVITY_ICON_MAP[act.type] || WrenchIcon;
+
+                        return (
+                            <div
+                                key={act.id}
+                                className="flex items-center gap-3  p-2.5 px-4 transition-shadow hover:shadow-sm"
+                            >
+                                {/* Left: Icon */}
+                                {/* <div className="shrink-0 mt-0.5 flex items-center justify-center w-9 h-9 rounded-lg bg-muted/60"> */}
+                                <Icon size={24} weight="duotone" className="text-foreground/70" />
+                                {/* </div> */}
+
+                                {/* Right: Name + Progress */}
+                                <div className="flex-1 min-w-0 space-y-1">
+                                    {/* Top row: name + count */}
+                                    <div className="flex items-baseline justify-between gap-2">
+                                        <span className="text-sm font-semibold  truncate">
                                             {name.replace(/_/g, ' ')}
                                         </span>
-                                        <span className="text-xs font-medium text-muted-foreground uppercase opacity-80 bg-muted px-2 py-1 rounded-sm">
-                                            {act.completed_value} / {act.target_value}
+                                        <span className="shrink-0 text-xs text-muted-foreground font-medium">
+                                            ({act.completed_value}/{act.target_value})
                                         </span>
                                     </div>
-                                    {/* Native progress visualization simulating the ASCII request */}
-                                    <div className="h-4 w-full bg-muted/50 rounded-full overflow-hidden border border-border/60">
+
+                                    {/* Progress bar with circle indicator */}
+                                    <div className="relative h-3">
+                                        {/* Track */}
+                                        <div className="absolute inset-0 rounded-full bg-muted/60 border border-border/40" />
+                                        {/* Fill */}
                                         <div
-                                            className="h-full bg-linear-to-r from-primary to-primary/80 transition-all duration-1000 ease-in-out relative"
+                                            className="absolute inset-y-0 left-0 rounded-full bg-primary transition-all duration-700 ease-out"
                                             style={{ width: `${percentage}%` }}
+                                        />
+                                        {/* Percentage circle at end of fill */}
+                                        <div
+                                            className="absolute top-1/2 -translate-y-1/2 flex items-center justify-center size-6 rounded-full border-2 border-primary bg-background shadow-sm transition-all duration-700 ease-out"
+                                            style={{ left: `clamp(0px, calc(${percentage}% - 14px), calc(100% - 28px))` }}
                                         >
-                                            <div className="absolute inset-0 bg-white/20" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px)' }} />
+                                            {percentage === 100 ? (<CheckCircleIcon className="size-5 text-green-500" weight="fill" />) : (
+                                                <span className="text-[9px] font-bold text-primary leading-none">
+                                                    {percentage}%
+                                                </span>)}
                                         </div>
                                     </div>
                                 </div>
-                            )
-                        })}
-                    </CardContent>
-                </Card>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
+
+            {/* Activity Progress Cards */}
+
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                {/* MAIN COL: Summary & Progress */}
+                {/* MAIN COL */}
                 <div className="lg:col-span-2 space-y-4">
-
-                    {/* <Card className="border-border/70 overflow-hidden">
-                        <CardHeader className="border-b bg-muted/20 py-4">
-                            <CardTitle className="tracking-tight text-base text-foreground">Target Summary</CardTitle>
-                        </CardHeader>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead className="text-xs uppercase bg-muted/40 text-muted-foreground border-b border-border/60">
-                                    <tr>
-                                        <th className="px-6 py-4 font-semibold">Activity</th>
-                                        <th className="px-6 py-4 text-right font-semibold">Target</th>
-                                        <th className="px-6 py-4 text-right font-semibold">Done</th>
-                                        <th className="px-6 py-4 text-right font-semibold">Remaining</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-border">
-                                    {plan.activities.map((act) => {
-                                        const remaining = Math.max(0, act.target_value - act.completed_value);
-                                        const name = act.custom_name || act.type;
-                                        return (
-                                            <tr key={act.id} className="hover:bg-muted/10 transition-colors">
-                                                <td className="px-6 py-4 font-medium capitalize flex items-center gap-2">
-                                                    <div className="w-2 h-2 rounded-full bg-primary/40" />
-                                                    {name.replace(/_/g, ' ')}
-                                                </td>
-                                                <td className="px-6 py-4 text-right font-medium text-muted-foreground">{act.target_value}</td>
-                                                <td className="px-6 py-4 text-right font-bold text-primary">{act.completed_value}</td>
-                                                <td className="px-6 py-4 text-right font-medium">{remaining}</td>
-                                            </tr>
-                                        )
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    </Card> */}
-
-                    <Card className="border-border/70">
-                        <CardHeader className="border-b bg-muted/20">
-                            <CardTitle className="tracking-tight text-base text-foreground">Progress Visualization</CardTitle>
-                        </CardHeader>
-                        <CardContent className="px-6 space-y-2">
-                            {plan.activities.map((act) => {
-                                const percentage = Math.min(100, Math.round((act.completed_value / act.target_value) * 100));
-                                const name = act.custom_name || act.type;
-                                return (
-                                    <div key={act.id} className="space-y-4">
-                                        <div className="flex justify-between items-end mb-1">
-                                            <span className="font-light capitalize tracking-tight text-foreground text-sm flex gap-2 items-center">
-                                                <div className="bg-primary/10 font-medium text-primary px-2 py-0.5 rounded text-xs">
-                                                    {percentage}%
-                                                </div>
-                                                {name.replace(/_/g, ' ')}
-                                            </span>
-                                            <span className="text-xs font-medium text-muted-foreground uppercase opacity-80 bg-muted px-2 py-1 rounded-sm">
-                                                {act.completed_value} / {act.target_value}
-                                            </span>
-                                        </div>
-                                        {/* Native progress visualization simulating the ASCII request */}
-                                        <div className="h-4 w-full bg-muted/50 rounded-full overflow-hidden border border-border/60">
-                                            <div
-                                                className="h-full bg-linear-to-r from-primary to-primary/80 transition-all duration-1000 ease-in-out relative"
-                                                style={{ width: `${percentage}%` }}
-                                            >
-                                                <div className="absolute inset-0 bg-white/20" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px)' }} />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </CardContent>
-                    </Card>
 
                 </div>
 

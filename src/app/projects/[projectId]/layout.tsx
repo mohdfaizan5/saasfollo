@@ -69,7 +69,7 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
     return (
         <ProjectRoleProvider role={userRole}>
             <SidebarProvider>
-                <ProjectSidebar project={project} userRole={userRole} />
+                <ProjectSidebar project={project} userRole={userRole} userEmail={user.email || ''} />
                 <SidebarInset className="flex flex-col h-screen overflow-hidden bg-[#F6F6F6]">
                     {/* Read-only banner for readers */}
                     {isReader && (

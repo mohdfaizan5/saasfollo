@@ -107,7 +107,7 @@ export async function POST(req: Request) {
       tools: {
         getCurrentProjectTasks: tool({
           description:
-            'Fetch tasks for the current project. Use this when you need accurate, up-to-date task data before giving prioritization advice.',
+            'Fetch tasks for the current project. Call this tool whenever the user asks about tasks, status, progress, priorities, backlog, what to do next, or any question that benefits from seeing task data. Always call this — even if data was fetched before — because it renders a visual card in the UI.',
           inputSchema: z.object({
             limit: z.number().int().min(1).max(100).optional().describe('Maximum number of tasks to return. Defaults to 30.'),
           }),
@@ -136,7 +136,7 @@ export async function POST(req: Request) {
         }),
         getCurrentProjectVersionsWithTasks: tool({
           description:
-            'Fetch versions for the current project and include tasks inside each version. Use this when comparing scope/progress across versions.',
+            'Fetch versions (with their tasks) for the current project. Call this tool whenever the user asks about versions, active version, version overview, scope, milestones, progress, or any question that benefits from seeing version data. Always call this — even if data was fetched before — because it renders a visual card in the UI.',
           inputSchema: z.object({
             versionLimit: z
               .number()

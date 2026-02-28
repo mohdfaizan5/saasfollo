@@ -1,0 +1,40 @@
+---
+title: "Build"
+description: "A task management system with drag-and-drop Kanban and a simplified To-Do view. Custom columns, smart status detection, and version-scoped filters."
+date: "February 28, 2026"
+category: "Product"
+author: "Faizan"
+readTime: "5 min read"
+---
+
+## The Problem
+
+Founders try Linear, Trello, Jira — and every one comes with sprints, story points, epics, and workflows designed for teams of 15. As a solo founder, you need to see what to do now, what's next, and what's done. Not a 45-minute setup for agile ceremonies.
+
+## What Build Does
+
+Build is your task board. Two view modes, same data:
+
+**Kanban Board** — Drag cards between custom columns. Visual, spatial, satisfying.
+
+**To-Do View** — A flat checklist grouped into Todo, In Progress, and Done. Fast, focused, no overhead.
+
+## Key Capabilities
+
+- **Custom Columns** — Create, rename, reorder, and delete columns. Name a column "Done" or "Shipped" and it automatically marks tasks as complete when dropped there
+- **Smart Column Detection** — Columns auto-detect their purpose from their name:
+  - "In Progress" / "Active" → highlighted with a green pulse
+  - "Done" / "Complete" / "Shipped" → green done-lane styling
+  - "Bug" / "Blocked" → bug icon. "Review" / "QA" → magnifying glass icon
+- **Drag-and-Drop** — Powered by `@dnd-kit`. Cards get a subtle rotation while dragging. Drop into a done column → task auto-completes
+- **Filters** — Filter by Category (Website, Marketing, SEO, Content, custom), Version (defaults to active), and Assignee. All URL-persisted, so sharing a filtered view just works
+- **Task Properties** — Title, description, status (Now / Next / Later / Done), priority (High / Medium / Low), category, version, assignee, completion flag
+- **Quick Create** — Add tasks inline within any column or section. No dialog needed for fast entry
+- **Full Edit Dialog** — Click a task to edit all properties. Change title, description, priority, category — everything in one place
+- **To-Do Sections** — Collapsible groups with checkboxes. Mark done with a click. Category badges are color-coded (purple for Website, pink for Marketing, yellow for SEO, cyan for Content)
+
+## Why It Matters
+
+The opinionated status model — **Now, Next, Later, Done** — removes decision fatigue. You're not managing a backlog of 200 items. You're looking at what matters *this version*, and moving cards forward.
+
+Customizable enough to match how you think. Simple enough that you actually use it every day.
