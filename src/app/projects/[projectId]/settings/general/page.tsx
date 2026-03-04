@@ -1,6 +1,6 @@
 import { getProject } from '@/lib/actions/projects';
 import { notFound } from 'next/navigation';
-import { ProjectIconUpload } from '@/components/projects/project-icon-upload';
+import { ProjectSettingsImageUploader } from '@/components/projects/project-settings-image-uploader';
 
 export const metadata = {
     title: 'General',
@@ -27,14 +27,10 @@ export default async function GeneralSettingsPage({ params }: GeneralSettingsPag
 
             {/* Project Icon Section */}
             <div className="space-y-4">
-                <div className="border rounded-lg p-6 bg-card">
-                    <h3 className="text-sm font-medium mb-2">Project Icon</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                        Upload a custom icon for your project. This will be displayed in the dashboard and project list.
-                    </p>
-                </div>
-
-                <ProjectIconUpload project={project} />
+                <ProjectSettingsImageUploader
+                    projectNanoid={project.nanoid}
+                    initialImageUrl={project.icon_url}
+                />
 
                 {/* Project Name Section */}
                 <div className="border rounded-lg p-6 bg-card">
@@ -64,7 +60,7 @@ export default async function GeneralSettingsPage({ params }: GeneralSettingsPag
                     <div className="space-y-4">
                         <textarea
                             defaultValue={project.description || ''}
-                            className="w-full px-3 py-2 text-sm border rounded-md bg-background min-h-[100px] resize-none"
+                            className="w-full px-3 py-2 text-sm border rounded-md bg-background min-h-25 resize-none"
                             placeholder="Add a description for your project..."
                         />
                         <button className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">

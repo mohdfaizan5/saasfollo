@@ -1,5 +1,6 @@
 import { getProject } from '@/lib/actions/projects';
 import { notFound } from 'next/navigation';
+import { ProjectSettingsImageUploader } from '@/components/projects/project-settings-image-uploader';
 
 export const metadata = {
     title: 'General',
@@ -26,6 +27,11 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
 
             {/* Project Name Section */}
             <div className="space-y-4">
+                <ProjectSettingsImageUploader
+                    projectNanoid={project.nanoid}
+                    initialImageUrl={project.icon_url}
+                />
+
                 <div className="border rounded-lg p-6 bg-card">
                     <h3 className="text-sm font-medium mb-2">Project Name</h3>
                     <p className="text-sm text-muted-foreground mb-4">
@@ -53,7 +59,7 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
                     <div className="space-y-4">
                         <textarea
                             defaultValue={project.description || ''}
-                            className="w-full px-3 py-2 text-sm border rounded-md bg-background min-h-[100px] resize-none"
+                            className="w-full px-3 py-2 text-sm border rounded-md bg-background min-h-25 resize-none"
                             placeholder="Add a description for your project..."
                         />
                         <button className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">

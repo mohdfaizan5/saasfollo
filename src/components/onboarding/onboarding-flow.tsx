@@ -82,7 +82,11 @@ const slideVariants = {
   }),
 };
 
-export default function OnboardingFlow() {
+interface OnboardingFlowProps {
+  redirectTo?: string;
+}
+
+export default function OnboardingFlow({ redirectTo = '/projects' }: OnboardingFlowProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [direction, setDirection] = useState(0);
@@ -248,7 +252,7 @@ export default function OnboardingFlow() {
           >
             <Button
               className="mt-8 h-11 px-8 gap-2"
-              onClick={() => router.push('/projects')}
+              onClick={() => router.push(redirectTo)}
             >
               Let&apos;s fix that
               <ArrowRight weight="bold" size={16} />
@@ -270,9 +274,9 @@ export default function OnboardingFlow() {
       </header>
 
       {/* Stepper bar */}
-      <div className="border-b border-border/50 bg-white/40 px-6 py-4">
-        <div className="mx-auto max-w-2xl">
-          <Stepper className="items-start gap-4" value={currentStep}>
+      <div className="border-b border-border/50 bg-white/40 px-6 py-4 ">
+        <div className="mx-auto max-w-lg">
+          <Stepper className="items-start gap-0 " value={currentStep}>
             {STEPS.map(({ step, title }) => (
               <StepperItem className="flex-1" key={step} step={step}>
                 <StepperTrigger

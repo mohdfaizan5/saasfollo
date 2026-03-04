@@ -7,8 +7,20 @@ export const metadata = {
   description: 'Set up your workspace',
 };
 
-export default async function OnboardingPage() {
+interface OnboardingPageProps {
+  searchParams: Promise<{ redirectTo?: string }>;
+}
+
+function getSafeRedirectTarget(value?: string): string {
+  if (!value) return '/projects';
+  if (value.startsWith('/projects/')) return value;
+  return '/projects';
+}
+
+export default async function OnboardingPage({ searchParams }: OnboardingPageProps) {
   const supabase = await createClient();
+  const resolvedSearchParams = await searchParams;
+  const redirectTo = getSafeRedirectTarget(resolvedSearchParams?.redirectTo);
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -26,8 +38,8 @@ export default async function OnboardingPage() {
     .single();
 
   if (onboarding?.completed_at) {
-    redirect('/projects');
+    redirect(redirectTo);
   }
 
-  return <OnboardingFlow />;
+  return <OnboardingFlow redirectTo={redirectTo} />;
 }

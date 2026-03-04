@@ -1,8 +1,10 @@
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { FolderKanban } from 'lucide-react';
+import { buttonVariants } from '@/components/ui/button';
 import { createClient } from '@/lib/server';
 import { getProjects } from '@/lib/actions/projects';
-import { ProjectCard, CreateProjectDialog, ProjectsHeader } from '@/components/projects';
+import { ProjectCard, ProjectsHeader } from '@/components/projects';
 
 export const metadata = {
     title: 'Projects | SaaSFollo',
@@ -42,7 +44,9 @@ export default async function ProjectsPage() {
                             </p>
                         </div>
                     </div>
-                    <CreateProjectDialog />
+                    <Link href="/projects/new" className={buttonVariants()}>
+                        New Project
+                    </Link>
                 </div>
 
                 {/* Projects Grid */}
@@ -55,7 +59,9 @@ export default async function ProjectsPage() {
                         <p className="text-muted-foreground mb-6 max-w-md">
                             Create your first project to start tracking your SaaS product with clarity.
                         </p>
-                        <CreateProjectDialog />
+                        <Link href="/projects/new" className={buttonVariants()}>
+                            New Project
+                        </Link>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

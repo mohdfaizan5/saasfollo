@@ -384,7 +384,7 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                     </div>
                 </Card>
                 <Card className="col-span-3 row-span-1 p-4 bg-[#2C4839] text-white">
-                    <Link href="/ai-cofounder" className="flex items-center gap-3">
+                    <Link href="/aicofounder" className="flex items-center gap-3">
                         <SparkleIcon size={38} weight='duotone' />
                         <div>
                             <p className="text-lg font-semibold">Your AI Cofounder</p>

@@ -321,7 +321,7 @@ export async function uploadProjectIcon(projectNanoid: string, formData: FormDat
 
     if (uploadError) {
         console.error('Error uploading icon:', uploadError);
-        throw new Error('Failed to upload icon');
+        throw new Error(uploadError.message || 'Failed to upload icon');
     }
 
     // Get public URL
