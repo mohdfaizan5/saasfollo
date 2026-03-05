@@ -21,6 +21,7 @@ give user ability to select tags when you inline create a task or don't, but dec
 need to fix the build categories part, it's completely broken now, as some places we've hard coded a few things.
 while editing a task card, it's not showing all values:
 - have subtle animations/subtle sounds(without compromizing on performace) on card adding
+- if there are no tasks, let the user know that it's empty and onboarding and show them how to use it
 
 
 scroll progress(magicui) in blogs

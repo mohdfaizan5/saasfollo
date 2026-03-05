@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { CheckCircleIcon, CircleIcon, Trash } from '@phosphor-icons/react';
+import { Plus } from 'lucide-react';
 import type { Task, TaskStatus } from '@/lib/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,8 +19,8 @@ interface TasksKanbanCardProps {
     onUpdate: (taskNanoid: string, status: TaskStatus, updates: Partial<Task>) => void;
     onDelete: (taskNanoid: string, status: TaskStatus) => void;
     onEdit: (task: Task) => void;
-    isDragging?: boolean;
-}
+    isDragging?: boolean;    categoryOptions?: string[];
+    onAddCategory?: (category: string) => void;}
 
 const PRIORITY_COLORS: Record<string, string> = {
     high: 'text-red-400 bg-red-400/10',
@@ -27,7 +28,7 @@ const PRIORITY_COLORS: Record<string, string> = {
     low: 'text-blue-400 bg-blue-400/10',
 };
 
-export default function TasksKanbanCard({ task, onUpdate, onDelete, onEdit, isDragging }: TasksKanbanCardProps) {
+export default function TasksKanbanCard({ task, onUpdate, onDelete, onEdit, isDragging, categoryOptions = [], onAddCategory }: TasksKanbanCardProps) {
     const [isHovered, setIsHovered] = useState(false);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [titleDraft, setTitleDraft] = useState(task.title);
@@ -231,14 +232,36 @@ export default function TasksKanbanCard({ task, onUpdate, onDelete, onEdit, isDr
                             </div>
                             <div className="space-y-1.5">
                                 <Label>Category</Label>
-                                <Select value={categoryDraft} onValueChange={(value) => setCategoryDraft(value ?? 'none')}>
+                                <Select 
+                                    value={categoryDraft} 
+                                    onValueChange={(value) => {
+                                        if (value === '__add_category__') {
+                                            const newCat = prompt('New category name')?.trim();
+                                            if (newCat) {
+                                                onAddCategory?.(newCat);
+                                                setCategoryDraft(newCat);
+                                            }
+                                            return;
+                                        }
+                                        setCategoryDraft(value ?? 'none');
+                                    }}
+                                >
                                     <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="none">None</SelectItem>
-                                        <SelectItem value="website">Website</SelectItem>
-                                        <SelectItem value="marketing">Marketing</SelectItem>
-                                        <SelectItem value="seo">SEO</SelectItem>
-                                        <SelectItem value="content">Content</SelectItem>
+                                        {categoryOptions.map(cat => (
+                                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                        ))}
+                                        {/* Added from legacy logic if not in options */}
+                                        {task.category && !categoryOptions.includes(task.category) && (
+                                            <SelectItem value={task.category}>{task.category}</SelectItem>
+                                        )}
+                                        <SelectItem value="__add_category__">
+                                            <span className="inline-flex items-center gap-2">
+                                                <Plus className="h-3.5 w-3.5" />
+                                                Add category
+                                            </span>
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

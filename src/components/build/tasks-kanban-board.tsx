@@ -27,11 +27,13 @@ interface TasksKanbanBoardProps {
     onDeleteColumn: (columnNanoid: string) => Promise<void>;
     onMoveColumnLeft: (columnNanoid: string) => Promise<void>;
     onMoveColumnRight: (columnNanoid: string) => Promise<void>;
-    onCreateTaskInColumn: (columnNanoid: string, title: string) => Promise<void>;
+    onCreateTaskInColumn: (columnNanoid: string, title: string, priority: string | null, category: string | null) => Promise<void>;
     onMoveTaskToColumn: (task: Task, column: KanbanColumn) => Promise<void>;
     onTaskUpdate: (taskNanoid: string, status: TaskStatus, updates: Partial<Task>) => void;
     onDelete: (taskNanoid: string, status: TaskStatus) => void;
     onEditTask: (task: Task) => void;
+    categoryOptions?: string[];
+    onAddCategory?: (category: string) => void;
 }
 
 export default function TasksKanbanBoard({
@@ -48,6 +50,8 @@ export default function TasksKanbanBoard({
     onTaskUpdate,
     onDelete,
     onEditTask,
+    categoryOptions = [],
+    onAddCategory,
 }: TasksKanbanBoardProps) {
     const [activeTask, setActiveTask] = useState<Task | null>(null);
 
@@ -125,10 +129,12 @@ export default function TasksKanbanBoard({
                                     onDeleteColumn={onDeleteColumn}
                                     onMoveColumnLeft={onMoveColumnLeft}
                                     onMoveColumnRight={onMoveColumnRight}
-                                    onCreateTask={(title) => onCreateTaskInColumn(column.nanoid, title)}
+                                    onCreateTask={(title, priority, category) => onCreateTaskInColumn(column.nanoid, title, priority, category)}
                                     onTaskUpdate={onTaskUpdate}
                                     onDelete={onDelete}
                                     onEdit={onEditTask}
+                                    categoryOptions={categoryOptions}
+                                    onAddCategory={onAddCategory}
                                 />
                             );
                         })}

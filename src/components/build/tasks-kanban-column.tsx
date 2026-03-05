@@ -8,6 +8,7 @@ import TasksKanbanCard from './tasks-kanban-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChevronLeft, ChevronRight, MoreVertical, Plus, Trash2 } from 'lucide-react';
 import type { KanbanColumn, Task, TaskStatus } from '@/lib/types/database';
 import { cn } from '@/lib/utils';
@@ -32,10 +33,12 @@ interface TasksKanbanColumnProps {
     onDeleteColumn: (columnNanoid: string) => Promise<void>;
     onMoveColumnLeft: (columnNanoid: string) => Promise<void>;
     onMoveColumnRight: (columnNanoid: string) => Promise<void>;
-    onCreateTask: (title: string) => Promise<void>;
+    onCreateTask: (title: string, priority: string | null, category: string | null) => Promise<void>;
     onTaskUpdate: (taskNanoid: string, status: TaskStatus, updates: Partial<Task>) => void;
     onDelete: (taskNanoid: string, status: TaskStatus) => void;
     onEdit: (task: Task) => void;
+    categoryOptions?: string[];
+    onAddCategory?: (category: string) => void;
 }
 
 type ColumnIconRule = {
@@ -98,6 +101,8 @@ export default function TasksKanbanColumn({
     onTaskUpdate,
     onDelete,
     onEdit,
+    categoryOptions = [],
+    onAddCategory,
 }: TasksKanbanColumnProps) {
     const shouldReduceMotion = useReducedMotion();
     const { setNodeRef, isOver } = useDroppable({
@@ -107,6 +112,8 @@ export default function TasksKanbanColumn({
     const [descriptionDraft, setDescriptionDraft] = useState(column.description ?? '');
     const [isAddingTask, setIsAddingTask] = useState(false);
     const [newTaskTitle, setNewTaskTitle] = useState('');
+    const [newTaskPriority, setNewTaskPriority] = useState<string>('');
+    const [newTaskCategory, setNewTaskCategory] = useState<string>('');
     const semantic = getColumnSemantic(column.title, column.is_done_column);
     const Icon = semantic.icon;
 
@@ -134,8 +141,12 @@ export default function TasksKanbanColumn({
     const handleCreateTask = async () => {
         const title = newTaskTitle.trim();
         if (!title) return;
-        await onCreateTask(title);
+        const priority = newTaskPriority === '' || newTaskPriority === 'none' ? null : newTaskPriority;
+        const category = newTaskCategory === '' || newTaskCategory === 'none' ? null : newTaskCategory;
+        await onCreateTask(title, priority, category);
         setNewTaskTitle('');
+        setNewTaskPriority('');
+        setNewTaskCategory('');
         setIsAddingTask(false);
     };
 
@@ -233,8 +244,9 @@ export default function TasksKanbanColumn({
                 </div>
 
                 {canEdit && isAddingTask && (
-                    <div className="space-y-2 px-1">
+                    <div className="space-y-2 px-1 pb-2">
                         <Input
+                            autoFocus
                             value={newTaskTitle}
                             onChange={(event) => setNewTaskTitle(event.target.value)}
                             onKeyDown={(event) => {
@@ -244,9 +256,49 @@ export default function TasksKanbanColumn({
                                 }
                             }}
                             placeholder="Add a task"
-                            className="h-8"
+                            className="h-8 mb-2"
                         />
                         <div className="flex gap-2">
+                            <Select value={newTaskPriority || undefined} onValueChange={(val) => setNewTaskPriority(val || '')}>
+                                <SelectTrigger className="h-7 text-xs px-2 min-w-[90px] border-dashed"><SelectValue>{newTaskPriority !== 'none' && newTaskPriority ? newTaskPriority : "Priority"}</SelectValue></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">Priority: None</SelectItem>
+                                    <SelectItem value="high">High</SelectItem>
+                                    <SelectItem value="medium">Medium</SelectItem>
+                                    <SelectItem value="low">Low</SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            <Select 
+                                value={newTaskCategory || undefined} 
+                                onValueChange={(val) => {
+                                    if (val === '__add_category__') {
+                                        const newCat = prompt('New category name')?.trim();
+                                        if (newCat) {
+                                            onAddCategory?.(newCat);
+                                            setNewTaskCategory(newCat);
+                                        }
+                                        return;
+                                    }
+                                    setNewTaskCategory(val || '');
+                                }}
+                            >
+                                <SelectTrigger className="h-7 text-xs px-2 min-w-[90px] border-dashed"><SelectValue>{newTaskCategory !== 'none' && newTaskCategory ? newTaskCategory : "Category"}</SelectValue></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">Category: None</SelectItem>
+                                    {categoryOptions?.map(cat => (
+                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                    ))}
+                                    <SelectItem value="__add_category__">
+                                        <span className="inline-flex items-center gap-2">
+                                            <Plus className="h-3.5 w-3.5" />
+                                            Add category
+                                        </span>
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex gap-2 pt-1">
                             <Button size="sm" onClick={() => void handleCreateTask()}>Add</Button>
                             <Button size="sm" variant="ghost" onClick={() => setIsAddingTask(false)}>Cancel</Button>
                         </div>
@@ -275,6 +327,8 @@ export default function TasksKanbanColumn({
                                 onUpdate={onTaskUpdate}
                                 onDelete={onDelete}
                                 onEdit={onEdit}
+                                categoryOptions={categoryOptions}
+                                onAddCategory={onAddCategory}
                             />
                         ))
                     )}

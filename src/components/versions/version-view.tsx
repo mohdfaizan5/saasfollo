@@ -184,23 +184,24 @@ export default function VersionView({ versions, currentActiveId, tasks, collabor
         </Stepper>
       </div>
       <div>
-
-        <Tabs value={selectedVersion.nanoid} onValueChange={handleVersionTabChange} className={"-mb-3 ml-2.5 -z-10 "}>
-          <ScrollArea className="w- whitespace-nowrap">
-            <TabsList className="relative mb-3 h-auto w- gap-0.5 bg-transparent p-0 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-border">
-              {versions.map((version) => (
-                <TabsTrigger
-                  key={version.nanoid}
-                  value={version.nanoid}
-                  className="px-5 border  overflow-hidden rounded-b-none border-x border-t   py-2 data-[state=active]:z-10 data-[state=active]:shadow-none"
-                >
-                  {version.name}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
-        </Tabs>
+        {selectedVersion && (
+          <Tabs value={selectedVersion.nanoid} onValueChange={handleVersionTabChange} className={"-mb-3 ml-2.5 -z-10 "}>
+            <ScrollArea className="w- whitespace-nowrap">
+              <TabsList className="relative mb-3 h-auto w- gap-0.5 bg-transparent p-0 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-border">
+                {versions.map((version) => (
+                  <TabsTrigger
+                    key={version.nanoid}
+                    value={version.nanoid}
+                    className="px-5 border  overflow-hidden rounded-b-none border-x border-t   py-2 data-[state=active]:z-10 data-[state=active]:shadow-none"
+                  >
+                    {version.name}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          </Tabs>
+        )}
         {/* Version Content */}
         {selectedVersion && (
           <div className="z-10 bg-[#ECE5DB] border rounded-2xl  p-3 px-4 space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-300">

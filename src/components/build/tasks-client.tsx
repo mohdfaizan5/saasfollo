@@ -53,7 +53,16 @@ export function TasksClient({
             .map((task) => task.category)
             .filter((category): category is string => Boolean(category));
 
-        return Array.from(new Set([...DEFAULT_CATEGORIES, ...initialTaskCategories]));
+        let localCategories: string[] = [];
+        if (typeof window !== 'undefined') {
+            try {
+                localCategories = JSON.parse(localStorage.getItem(`projectCategories-${projectId}`) || '[]');
+            } catch (e) {
+                // ignore
+            }
+        }
+
+        return Array.from(new Set([...DEFAULT_CATEGORIES, ...initialTaskCategories, ...localCategories]));
     });
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [newTitle, setNewTitle] = useState('');
@@ -130,7 +139,11 @@ export function TasksClient({
             if (prev.some((item) => item.toLowerCase() === normalized.toLowerCase())) {
                 return prev;
             }
-            return [...prev, normalized];
+            const updated = [...prev, normalized];
+            if (typeof window !== 'undefined') {
+                localStorage.setItem(`projectCategories-${projectId}`, JSON.stringify(updated));
+            }
+            return updated;
         });
     };
 
@@ -256,16 +269,36 @@ export function TasksClient({
         setError(null);
     };
 
-    const handleQuickCreate = async (title: string, status: TaskStatus, columnNanoid?: string) => {
+    const handleQuickCreate = async (
+        title: string,
+        status: TaskStatus,
+        columnNanoid?: string,
+        priority?: string | null,
+        category?: string | null
+    ) => {
         try {
             const fallbackVersion = versions.find((version) => version.is_active)?.id?.toString() ?? '';
             const effectiveVersionId = selectedVersionId || fallbackVersion;
+            
+            let finalCategory = selectedCategory || null;
+            if (category && category !== 'none') {
+                finalCategory = category;
+            } else if (category === 'none') {
+                finalCategory = null;
+            }
+
+            let finalPriority = null;
+            if (priority && priority !== 'none') {
+                finalPriority = priority;
+            }
+
             const taskData = {
                 title: title.trim(),
                 status: status,
                 kanban_column_nanoid: columnNanoid ?? null,
                 version_id: effectiveVersionId ? parseInt(effectiveVersionId, 10) : null,
-                category: selectedCategory || null,
+                category: finalCategory,
+                priority: finalPriority as Task['priority'] | null,
                 assignee: selectedAssignee === 'unassigned' ? null : (selectedAssignee || null),
                 is_completed: status === 'done', // Set is_completed based on status
             };
@@ -467,12 +500,17 @@ export function TasksClient({
         }
     };
 
-    const handleCreateTaskInColumn = async (columnNanoid: string, title: string) => {
+    const handleCreateTaskInColumn = async (
+        columnNanoid: string,
+        title: string,
+        priority?: string | null,
+        category?: string | null
+    ) => {
         const column = columns.find((item) => item.nanoid === columnNanoid);
         if (!column || !title.trim()) return;
 
         const nextStatus: TaskStatus = column.is_done_column ? 'done' : 'next';
-        await handleQuickCreate(title, nextStatus, columnNanoid);
+        await handleQuickCreate(title, nextStatus, columnNanoid, priority, category);
     };
 
     const handleMoveTaskToColumn = async (task: Task, column: KanbanColumn) => {
@@ -750,6 +788,8 @@ export function TasksClient({
                     onEditTask={(task) => {
                         console.log('Edit task', task);
                     }}
+                    categoryOptions={categoryOptions}
+                    onAddCategory={addCategoryOption}
                 />
             )}
         </div>
