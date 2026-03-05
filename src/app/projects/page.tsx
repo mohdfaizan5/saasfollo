@@ -44,7 +44,7 @@ export default async function ProjectsPage() {
                             </p>
                         </div>
                     </div>
-                    <Link href="/projects/new" className={buttonVariants()}>
+                    <Link href="/projects/new" className={``}>
                         New Project
                     </Link>
                 </div>
@@ -59,7 +59,7 @@ export default async function ProjectsPage() {
                         <p className="text-muted-foreground mb-6 max-w-md">
                             Create your first project to start tracking your SaaS product with clarity.
                         </p>
-                        <Link href="/projects/new" className={buttonVariants()}>
+                        <Link href="/projects/new" className={``}>
                             New Project
                         </Link>
                     </div>
