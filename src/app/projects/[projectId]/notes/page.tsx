@@ -1,4 +1,5 @@
 import { getNotes } from '@/lib/actions/notes';
+import { getVersions } from '@/lib/actions/versions';
 import { NotesClient } from '@/components/notes/notes-client';
 
 export const metadata = {
@@ -13,7 +14,10 @@ export default async function NotesPage({ params }: NotesPageProps) {
     const { projectId } = await params;
 
     // projectId is now the nanoid string
-    const notes = await getNotes(projectId);
+    const [notes, versions] = await Promise.all([
+        getNotes(projectId),
+        getVersions(projectId)
+    ]);
 
-    return <NotesClient initialNotes={notes} projectId={projectId} />;
+    return <NotesClient initialNotes={notes} initialVersions={versions} projectId={projectId} />;
 }

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { FolderKanban } from 'lucide-react';
-import { buttonVariants } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { createClient } from '@/lib/server';
 import { getProjects } from '@/lib/actions/projects';
 import { ProjectCard, ProjectsHeader } from '@/components/projects';
@@ -45,7 +45,10 @@ export default async function ProjectsPage() {
                         </div>
                     </div>
                     <Link href="/projects/new" className={``}>
-                        New Project
+                        <Button>
+
+                            New Project
+                        </Button>
                     </Link>
                 </div>
 

@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { differenceInDays, isSameDay, subDays, startOfDay, isBefore } from 'date-fns';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -42,6 +41,18 @@ import {
 } from '@phosphor-icons/react';
 import Gauge from '../gauge';
 import type { GrowthActivityType } from '@/lib/types/database';
+import {
+    Card,
+    CardAction,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card"
+import Image from 'next/image';
+import { Badge } from '../ui/badge';
+
 
 const ACTIVITY_ICON_MAP: Record<GrowthActivityType, React.ComponentType<any>> = {
     SEO: FileTextIcon,
@@ -228,10 +239,8 @@ export function GrowthDashboard({ plan, versionName }: GrowthDashboardProps) {
                     </p> */}
                 </div>
             </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                <div>
+            <Card className='bg-primary/5 px-2 py-2 text-white relative overflow-hidden border-primary/70'>
+                <div className=' flex gap-2'>
 
                     <Card className="p-4 border-border/70">
                         <div className="flex items-center gap-3">
@@ -257,6 +266,47 @@ export function GrowthDashboard({ plan, versionName }: GrowthDashboardProps) {
                         </div>
                     </Card>
                 </div>
+
+                <div className="absolute -bottom-5 right-1 flex flex-row items-center gap-0 ">
+                    <Image src={"/phone-hanging-down.png"} alt="Dashboard Illustration" width={90} height={90} className="smooth-edges  feathered-edges  rounded-full pointer-events-none select-none" />
+                    <div className='flex flex-col gap-px mt-10 -ml-5'>
+                        <Badge>Marketing</Badge>
+                        <Badge>Sales</Badge>
+                        <Badge>DM's</Badge>
+                    </div>
+                </div>
+                {/* <CardFooter>
+                    <p>Card Footer</p>
+                </CardFooter> */}
+            </Card>
+            {/* Stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {/* <div>
+
+                    <Card className="p-4 border-border/70">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-orange-500/10">
+                                <FireIcon weight="fill" className="w-5 h-5 text-orange-500" />
+                            </div>
+                            <div>
+                                <p className="text-xs uppercase tracking-wide text-muted-foreground">Streak</p>
+                                <p className="font-semibold">{streak > 0 ? `${streak} day${streak > 1 ? 's' : ''}` : 'Start today'}</p>
+                            </div>
+                        </div>
+                    </Card>
+
+                    <Card className="p-4 border-border/70">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-primary/10">
+                                <FlagIcon className="w-5 h-5 text-primary" weight="duotone" />
+                            </div>
+                            <div>
+                                <p className="text-xs uppercase tracking-wide text-muted-foreground">Days Left</p>
+                                <p className="font-semibold">{deadlinePassed ? 'Deadline passed' : `${remainingDays} days`}</p>
+                            </div>
+                        </div>
+                    </Card>
+                </div> */}
 
                 {/* <Card className="p-4 border-border/70">
                     <div className="flex items-center gap-3">

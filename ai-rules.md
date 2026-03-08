@@ -6,3 +6,10 @@
 
 - **Database Migrations**: Always create NEW numbered migration files (00001, 00002, etc.) in migrations/ folder. Never edit existing migrations unless they failed. Format: `00XXX_description.sql`
 - **Changelog**: After making user-facing changes, update `src/data/changelog.ts` by adding a NEW entry at the TOP of the array. Categorize changes into `improvements`, `fixes`, and `patches`. Include version, date, title, and description. This powers the public `/changelog` route.
+
+
+----
+
+## Code rules
+
+1. always also deal with errors gracefully, for example write the code assuming an error also could come when performing db queries or api fetch or something like that, show full error log and a end user friendly error message in console and also return a end user friendly error message to client and show that message

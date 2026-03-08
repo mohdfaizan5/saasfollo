@@ -37,6 +37,7 @@ import {
     MoneyIcon,
     SparkleIcon
 } from '@phosphor-icons/react/dist/ssr';
+import Image from 'next/image';
 const ACTIVITY_ICON_MAP: Record<GrowthActivityType, React.ComponentType<any>> = {
     SEO: FileTextIcon,
     COLD_DM: ChatTextIcon,
@@ -365,7 +366,27 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
             {/* Stats Grid */}
             <div className="grid grid-cols-12 grid-rows-2 gap-4 max-h-52">
                 {/* Active Version */}
-                <Card className="p-4 col-span-9 row-span-1 bg-primary relative text-white">
+                {/* <Card className="p-4 pl-32 col-span-9 row-span-1  hidden bg-[#110D09] relative text-white overflow-hidden">
+                    <div className="flex items-center gap-3 z-10" >
+                        <div className="p-2 rounded-lg bg-primary/10">
+                            <Layers className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted">Active Version</p>
+                            <p className="font-semibold">
+                                {project.active_version?.name || 'No active version'}
+                            </p>
+                            <p className="text-xs text-white/80 mt-1">
+                                {timeLeftText}
+                                {activeVersionDeadline ? ` • ${new Date(activeVersionDeadline).toLocaleDateString()}` : ''}
+                            </p>
+                        </div>
+                        <Coolshape className='absolute -top-8 -left-8' type="star" index={3} size={80} noise={true} />
+                    </div>
+                    <div className='bg-white/20 size-16  rounded-full'></div>
+                    <Image src={"/computer-in-dark.jpg"} alt="Dashboard Illustration" width={160} height={160} className="smooth-edges  feathered-edges absolute -bottom-20 rounded-full -left-2 opacity-80 pointer-events-none select-none" />
+                </Card> */}
+                {/* <Card className="p-4 col-span-9 row-span-1 hidden bg-[#110D09] relative text-white overflow-hidden">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-primary/10">
                             <Layers className="h-5 w-5 text-primary" />
@@ -382,13 +403,34 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                         </div>
                         <Coolshape className='absolute -top-8 -left-8' type="star" index={3} size={80} noise={true} />
                     </div>
+                    <Image className="absolute -bottom-32 -left-30 -rotate-6" src="/computer-in-dark.jpg" alt="Login Background" width={400} height={400} />
+                    <Image src={"/macintosh-rightfacing.png"} alt="Dashboard Illustration" width={120} height={120} className="absolute -bottom-10 rounded-full -right-2 opacity-80 pointer-events-none select-none" />
+                </Card> */}
+                <Card className="p-4 col-span-9 row-span-1 bg-[#110D09] relative text-white overflow-hidden">
+                    <div className="flex items-center gap-">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                            {/* <Layers className="h-5 w-5 text-primary" /> */}
+                            <p className="font-semibold text-4xl opacity-90 font-serif">
+                                {project.active_version?.name || 'No active version'}
+                            </p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted">Active Version</p>
+                            <p className="text-xs text-white/80 mt-1">
+                                {timeLeftText}
+                                {activeVersionDeadline ? ` • ${new Date(activeVersionDeadline).toLocaleDateString()}` : ''}
+                            </p>
+                        </div>
+                        {/* <Coolshape className='absolute -top-8 -left-8' type="star" index={3} size={80} noise={true} /> */}
+                    </div>
+                    <Image src={"/computer-in-dark.jpg"} alt="Dashboard Illustration" width={160} height={160} className="absolute -bottom-20 rounded-full -right-2 opacity-80 pointer-events-none select-none" />
                 </Card>
                 <Card className="col-span-3 row-span-1 p-4 bg-[#2C4839] text-white">
-                    <Link href="/aicofounder" className="flex items-center gap-3">
+                    <Link href={`/projects/${project.nanoid}/aicofounder`} className="flex items-center gap-3">
                         <SparkleIcon size={38} weight='duotone' />
                         <div>
-                            <p className="text-lg font-semibold">Your AI Cofounder</p>
-                            <p className=" text-white/80">AI-powered assistant for your project</p>
+                            <p className="text-lg font-medium">Your AI Cofounder</p>
+                            <p className=" text-white/80 text-xs">AI-powered assistant for your project</p>
 
                         </div>
                     </Link>
@@ -530,7 +572,7 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
 
                     <p className="text-sm text-muted-foreground">{formatFinishLineEstimate(finishLineDays)}</p>
                 </Card> */}
-                <Card className="p-5 col-span-12 lg:col-span-4 ">
+                <Card className="p-5 col-span-12 lg:col-span-4 rounded-tl-[48px] rounded-tr-xl rounded-b-xl">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="font-semibold flex items-center gap-2">
                             <UsersIcon size={20} weight="duotone" color="#2C4839" />

@@ -1,6 +1,7 @@
 'use client';
 
 import { Progress } from '@/components/ui/progress';
+import Image from 'next/image';
 
 interface TaskProgressBarProps {
     totalTasks: number;
@@ -12,7 +13,7 @@ export function TaskProgressBar({ totalTasks, completedTasks, label }: TaskProgr
     const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
     return (
-        <div className="space-y-2">
+        <div className="space-y-2 relative w-[94%]">
             {label && (
                 <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">{label}</span>
@@ -28,6 +29,7 @@ export function TaskProgressBar({ totalTasks, completedTasks, label }: TaskProgr
                 <span>{completedTasks} of {totalTasks} tasks done</span>
                 <span>{totalTasks - completedTasks} remaining</span>
             </div>
+
         </div>
     );
 }

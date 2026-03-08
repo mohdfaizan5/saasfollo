@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { CheckSquare, Plus } from 'lucide-react';
+import { CheckSquare, Plus, ArrowDown, ArrowRight, ArrowUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+    BugIcon,
+    CheckCircleIcon,
+    CubeIcon,
+    FileTextIcon,
+    MagnifyingGlassIcon,
+    RocketIcon,
+    SparkleIcon,
+    TargetIcon,
+} from '@phosphor-icons/react';
 // NOTE: The following imports from '@/lib/actions/tasks' remain unchanged as they are backend calls
 // that use the original 'tasks' nomenclature. Only the frontend route and component names have changed to 'build'
 import { createTask, deleteTask, updateTask } from '@/lib/actions/tasks';
@@ -22,8 +33,55 @@ import { TasksTodoView } from './tasks-todo-view';
 import TasksKanbanBoard from './tasks-kanban-board';
 import { useQueryState } from 'nuqs';
 import type { KanbanColumn, Task, TaskStatus, TaskCategory, Version, ProjectCollaborator } from '@/lib/types/database';
+import { BatteryMediumIcon, CellSignalLowIcon, FlagBannerFoldIcon, HourglassMediumIcon } from '@phosphor-icons/react/dist/ssr';
+import Image from 'next/image';
 
 const DEFAULT_CATEGORIES = ['Website', 'Marketing', 'SEO', 'Content'];
+
+type ColumnIconRule = {
+    keywords: string[];
+    icon: React.ComponentType<any>;
+    weight: 'duotone';
+};
+
+const DONE_COLUMN_KEYWORDS = ['done', 'complete', 'completed', 'finish', 'finished', 'shipped', 'released', 'closed'];
+const START_COLUMN_KEYWORDS = ['in progress', 'start here', 'doing', 'active', 'working', 'current', 'now'];
+
+const COLUMN_ICON_RULES: ColumnIconRule[] = [
+    { keywords: ['review left', 'review', 'qa', 'test', 'verify', 'verification'], icon: MagnifyingGlassIcon, weight: 'duotone' },
+    { keywords: ['backlog', 'ideas', 'idea', 'brainstorm'], icon: SparkleIcon, weight: 'duotone' },
+    { keywords: ['plan', 'planning', 'goal', 'milestone'], icon: TargetIcon, weight: 'duotone' },
+    { keywords: ['spec', 'docs', 'documentation', 'notes'], icon: FileTextIcon, weight: 'duotone' },
+    { keywords: ['bug', 'blocked', 'blocker', 'issue', 'fix'], icon: BugIcon, weight: 'duotone' },
+    { keywords: ['build', 'dev', 'development', 'implement', 'coding'], icon: CubeIcon, weight: 'duotone' },
+    { keywords: ['progress', 'start', 'doing', 'wip'], icon: RocketIcon, weight: 'duotone' },
+];
+
+function getColumnSemantic(title: string, isDoneColumn: boolean) {
+    const normalizedTitle = title.toLowerCase().trim();
+    const isDoneByName = DONE_COLUMN_KEYWORDS.some((keyword) => normalizedTitle.includes(keyword));
+    const isStartByName = START_COLUMN_KEYWORDS.some((keyword) => normalizedTitle.includes(keyword));
+
+    const matchedRule = COLUMN_ICON_RULES.find((rule) =>
+        rule.keywords.some((keyword) => normalizedTitle.includes(keyword)),
+    );
+
+    if (isDoneColumn || isDoneByName) {
+        return {
+            isDoneLike: true,
+            isStartLike: false,
+            icon: CheckCircleIcon,
+            iconWeight: 'duotone' as const,
+        };
+    }
+
+    return {
+        isDoneLike: false,
+        isStartLike: isStartByName,
+        icon: matchedRule?.icon ?? CubeIcon,
+        iconWeight: matchedRule?.weight ?? ('duotone' as const),
+    };
+}
 
 interface TasksClientProps {
     initialTasks: Record<TaskStatus, Task[]>;
@@ -85,6 +143,14 @@ export function TasksClient({
     const [selectedCategory] = useQueryState('category');
     const [selectedVersionId] = useQueryState('version');
     const [selectedAssignee] = useQueryState('assignee');
+    const [newTaskParam, setNewTaskParam] = useQueryState('newTask');
+
+    useEffect(() => {
+        if (newTaskParam === 'true') {
+            setIsDialogOpen(true);
+            setNewTaskParam(null); // Clear param after triggering modal
+        }
+    }, [newTaskParam, setNewTaskParam]);
 
     const defaultVersionId = useMemo(() => {
         const queryVersion = selectedVersionId && versions.some((version) => version.id.toString() === selectedVersionId)
@@ -98,7 +164,15 @@ export function TasksClient({
 
     const getColumnLabel = (columnNanoid: string) => {
         const column = columns.find((item) => item.nanoid === columnNanoid);
-        return column?.title ?? 'Select column';
+        if (!column) return 'Select column';
+        const semantic = getColumnSemantic(column.title, column.is_done_column);
+        const Icon = semantic.icon;
+        return (
+            <div className="flex items-center gap-2">
+                <Icon className="h-4 w-4 shrink-0 opacity-70" weight={semantic.iconWeight} />
+                <span>{column.title}</span>
+            </div>
+        );
     };
 
     const getVersionLabel = (versionId: string) => {
@@ -279,7 +353,7 @@ export function TasksClient({
         try {
             const fallbackVersion = versions.find((version) => version.is_active)?.id?.toString() ?? '';
             const effectiveVersionId = selectedVersionId || fallbackVersion;
-            
+
             let finalCategory = selectedCategory || null;
             if (category && category !== 'none') {
                 finalCategory = category;
@@ -545,6 +619,7 @@ export function TasksClient({
                     </div>
                 </div>
 
+
                 <div className="flex items-center gap-3">
                     <TaskViewToggle currentView={currentView} onViewChange={setCurrentView} />
 
@@ -559,7 +634,7 @@ export function TasksClient({
                             }}
                         >
                             <AlertDialogTrigger render={<Button><Plus className="h-4 w-4 mr-2" />New Task</Button>} />
-                            <AlertDialogContent className="data-[size=default]:sm:max-w-3xl">
+                            <AlertDialogContent className="data-[size=default]:sm:max-w-xl">
                                 <AlertDialogHeader>
                                     <AlertDialogTitle className="text-xl font-semibold">Create New Task</AlertDialogTitle>
                                     <AlertDialogDescription>
@@ -575,6 +650,7 @@ export function TasksClient({
                                             value={newTitle}
                                             onChange={(e) => setNewTitle(e.target.value)}
                                             disabled={isCreating}
+                                            className='border-muted-foreground/10'
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -586,7 +662,7 @@ export function TasksClient({
                                             onChange={(e) => setNewDescription(e.target.value)}
                                             disabled={isCreating}
                                             rows={2}
-                                            className="bg-card/60 border-border"
+                                            className="bg-input border-border "
                                         />
                                     </div>
 
@@ -594,36 +670,60 @@ export function TasksClient({
                                         <div className="space-y-2">
                                             <Label>Column</Label>
                                             <Select value={newColumnNanoid} onValueChange={(v) => setNewColumnNanoid(v ?? '')}>
-                                                <SelectTrigger className="bg-card/60 border-border">
+                                                <SelectTrigger className="bg-input/10 border-border !w-full">
                                                     <SelectValue>{getColumnLabel(newColumnNanoid)}</SelectValue>
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {columns.map((column) => (
-                                                        <SelectItem key={column.nanoid} value={column.nanoid}>
-                                                            {column.title}
-                                                        </SelectItem>
-                                                    ))}
+                                                    {columns.map((column) => {
+                                                        const semantic = getColumnSemantic(column.title, column.is_done_column);
+                                                        const Icon = semantic.icon;
+                                                        return (
+                                                            <SelectItem key={column.nanoid} value={column.nanoid}>
+                                                                <div className="flex items-center gap-2">
+                                                                    <Icon className="h-4 w-4 shrink-0 opacity-70" weight={semantic.iconWeight} />
+                                                                    <span>{column.title}</span>
+                                                                </div>
+                                                            </SelectItem>
+                                                        );
+                                                    })}
                                                 </SelectContent>
                                             </Select>
                                         </div>
                                         <div className="space-y-2">
                                             <Label>Priority</Label>
-                                            <Select value={newPriority} onValueChange={(v) => setNewPriority(v ?? '')}>
-                                                <SelectTrigger className="bg-card/60 border-border">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="none">None</SelectItem>
-                                                    <SelectItem value="high">High</SelectItem>
-                                                    <SelectItem value="medium">Medium</SelectItem>
-                                                    <SelectItem value="low">Low</SelectItem>
-                                                </SelectContent>
-                                            </Select>
+                                            <ToggleGroup
+                                                className="justify-start inline-flex w-full border rounded-md  bg-muted/20"
+                                                type="single"
+                                                value={newPriority}
+                                                onValueChange={(val) => setNewPriority(val)}
+                                            >
+                                                <ToggleGroupItem value="low" aria-label="Toggle low" className="flex-1 p-1 gap-2 data-[state=on]:bg-green-500/15 data-[state=on]:text-green-600 dark:data-[state=on]:text-green-400 hover:bg-green-500/10 hover:text-green-600 dark:hover:text-green-400">
+                                                    {/* <ArrowDown size={16} /> */}
+                                                    <CellSignalLowIcon size={16} />
+
+                                                    Low
+                                                </ToggleGroupItem>
+                                                <ToggleGroupItem value="medium" aria-label="Toggle medium" className="flex-1  p-1 gap-2 data-[state=on]:bg-yellow-500/15 data-[state=on]:text-yellow-600 dark:data-[state=on]:text-yellow-400 hover:bg-yellow-500/10 hover:text-yellow-600 dark:hover:text-yellow-400">
+                                                    {/* <ArrowRight size={16} /> */}
+                                                    {/* <BatteryMediumIcon size={32} /> */}
+                                                    <HourglassMediumIcon size={16} />
+
+
+                                                    Medium
+                                                </ToggleGroupItem>
+                                                <ToggleGroupItem value="high" aria-label="Toggle high" className="flex-1 p-1 gap-2 data-[state=on]:bg-red-500/15 data-[state=on]:text-red-600 dark:data-[state=on]:text-red-400 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400">
+                                                    {/* <ArrowUp size={16} /> */}
+                                                    <FlagBannerFoldIcon size={16} />
+
+
+                                                    High
+                                                </ToggleGroupItem>
+                                            </ToggleGroup>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-2">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2 ">
                                             <Label>Category</Label>
                                             <Select
                                                 value={newCategory ?? 'none'}
@@ -635,7 +735,7 @@ export function TasksClient({
                                                     setNewCategory(v === 'none' ? null : (v as TaskCategory));
                                                 }}
                                             >
-                                                <SelectTrigger className="bg-card/60 border-border">
+                                                <SelectTrigger className="bg-input/10 border-border !w-full">
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -653,7 +753,7 @@ export function TasksClient({
                                                     </SelectItem>
                                                 </SelectContent>
                                             </Select>
-                                            <div className="flex gap-2 pt-1">
+                                            {/* <div className="flex gap-2 pt-1">
                                                 <Input
                                                     placeholder="New filter name (e.g. Stage)"
                                                     value={newFilterNameInput}
@@ -682,7 +782,8 @@ export function TasksClient({
                                                 >
                                                     Add Filter
                                                 </Button>
-                                            </div>
+                                            </div> */}
+
                                         </div>
                                         {collaborators.length > 0 && (
                                             <div className="space-y-2">
@@ -690,8 +791,9 @@ export function TasksClient({
                                                 <Select
                                                     value={newAssignee}
                                                     onValueChange={(v) => setNewAssignee(v ?? '')}
+
                                                 >
-                                                    <SelectTrigger className="bg-card/60 border-border">
+                                                    <SelectTrigger className="bg-input/10 border-border !w-full">
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -706,25 +808,26 @@ export function TasksClient({
                                                 </Select>
                                             </div>
                                         )}
+                                        {versions.length > 0 && (
+                                            <div className="space-y-2">
+                                                <Label>Version 2</Label>
+                                                <Select value={newVersionId} onValueChange={(v) => setNewVersionId(v ?? '')}>
+                                                    <SelectTrigger className="bg-input/10 border-border !w-full">
+                                                        <SelectValue>{getVersionLabel(newVersionId)}</SelectValue>
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {versions.map((v) => (
+                                                            <SelectItem key={v.id} value={v.id.toString()}>
+                                                                {v.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        )}
                                     </div>
 
-                                    {versions.length > 0 && (
-                                        <div className="space-y-2">
-                                            <Label>Version</Label>
-                                            <Select value={newVersionId} onValueChange={(v) => setNewVersionId(v ?? '')}>
-                                                <SelectTrigger className="bg-card/60 border-border">
-                                                    <SelectValue>{getVersionLabel(newVersionId)}</SelectValue>
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {versions.map((v) => (
-                                                        <SelectItem key={v.id} value={v.id.toString()}>
-                                                            {v.name}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    )}
+
                                     {error && <p className="text-sm text-destructive">{error}</p>}
                                 </div>
                                 <AlertDialogFooter>
@@ -740,14 +843,16 @@ export function TasksClient({
             </div>
 
             {/* Progress Bar */}
-            <Card className="p-4">
+            <Card className="p-4 relative">
                 <TaskProgressBar
                     totalTasks={totalTasks}
                     completedTasks={completedTasks}
                     label={selectedCategoryLabel}
                 />
+                <Image className="absolute -bottom-8 -right-9 -rotate-6" src="/completed-todolist.png" alt="Login Background" width={160} height={160} />
+
             </Card>
-            
+
             {/* Filters */}
             <TaskFilters
                 versions={versions}

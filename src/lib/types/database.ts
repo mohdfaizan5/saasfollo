@@ -234,6 +234,7 @@ export interface ProjectWithStats extends Project {
   version_count?: number;
   task_count?: number;
   active_version?: Version | null;
+  active_version_name?: string | null;
 }
 
 export interface VersionWithTasks extends Version {

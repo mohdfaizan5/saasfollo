@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist_Mono, Inter_Tight, Source_Serif_4, Playfair_Display, Instrument_Serif } from "next/font/google";
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import "./globals.css";
+import { Toaster } from "@/components/ui/sonner"
 
 const inter = Inter_Tight({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -48,6 +49,8 @@ export default function RootLayout({
         <NuqsAdapter>
           {children}
         </NuqsAdapter>
+        <Toaster />
+
       </body>
     </html>
   );

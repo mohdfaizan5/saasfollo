@@ -43,6 +43,8 @@ import {
 } from 'react-icons/si';
 import { HiLink } from 'react-icons/hi';
 import type { IconType } from 'react-icons';
+import { LinkIcon } from '@phosphor-icons/react/dist/ssr';
+import Image from 'next/image';
 
 // Link configuration with icons and brand colors
 interface LinkConfig {
@@ -523,9 +525,9 @@ export function LinksClient({ initialLinks, projectId }: LinksClientProps) {
         <div className="space-y-4">
             {/* Header */}
             <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                    <Link2 className="h-5 w-5 text-primary" />
-                </div>
+                {/* <Link2 className="size-16 -rotate-45 absolute -left-4 text-primary" /> */}
+                {/* <div className="p-2 rounded-lg bg-primary/10">
+                </div> */}
                 <div>
                     <h1 className="text-xl font-bold">Links</h1>
                     <p className="text-sm text-muted-foreground">
@@ -536,8 +538,11 @@ export function LinksClient({ initialLinks, projectId }: LinksClientProps) {
 
             {/* Add Links */}
             {canEdit && (
-                <Card className="p-4 overflow-visible">
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_240px_auto] md:items-start">
+                <Card className="p-4 overflow-hidden relative">
+                    {/* <Image src={"/wires-tied-btw.png"} alt="Tied Wires" width={100} height={100} className="absolute -bottom-4 -right-2 -rotate-6" /> */}
+                    <Image src={"/wires-wrinkled-right.png"} alt="Tied Wires" width={100} height={100} className="absolute -bottom-4 -right-2 -rotate-6" />
+                    
+                    <div className="grid grid-cols-1 gap-3 pt-3 md:grid-cols-[minmax(0,1fr)_240px_auto] md:items-start w-[90%]">
                         <Input
                             placeholder="Paste URLs here (comma or space separated)..."
                             value={urlInput}
@@ -611,6 +616,9 @@ export function LinksClient({ initialLinks, projectId }: LinksClientProps) {
                     </div>
                     <p className="-mt-2 text-xs text-muted-foreground">Tag is optional and links are grouped by tag.</p>
                     {error && <p className="text-sm text-destructive mt-2">{error}</p>}
+                    {/* <LinkIcon size={32} /> */}
+
+
                 </Card>
             )}
 

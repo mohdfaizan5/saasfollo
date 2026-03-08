@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import {
   Stepper,
   StepperIndicator,
@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Circle, Clock, Layers, Layout, Users, MoreVertical, Play, Save, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
+import { Circle, Clock, Layers, Layout, Users, MoreVertical, Play, Save, Trash2, ArrowUp, ArrowDown, Plus } from 'lucide-react';
 import {
   Tabs, TabsList, TabsTrigger,
 } from '@/components/ui/tabs';
@@ -43,6 +43,7 @@ export default function VersionView({ versions, currentActiveId, tasks, collabor
   const [prdError, setPrdError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { projectId } = useParams<{ projectId: string }>();
 
   const getAssigneeName = (userId: string | null | undefined): string => {
     if (!userId) return 'Unassigned';
@@ -217,7 +218,19 @@ export default function VersionView({ versions, currentActiveId, tasks, collabor
               </div>
 
               <div className="flex items-center justify-start gap-2">
-                -
+          
+                {canEdit && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-7 text-xs px-2 shadow-sm rounded-full" 
+                    onClick={() => router.push(`/projects/${projectId}/build?version=${selectedVersion.id}&newTask=true`)}
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    Add Task
+                  </Button>
+                )}
+
                 <Badge
                   variant={selectedVersion.status === 'active' ? 'default' : 'secondary'}
                   className="text-sm"

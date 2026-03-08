@@ -8,32 +8,32 @@ import { Badge } from '@/components/ui/badge';
 import { updateNote } from '@/lib/actions/notes';
 import { useProjectRole } from '@/hooks/use-project-role';
 import { EditorJSWrapper, parseEditorContent, stringifyEditorContent } from './editorjs-wrapper';
+import { updateVersion } from '@/lib/actions/versions';
 import type { Note } from '@/lib/types/database';
 import type { OutputData } from '@editorjs/editorjs';
 
 interface NoteEditorProps {
     note: Note;
     projectId: string;
+    isPRD?: boolean;
 }
 
 const NOTES_EDITOR_BLOCK_GAP = '0.5rem';
 
-export function NoteEditor({ note, projectId }: NoteEditorProps) {
+export function NoteEditor({ note, projectId, isPRD = false }: NoteEditorProps) {
     const router = useRouter();
     const { canEdit } = useProjectRole();
     const [title, setTitle] = useState(note.title);
-    const [editorData, setEditorData] = useState<OutputData | null>(() =>
-        parseEditorContent(note.content)
-    );
+    const [editorData, setEditorData] = useState<OutputData | null>(() => parseEditorContent(note.content));
     const [isSaving, setIsSaving] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
 
     // Track title changes
     useEffect(() => {
-        if (!canEdit) return;
+        if (!canEdit || isPRD) return;
         const titleChanged = title !== note.title;
         setHasChanges(titleChanged);
-    }, [title, note.title, canEdit]);
+    }, [title, note.title, canEdit, isPRD]);
 
     // Handle editor content changes
     const handleEditorChange = useCallback((data: OutputData) => {
@@ -50,17 +50,19 @@ export function NoteEditor({ note, projectId }: NoteEditorProps) {
         setIsSaving(true);
         try {
             const content = editorData ? stringifyEditorContent(editorData) : null;
-            await updateNote(note.nanoid, projectId, {
-                title,
-                content,
-            });
+            if (isPRD) {
+                // For PRD, nanoid is the version nanoid
+                await updateVersion(note.nanoid, projectId, { prd: content });
+            } else {
+                await updateNote(note.nanoid, projectId, { title, content });
+            }
             setHasChanges(false);
         } catch (err) {
-            console.error('Failed to save note:', err);
+            console.error(isPRD ? 'Failed to save PRD:' : 'Failed to save note:', err);
         } finally {
             setIsSaving(false);
         }
-    }, [note.nanoid, projectId, title, editorData, canEdit]);
+    }, [isPRD, note.nanoid, projectId, title, editorData, canEdit]);
 
     // Auto-save every 10 seconds if there are changes
     useEffect(() => {
@@ -124,25 +126,32 @@ export function NoteEditor({ note, projectId }: NoteEditorProps) {
             <textarea
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="no-scrollbar w-full text-4xl font-bold border-0 bg-transparent px-0 focus:outline-none focus:ring-0 placeholder:text-muted-foreground"
-                placeholder="Note title..."
+                className="no-scrollbar w-full text-4xl font-bold border-0 bg-transparent px-0 focus:outline-none focus:ring-0 placeholder:text-muted-foreground resize-none"
+                placeholder={isPRD ? "PRD Title" : "Note title..."}
                 maxLength={80}
-                readOnly={!canEdit}
+                readOnly={!canEdit || isPRD}
+                rows={1}
             />
 
-            {/* Editor.js Content */}
+            {/* Content Editor */}
             <div
-                className="notes-editor-shell border-none rounded-lg p-4 bg-transparent min-h-[50vh]"
-                style={{ ['--notes-editor-block-gap' as string]: NOTES_EDITOR_BLOCK_GAP }}
-            >
-                <EditorJSWrapper
-
-                    data={initialEditorData}
-                    onChange={handleEditorChange}
-                    readOnly={!canEdit}
-                    placeholder={canEdit ? "Start writing... Use '/' for block commands" : "No content yet"}
-                />
-            </div>
+                    className="notes-editor-shell border-none rounded-lg p-4 bg-transparent min-h-[50vh]"
+                    style={{ ['--notes-editor-block-gap' as string]: NOTES_EDITOR_BLOCK_GAP }}
+                >
+                    <EditorJSWrapper
+                        data={initialEditorData}
+                        onChange={handleEditorChange}
+                        readOnly={!canEdit}
+                        placeholder={canEdit ? "Start writing... Use '/' for block commands" : "No content yet"}
+                    />
+                </div>
         </div>
     );
 }
+
+
+
+
+
+
+

@@ -13,8 +13,11 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, A
 import { createNote, createNoteFromTemplate, deleteNote } from '@/lib/actions/notes';
 import { NOTE_TEMPLATES, type NoteTemplateKey } from '@/lib/constants/note-templates';
 import { useProjectRole } from '@/hooks/use-project-role';
-import type { Note } from '@/lib/types/database';
+import type { Note, Version } from '@/lib/types/database';
+import { updateVersion } from '@/lib/actions/versions';
 import { TargetIcon } from '@phosphor-icons/react';
+import { FolderIcon } from '@phosphor-icons/react/dist/ssr';
+import Image from 'next/image';
 
 // Template card configuration with icons and colors
 const TEMPLATE_CONFIG: Record<NoteTemplateKey, { icon: React.ComponentType<{ className?: string }>; color: string; bgColor: string }> = {
@@ -27,6 +30,7 @@ const TEMPLATE_CONFIG: Record<NoteTemplateKey, { icon: React.ComponentType<{ cla
 
 interface NotesClientProps {
     initialNotes: Note[];
+    initialVersions?: Version[];
     projectId: string;
 }
 
@@ -49,10 +53,18 @@ function getPreviewText(content: string | null): string {
     return content;
 }
 
-export function NotesClient({ initialNotes, projectId }: NotesClientProps) {
+export function NotesClient({ initialNotes, initialVersions = [], projectId }: NotesClientProps) {
     const router = useRouter();
     const { canEdit } = useProjectRole();
     const [notes, setNotes] = useState<Note[]>(initialNotes);
+    const [versions, setVersions] = useState<Version[]>(initialVersions);
+
+    // Dialog state for PRD
+    const [editingVersion, setEditingVersion] = useState<Version | null>(null);
+    const [prdDraft, setPrdDraft] = useState('');
+    const [isSavingPrd, setIsSavingPrd] = useState(false);
+
+    // Notes states
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [newTitle, setNewTitle] = useState('');
     const [isCreating, setIsCreating] = useState(false);
@@ -113,9 +125,11 @@ export function NotesClient({ initialNotes, projectId }: NotesClientProps) {
         <div className="space-y-4">
             {/* Header */}
             <div className="flex items-center justify-between ">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-linear-to-br from-primary/20 to-primary/5">
-                        <FileText className="h-8 w-8 text-primary" />
+                <div className="flex items-center gap-0 relative">
+                    <div className="p-3 pr-0 relative">
+                        <span className='bg-primary absolute left-8 rounded-full size-20'></span>
+                        {/* <FileText className="h-8 w-8 text-primary" /> */}
+                    <Image src={"/notes-ideas.png"} alt="Tied Wires" width={120} height={120} className="absolute2 -bottom-4 -right-2 -rotate-6" />
                     </div>
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">Notes</h1>
@@ -123,6 +137,7 @@ export function NotesClient({ initialNotes, projectId }: NotesClientProps) {
                             Capture thoughts and ideas
                         </p>
                     </div>
+                                        
                 </div>
 
                 {canEdit && (
@@ -176,7 +191,7 @@ export function NotesClient({ initialNotes, projectId }: NotesClientProps) {
                                     className="group flex flex- items-start gap-3 p-4 rounded-xl border bg-card hover:bg-accent/50 hover:border-primary/30 transition-all duration-200 text-left hover:shadow-md"
                                 >
                                     <div className={`p-2.5 rounded-lg ${config.bgColor} group-hover:scale-110 transition-transform duration-200`}>
-                                        <IconComponent  className={`h-5 w-5 ${config.color}`} />
+                                        <IconComponent className={`h-5 w-5 ${config.color}`} />
                                     </div>
                                     <div>
                                         <p className="font-medium text-sm leading-tight">{template.title}</p>
@@ -251,6 +266,48 @@ export function NotesClient({ initialNotes, projectId }: NotesClientProps) {
                     })}
                 </div>
             )}
-        </div>
-    );
+
+            {/* Version PRDs Section */}
+            {versions.length > 0 && (
+                <div className="pt-8">
+                    <h2 className="text-xl font-bold tracking-tight mb-4">Version PRDs</h2>
+                    <div className="columns-1 md:columns-2 lg:columns-3 gap-4 space-y-4">
+                        {versions.map((version) => {
+                            const preview = version.prd ? version.prd.substring(0, 250) + (version.prd.length > 250 ? '...' : '') : 'No PRD written yet.';
+                            return (<Link key={version.nanoid} href={`/projects/${projectId}/notes/${version.nanoid}?type=prd`} className="block">
+                                <Card
+                                    className="note-card bg-primary/5 p-5 hover:shadow-lg transition-all duration-200 hover:border-primary/40 group cursor-pointer  hover:-translate-y-1 break-inside-avoid"
+                                >
+                                    <div className="flex items-start gap-2">
+                                        <FolderIcon size={32} weight="duotone" />
+
+                                        <div>
+                                            <h3 className="font-semibold text-base leading-snug">{version.name} PRD</h3>
+                                            {/* <p className="text-[10px] text-muted-foreground uppercase opacity-0 group-hover:opacity-100 transition-opacity mt-1">
+                                                {canEdit ? "Click to edit" : "Click to view"}
+                                            </p> */}
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground mt-3 line-clamp-6 leading-relaxed">
+                                        {preview}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground/70 mt-4 pt-3 border-t">
+                                        {new Date(version.updated_at).toLocaleDateString('en-US', {
+                                            month: 'short',
+                                            day: 'numeric',
+                                            year: 'numeric'
+                                        })}
+                                    </p>
+                                </Card>
+                            </Link>
+                            );
+                        })}
+                    </div>
+
+                </div>
+            )
+            }
+
+
+        </div>)
 }

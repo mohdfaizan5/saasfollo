@@ -4,12 +4,13 @@ import { useMemo, useState, useTransition } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { CheckCircleIcon, CircleIcon, Trash } from '@phosphor-icons/react';
-import { Plus } from 'lucide-react';
+import { Plus, ArrowDown, ArrowRight, ArrowUp } from 'lucide-react';
 import type { Task, TaskStatus } from '@/lib/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
@@ -220,15 +221,25 @@ export default function TasksKanbanCard({ task, onUpdate, onDelete, onEdit, isDr
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1.5">
                                 <Label>Priority</Label>
-                                <Select value={priorityDraft} onValueChange={(value) => setPriorityDraft(value ?? 'none')}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">None</SelectItem>
-                                        <SelectItem value="high">High</SelectItem>
-                                        <SelectItem value="medium">Medium</SelectItem>
-                                        <SelectItem value="low">Low</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <ToggleGroup
+                                    className="justify-start inline-flex w-full border rounded-md p-1 bg-muted/20"
+                                    type="single"
+                                    value={priorityDraft}
+                                    onValueChange={(val) => setPriorityDraft(val || 'none')}
+                                >
+                                    <ToggleGroupItem value="low" aria-label="Toggle low" className="flex-1 gap-2 data-[state=on]:bg-green-500/15 data-[state=on]:text-green-600 dark:data-[state=on]:text-green-400 hover:bg-green-500/10 hover:text-green-600 dark:hover:text-green-400">
+                                        <ArrowDown size={16} />
+                                        Low
+                                    </ToggleGroupItem>
+                                    <ToggleGroupItem value="medium" aria-label="Toggle medium" className="flex-1 gap-2 data-[state=on]:bg-yellow-500/15 data-[state=on]:text-yellow-600 dark:data-[state=on]:text-yellow-400 hover:bg-yellow-500/10 hover:text-yellow-600 dark:hover:text-yellow-400">
+                                        <ArrowRight size={16} />
+                                        Medium
+                                    </ToggleGroupItem>
+                                    <ToggleGroupItem value="high" aria-label="Toggle high" className="flex-1 gap-2 data-[state=on]:bg-red-500/15 data-[state=on]:text-red-600 dark:data-[state=on]:text-red-400 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400">
+                                        <ArrowUp size={16} />
+                                        High
+                                    </ToggleGroupItem>
+                                </ToggleGroup>
                             </div>
                             <div className="space-y-1.5">
                                 <Label>Category</Label>

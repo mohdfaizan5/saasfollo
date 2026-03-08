@@ -1,12 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pin, PinOff, MoreVertical, Trash2, Pencil, Layers, CheckSquare } from 'lucide-react';
+import { Pin, PinOff, MoreVertical, Trash2, Pencil, Layers, CheckSquare, CircleAlertIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toggleProjectPin, deleteProject } from '@/lib/actions/projects';
 import type { ProjectWithStats } from '@/lib/types/database';
 
@@ -17,6 +21,21 @@ interface ProjectCardProps {
 export function ProjectCard({ project }: ProjectCardProps) {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [deleteInputValue, setDeleteInputValue] = useState('');
+    const [hasCheckedRisk, setHasCheckedRisk] = useState(false);
+    const [countdown, setCountdown] = useState<number | null>(null);
+
+    useEffect(() => {
+        if (countdown === null) return;
+        
+        if (countdown > 0) {
+            const timer = setTimeout(() => setCountdown(c => c! - 1), 1000);
+            return () => clearTimeout(timer);
+        } else if (countdown === 0) {
+            executeDelete();
+        }
+    }, [countdown]);
 
     const handleCardClick = () => {
         router.push(`/projects/${project.nanoid}/dashboard`);
@@ -34,23 +53,35 @@ export function ProjectCard({ project }: ProjectCardProps) {
         }
     };
 
-    const handleDelete = async () => {
-        if (!confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
-            return;
-        }
+    const handleStartDelete = () => {
+        setCountdown(3);
+    };
+
+    const executeDelete = async () => {
+        setCountdown(null);
         setIsLoading(true);
         try {
             await deleteProject(project.nanoid);
+            setIsDeleteDialogOpen(false);
         } catch (error) {
             console.error('Failed to delete project:', error);
-        } finally {
             setIsLoading(false);
         }
     };
 
+    const cancelDelete = () => {
+        setCountdown(null);
+        setIsDeleteDialogOpen(false);
+        setDeleteInputValue('');
+        setHasCheckedRisk(false);
+    };
+    console.log("ProjectCard render:", project);
+    // const activeVersionName = await supab
+
     return (
-        <Card
-            className="group relative cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-primary/30 p-5"
+        <>
+            <Card
+            className="group relative justify-between bg-primary/5 cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-primary/30 p-5"
             onClick={handleCardClick}
         >
             {/* Pin indicator */}
@@ -88,24 +119,23 @@ export function ProjectCard({ project }: ProjectCardProps) {
 
             {/* Stats */}
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                    <Layers className="h-4 w-4" />
-                    <span>{project.version_count ?? 0} versions</span>
-                </div>
+                {/* Active version badge */}
+                {project.active_version && (
+                    <div className="">
+                        <Badge variant="default" className="text-xs">
+                            <Layers className="h-4 w-4" />
+
+                            Active: {project.active_version.name}
+                        </Badge>
+                    </div>
+                )}
                 <div className="flex items-center gap-1.5">
                     <CheckSquare className="h-4 w-4" />
                     <span>{project.task_count ?? 0} tasks</span>
                 </div>
             </div>
 
-            {/* Active version badge */}
-            {project.active_version && (
-                <div className="mt-3">
-                    <Badge variant="secondary" className="text-xs">
-                        Active: {project.active_version.name}
-                    </Badge>
-                </div>
-            )}
+
 
             {/* Actions (visible on hover) */}
             <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
@@ -134,7 +164,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
                             <Pencil className="h-4 w-4 mr-2" />
                             Open Project
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={handleDelete} className="text-destructive">
+                        <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive">
                             <Trash2 className="h-4 w-4 mr-2" />
                             Delete Project
                         </DropdownMenuItem>
@@ -142,5 +172,64 @@ export function ProjectCard({ project }: ProjectCardProps) {
                 </DropdownMenu>
             </div>
         </Card>
+
+            <Dialog open={isDeleteDialogOpen} onOpenChange={(open) => { if (!open) cancelDelete(); else setIsDeleteDialogOpen(true); }}>
+                <DialogContent>
+                    <div className="flex flex-col items-center gap-2">
+                        <div
+                            aria-hidden="true"
+                            className="flex size-9 shrink-0 items-center justify-center rounded-full border"
+                        >
+                            <CircleAlertIcon className="opacity-80 text-destructive" size={16} />
+                        </div>
+                        <DialogHeader>
+                            <DialogTitle className="sm:text-center">
+                                Final confirmation
+                            </DialogTitle>
+                            <DialogDescription className="sm:text-center">
+                                This action cannot be undone. To confirm, please type the project name <span className="text-foreground font-semibold px-1">{project.name}</span>.
+                            </DialogDescription>
+                        </DialogHeader>
+                    </div>
+
+                    <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+                        <div className="*:not-first:mt-2">
+                            <Label htmlFor="delete-input">Project name</Label>
+                            <Input
+                                id="delete-input"
+                                onChange={(e) => setDeleteInputValue(e.target.value)}
+                                placeholder={`Type ${project.name} to confirm`}
+                                type="text"
+                                value={deleteInputValue}
+                                disabled={countdown !== null || isLoading}
+                            />
+                        </div>
+                        <div className="flex items-center space-x-2 mt-4">
+                            <Checkbox className={"border-primary"} id="terms" checked={hasCheckedRisk} onCheckedChange={(checked) => setHasCheckedRisk(checked === true)} disabled={countdown !== null || isLoading} />
+                            <Label
+                                htmlFor="terms"
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                                I understand that I cannot recover my data again
+                            </Label>
+                        </div>
+                        <DialogFooter>
+                            <Button className="flex-1" type="button" variant="outline" onClick={cancelDelete} disabled={isLoading}>
+                                Cancel
+                            </Button>
+                            <Button
+                                className="flex-1"
+                                disabled={deleteInputValue !== project.name || !hasCheckedRisk || countdown !== null || isLoading}
+                                type="button"
+                                variant="destructive"
+                                onClick={handleStartDelete}
+                            >
+                                {countdown !== null ? `Deleting in ${countdown}...` : isLoading ? "Deleting..." : "Delete"}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }

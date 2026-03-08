@@ -22,7 +22,7 @@ export function DashboardRangeToggle() {
           onClick={() => setRange(option)}
           className={cn(
             'h-7 px-3 text-xs capitalize',
-            activeRange === option ? 'bg-primary text-primary-foreground hover:bg-primary' : 'text-muted-foreground',
+            activeRange === option && activeRange === 'today' ? 'bg-primary text-primary-foreground' : activeRange === option ? 'bg-primary text-primary-foreground hover:bg-primary hover:text-white' : 'text-muted-foreground',
           )}
         >
           {option}

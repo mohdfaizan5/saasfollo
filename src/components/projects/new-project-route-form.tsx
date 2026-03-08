@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { ArrowLeft, ArrowRight, Loader2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -112,6 +113,10 @@ export function NewProjectRouteForm() {
 
             const completedOnboarding = await hasCompletedOnboarding();
             const redirectTarget = `/projects/${project.nanoid}/dashboard`;
+
+            toast.success("Project created successfully", { 
+                description: "You are being redirected to your dashboard..." 
+            });
 
             if (!completedOnboarding) {
                 const params = new URLSearchParams({ redirectTo: redirectTarget });
@@ -254,17 +259,17 @@ export function NewProjectRouteForm() {
                                         />
                                     </div>
 
-                                    <div className="space-y-2">
+                                    {/* <div className="space-y-2">
                                         <Label htmlFor="version-description">Version details (optional)</Label>
                                         <Textarea
                                             id="version-description"
-                                            placeholder="What exactly should be included in this version?"
+                                            placeholder="Write a one"
                                             value={versionDescription}
                                             onChange={(event) => setVersionDescription(event.target.value)}
                                             disabled={isSubmitting}
                                             rows={3}
                                         />
-                                    </div>
+                                    </div> */}
 
                                     <div className="space-y-2">
                                         <Label htmlFor="version-goals">Key goals or suggestions</Label>

@@ -7,6 +7,22 @@ import { Changelog } from '@/types/changelog';
  */
 export const changelog: Changelog = [
     {
+        version: "1.5.1",
+        date: "Mar 8, 2026",
+        title: "Workflow Optimizations & UI Polish",
+        description: "Introduced secure project deletion, enhanced cross-page task workflows, colorful priority selectors, improved EditorJS stability, and aesthetic updates to the dashboard.",
+        improvements: [
+            "Enhanced project deletion securely on the dashboard with confirmation phrase validation and a timed 3-second countdown.",
+            "Improved workflow between Project Versions and Task management by adding an 'Add Task' button that automatically opens the task creation modal upon redirecting.",
+            "Upgraded Task Priority inputs from standard dropdowns to visually distinct toggle groups with semantic coloring (red, yellow, green) for quicker priority identification.",
+            "Updated dashboard card aesthetics, adding a refined top-left curved cutout style for the contributors module.",
+            "Unified EditorJS instances across the application for more consistent rich text editing behaviour."
+        ],
+        fixes: [
+            "Implemented unified backend error handling to consistently surface user-friendly error messages when server mutations fail."
+        ]
+    },
+    {
         version: "1.5",
         date: "Feb 23, 2026",
         title: "Build Board Customization, Version PRD Editing, and UX Polish",

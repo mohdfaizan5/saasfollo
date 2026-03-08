@@ -60,7 +60,7 @@ const ToggleGroupItem = React.forwardRef<HTMLButtonElement, ToggleGroupItemProps
                 role="radio"
                 aria-checked={isSelected}
                 data-state={isSelected ? "on" : "off"}
-                onClick={() => context.onValueChange(value)}
+                onClick={() => context.onValueChange(context.type === "single" && isSelected ? "" : value)}
                 className={cn(
                     "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors",
                     "hover:bg-muted hover:text-muted-foreground",

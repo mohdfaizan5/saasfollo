@@ -180,6 +180,20 @@
   }
 }
 
+/* smooth edges */
+.smooth-edges {
+  border-radius: 15px; /* Adjust the value for desired roundness */
+  /* or */
+  border-radius: 50%; /* for a circular image */
+}
+
+.feathered-edges {
+  /* for webkit-based browsers */
+  -webkit-mask-image: radial-gradient(circle at center, black 50%, transparent 100%);
+  /* official spec */
+  mask-image: radial-gradient(circle at center, black 50%, transparent 100%);
+}
+
 /* Pinterest/Masonry Layout for Notes */
 .notes-masonry {
   column-count: 4;
