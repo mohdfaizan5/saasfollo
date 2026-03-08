@@ -20,6 +20,9 @@ export const changelog: Changelog = [
         ],
         fixes: [
             "Implemented unified backend error handling to consistently surface user-friendly error messages when server mutations fail."
+        ],
+        patches: [
+
         ]
     },
     {
