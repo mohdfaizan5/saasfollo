@@ -174,3 +174,24 @@ export async function getTaskCounts(projectNanoid: string): Promise<Record<TaskS
 
     return counts;
 }
+
+/**
+ * Remove a category from all tasks in a project
+ */
+export async function clearCategoryFromTasks(projectNanoid: string, category: string): Promise<void> {
+    const numericProjectId = await resolveProjectId(projectNanoid);
+    const supabase = await createClient();
+
+    const { error } = await supabase
+        .from('tasks')
+        .update({ category: null })
+        .eq('project_id', numericProjectId)
+        .eq('category', category);
+
+    if (error) {
+        console.error('Error clearing category:', error);
+        throw new Error('Failed to clear category');
+    }
+
+    revalidatePath(/projects/ + projectNanoid);
+}

@@ -16,7 +16,7 @@ import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import TasksKanbanColumn from './tasks-kanban-column';
 import TasksKanbanCard from './tasks-kanban-card';
-import type { KanbanColumn, Task, TaskStatus } from '@/lib/types/database';
+import type { KanbanColumn, Task, TaskStatus, Version } from '@/lib/types/database';
 
 interface TasksKanbanBoardProps {
     tasks: Task[];
@@ -34,6 +34,7 @@ interface TasksKanbanBoardProps {
     onEditTask: (task: Task) => void;
     categoryOptions?: string[];
     onAddCategory?: (category: string) => void;
+    versions?: Version[];
 }
 
 export default function TasksKanbanBoard({
@@ -52,6 +53,7 @@ export default function TasksKanbanBoard({
     onEditTask,
     categoryOptions = [],
     onAddCategory,
+    versions = [],
 }: TasksKanbanBoardProps) {
     const [activeTask, setActiveTask] = useState<Task | null>(null);
 
@@ -135,6 +137,7 @@ export default function TasksKanbanBoard({
                                     onEdit={onEditTask}
                                     categoryOptions={categoryOptions}
                                     onAddCategory={onAddCategory}
+                                    versions={versions}
                                 />
                             );
                         })}
@@ -159,6 +162,7 @@ export default function TasksKanbanBoard({
                                 onDelete={() => { }}
                                 onEdit={() => { }}
                                 isDragging
+                                versions={versions}
                             />
                         </div>
                     ) : null}

@@ -2,10 +2,13 @@
 
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SelectSeparator } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { X, Layers, User, Folder, Plus } from 'lucide-react';
+import { X, Layers, User, Folder, Plus, Trash } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQueryState } from 'nuqs';
 import type { Version, ProjectCollaborator } from '@/lib/types/database';
+
+const ALL_VERSIONS_VALUE = 'all';
+const UNASSIGNED_VERSION_VALUE = 'unassigned';
 
 interface TaskFiltersProps {
     versions: Version[];
@@ -13,6 +16,7 @@ interface TaskFiltersProps {
     currentUserId: string;
     categories: string[];
     onAddCategory: (name: string) => void;
+    onDeleteCategory?: (name: string) => void;
 }
 
 function getCategoryLabel(value: string | null, categories: string[]): string {
@@ -23,6 +27,8 @@ function getCategoryLabel(value: string | null, categories: string[]): string {
 
 function getVersionLabel(value: string | null, versions: Version[]): string {
     if (!value) return '';
+    if (value === ALL_VERSIONS_VALUE) return 'All versions';
+    if (value === UNASSIGNED_VERSION_VALUE) return 'Unassigned';
     const version = versions.find(v => v.id.toString() === value);
     return version ? version.name : value;
 }
@@ -41,6 +47,7 @@ export function TaskFilters({
     currentUserId,
     categories,
     onAddCategory,
+    onDeleteCategory,
 }: TaskFiltersProps) {
     const [selectedCategory, setSelectedCategory] = useQueryState('category');
     const [selectedVersionId, setSelectedVersionId] = useQueryState('version');
@@ -55,6 +62,8 @@ export function TaskFilters({
     };
 
     const activeVersion = versions.find(v => v.is_active);
+    const displayedVersionValue = selectedVersionId ?? activeVersion?.id.toString() ?? ALL_VERSIONS_VALUE;
+    const showVersionFilterAsActive = displayedVersionValue !== ALL_VERSIONS_VALUE;
 
     const handleCategorySelect = (value: string | null) => {
         if (!value || value === 'all') {
@@ -102,9 +111,23 @@ export function TaskFilters({
                         <SelectItem 
                             key={category} 
                             value={category}
-                            className="text-foreground"
+                            className="text-foreground w-full cursor-pointer"
                         >
-                            {category}
+                            <div className="flex items-center justify-between w-[200px]">
+                                <span className="truncate pr-2">{category}</span>
+                                {onDeleteCategory && (
+                                    <Trash 
+                                        className="h-3 w-3 text-muted-foreground hover:text-destructive shrink-0"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            if (confirm(`Are you sure you want to delete category "${category}"? Tasks in this category will be updated to None.`)) {
+                                                onDeleteCategory(category);
+                                            }
+                                        }}
+                                    />
+                                )}
+                            </div>
                         </SelectItem>
                     ))}
                     <SelectSeparator />
@@ -120,18 +143,18 @@ export function TaskFilters({
             {/* Version Filter - Default to active version */}
             {versions.length > 0 && (
                 <Select
-                    value={selectedVersionId || activeVersion?.id.toString() || 'all'}
-                    onValueChange={(v) => setSelectedVersionId(v === 'all' ? null : v)}
+                    value={displayedVersionValue}
+                    onValueChange={(value) => setSelectedVersionId(value === activeVersion?.id.toString() ? null : value)}
                 >
                     <SelectTrigger className={cn(
                         "w-40 h-9 border border-muted rounded-lg focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20",
-                        (selectedVersionId || activeVersion) && "bg-card"
+                        showVersionFilterAsActive && "bg-card"
                     )}>
                         <div className="flex items-center gap-2">
                             <Layers className="h-4 w-4 text-muted-foreground" />
                             <SelectValue>
-                                {selectedVersionId || activeVersion ? (
-                                    <span>version: {selectedVersionId ? getVersionLabel(selectedVersionId, versions) : activeVersion?.name}</span>
+                                {displayedVersionValue !== ALL_VERSIONS_VALUE ? (
+                                    <span>version: {getVersionLabel(displayedVersionValue, versions)}</span>
                                 ) : (
                                     <span className="text-muted-foreground">All versions</span>
                                 )}
@@ -139,7 +162,8 @@ export function TaskFilters({
                         </div>
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All versions</SelectItem>
+                        <SelectItem value={ALL_VERSIONS_VALUE}>All versions</SelectItem>
+                        <SelectItem value={UNASSIGNED_VERSION_VALUE}>Unassigned</SelectItem>
                         {versions.map((version) => (
                             <SelectItem 
                                 key={version.id} 

@@ -116,10 +116,17 @@ export const linkItems: LinkItemType[] = [
     },
     {
         // icon: <BookIcon />,
-        text: "Start for Free ->",
-        url: "/projects",
+        type: "custom",
         // secondary items will be displayed differently on navbar
         secondary: true,
+        children: (
+            <Link href={"/projects"}>
+                <Button className={"rounded-full px-4"}>
+                    Start for Free <ArrowRightIcon className="ml-" size={12} />
+                </Button>
+            </Link>
+        )
+
     },
     // {
     //   type: "menu",
@@ -152,7 +159,8 @@ import {
 } from "fumadocs-ui/layouts/home/navbar";
 
 import { FaDartLang, FaFlutter } from "react-icons/fa6";
-import { MoneyWavyIcon, PencilCircleIcon } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRightIcon, MoneyWavyIcon, PencilCircleIcon } from "@phosphor-icons/react/dist/ssr";
+import { Button } from "@/components/ui/button";
 // export function baseOptions(): BaseLayoutProps {
 //   return {
 //     nav: {

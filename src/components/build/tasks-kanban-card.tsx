@@ -5,7 +5,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { CheckCircleIcon, CircleIcon, Trash } from '@phosphor-icons/react';
 import { Plus, ArrowDown, ArrowRight, ArrowUp } from 'lucide-react';
-import type { Task, TaskStatus } from '@/lib/types/database';
+import type { Task, TaskStatus, Version } from '@/lib/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,8 +20,11 @@ interface TasksKanbanCardProps {
     onUpdate: (taskNanoid: string, status: TaskStatus, updates: Partial<Task>) => void;
     onDelete: (taskNanoid: string, status: TaskStatus) => void;
     onEdit: (task: Task) => void;
-    isDragging?: boolean;    categoryOptions?: string[];
-    onAddCategory?: (category: string) => void;}
+    isDragging?: boolean;
+    categoryOptions?: string[];
+    onAddCategory?: (category: string) => void;
+    versions?: Version[];
+}
 
 const PRIORITY_COLORS: Record<string, string> = {
     high: 'text-red-400 bg-red-400/10',
@@ -29,13 +32,14 @@ const PRIORITY_COLORS: Record<string, string> = {
     low: 'text-blue-400 bg-blue-400/10',
 };
 
-export default function TasksKanbanCard({ task, onUpdate, onDelete, onEdit, isDragging, categoryOptions = [], onAddCategory }: TasksKanbanCardProps) {
+export default function TasksKanbanCard({ task, onUpdate, onDelete, onEdit, isDragging, categoryOptions = [], onAddCategory, versions = [] }: TasksKanbanCardProps) {
     const [isHovered, setIsHovered] = useState(false);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [titleDraft, setTitleDraft] = useState(task.title);
     const [descriptionDraft, setDescriptionDraft] = useState(task.description ?? '');
     const [priorityDraft, setPriorityDraft] = useState(task.priority ?? 'none');
     const [categoryDraft, setCategoryDraft] = useState(task.category ?? 'none');
+    const [versionDraft, setVersionDraft] = useState<string>(task.version_id ? task.version_id.toString() : 'none');
     const [isPending, startTransition] = useTransition();
 
     const {
@@ -57,9 +61,10 @@ export default function TasksKanbanCard({ task, onUpdate, onDelete, onEdit, isDr
             titleDraft.trim() !== task.title ||
             (descriptionDraft.trim() || null) !== task.description ||
             (priorityDraft === 'none' ? null : priorityDraft) !== task.priority ||
-            (categoryDraft === 'none' ? null : categoryDraft) !== task.category
+            (categoryDraft === 'none' ? null : categoryDraft) !== task.category ||
+            (versionDraft === 'none' ? null : parseInt(versionDraft)) !== task.version_id
         );
-    }, [titleDraft, descriptionDraft, priorityDraft, categoryDraft, task]);
+    }, [titleDraft, descriptionDraft, priorityDraft, categoryDraft, versionDraft, task]);
 
     const openDetails = (e: React.MouseEvent) => {
         if (isDragging || isSortableDragging) return;
@@ -68,6 +73,7 @@ export default function TasksKanbanCard({ task, onUpdate, onDelete, onEdit, isDr
         setDescriptionDraft(task.description ?? '');
         setPriorityDraft(task.priority ?? 'none');
         setCategoryDraft(task.category ?? 'none');
+        setVersionDraft(task.version_id ? task.version_id.toString() : 'none');
         setIsDetailsOpen(true);
         onEdit(task);
     };
@@ -111,6 +117,7 @@ export default function TasksKanbanCard({ task, onUpdate, onDelete, onEdit, isDr
             description: descriptionDraft.trim() || null,
             priority: priorityDraft === 'none' ? null : (priorityDraft as Task['priority']),
             category: categoryDraft === 'none' ? null : (categoryDraft as Task['category']),
+            version_id: versionDraft === 'none' ? null : parseInt(versionDraft),
         });
 
         setIsDetailsOpen(false);
@@ -195,7 +202,12 @@ export default function TasksKanbanCard({ task, onUpdate, onDelete, onEdit, isDr
                 </div>
             </div>
 
-            <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+            <Dialog open={isDetailsOpen} onOpenChange={(open) => {
+                if (!open && isDirty) {
+                    if (!confirm('Changes made will be lost. Are you sure?')) return;
+                }
+                setIsDetailsOpen(open);
+            }}>
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle>Task Details</DialogTitle>
@@ -277,6 +289,28 @@ export default function TasksKanbanCard({ task, onUpdate, onDelete, onEdit, isDr
                                 </Select>
                             </div>
                         </div>
+
+                        {versions && versions.length > 0 && (
+                            <div className="space-y-1.5">
+                                <Label>Version</Label>
+                                <Select
+                                    value={versionDraft}
+                                    onValueChange={(value) => setVersionDraft(value ?? 'none')}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue>{versionDraft !== 'none' ? versions.find((version) => version.id.toString() === versionDraft)?.name ?? 'Select version' : 'Select version'}</SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">None</SelectItem>
+                                        {versions.map(version => (
+                                            <SelectItem key={version.id} value={version.id.toString()}>
+                                                {version.name} {version.is_active ? '(Active)' : ''}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
                     </div>
 
                     <DialogFooter>

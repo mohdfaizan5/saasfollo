@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   Stepper,
   StepperIndicator,
@@ -33,7 +32,7 @@ export default function Component() {
         {steps.map(({ step, title }) => (
           <StepperItem className="flex-1" key={step} step={step}>
             <StepperTrigger className="w-full flex-col items-start gap-2 rounded">
-              <StepperIndicator className="h-1 w-full bg-border" render={<span className="sr-only" />}>{step}</StepperIndicator>
+              <StepperIndicator className="h-1 w-full bg-border" />
               <div className="space-y-0.5">
                 <StepperTitle>{title}</StepperTitle>
               </div>

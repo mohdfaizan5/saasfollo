@@ -22,7 +22,7 @@ import {
 } from '@phosphor-icons/react';
 // NOTE: The following imports from '@/lib/actions/tasks' remain unchanged as they are backend calls
 // that use the original 'tasks' nomenclature. Only the frontend route and component names have changed to 'build'
-import { createTask, deleteTask, updateTask } from '@/lib/actions/tasks';
+import { createTask, deleteTask, updateTask, clearCategoryFromTasks } from '@/lib/actions/tasks';
 import { createKanbanColumn, deleteKanbanColumn, updateKanbanColumn } from '@/lib/actions/kanban-columns';
 import { useProjectRole } from '@/hooks/use-project-role';
 // NOTE: The following imports are from the same './build' directory (renamed from './tasks')
@@ -37,6 +37,8 @@ import { BatteryMediumIcon, CellSignalLowIcon, FlagBannerFoldIcon, HourglassMedi
 import Image from 'next/image';
 
 const DEFAULT_CATEGORIES = ['Website', 'Marketing', 'SEO', 'Content'];
+const ALL_VERSIONS_VALUE = 'all';
+const UNASSIGNED_VERSION_VALUE = 'unassigned';
 
 type ColumnIconRule = {
     keywords: string[];
@@ -140,7 +142,7 @@ export function TasksClient({
     const [currentView, setCurrentView] = useState<TaskView>(initialView);
 
     // Filter state from URL using Nuqs
-    const [selectedCategory] = useQueryState('category');
+    const [selectedCategory, setSelectedCategory] = useQueryState('category');
     const [selectedVersionId] = useQueryState('version');
     const [selectedAssignee] = useQueryState('assignee');
     const [newTaskParam, setNewTaskParam] = useQueryState('newTask');
@@ -160,6 +162,22 @@ export function TasksClient({
         const firstVersion = versions[0]?.id?.toString() ?? '';
 
         return queryVersion || activeVersion || firstVersion;
+    }, [selectedVersionId, versions]);
+
+    const effectiveVersionFilter = useMemo(() => {
+        if (selectedVersionId === ALL_VERSIONS_VALUE) {
+            return ALL_VERSIONS_VALUE;
+        }
+
+        if (selectedVersionId === UNASSIGNED_VERSION_VALUE) {
+            return UNASSIGNED_VERSION_VALUE;
+        }
+
+        if (selectedVersionId && versions.some((version) => version.id.toString() === selectedVersionId)) {
+            return selectedVersionId;
+        }
+
+        return versions.find((version) => version.is_active)?.id?.toString() ?? ALL_VERSIONS_VALUE;
     }, [selectedVersionId, versions]);
 
     const getColumnLabel = (columnNanoid: string) => {
@@ -221,6 +239,52 @@ export function TasksClient({
         });
     };
 
+    const deleteCategoryOption = async (categoryName: string) => {
+        const normalized = categoryName.trim();
+        if (!normalized) return;
+        
+        setCategoryOptions((prev) => {
+            const updated = prev.filter((item) => item.toLowerCase() !== normalized.toLowerCase());
+            if (typeof window !== 'undefined') {
+                localStorage.setItem(`projectCategories-${projectId}`, JSON.stringify(updated));
+            }
+            return updated;
+        });
+
+        // Set category filter to null if it was the selected one
+        if (selectedCategory === normalized) {
+            setSelectedCategory(null);
+        }
+
+        try {
+            await clearCategoryFromTasks(projectId, normalized);
+            setTasks((prev) => ({
+                now: prev.now.map((task) =>
+                    task.category?.toLowerCase() === normalized.toLowerCase()
+                        ? { ...task, category: null }
+                        : task,
+                ),
+                next: prev.next.map((task) =>
+                    task.category?.toLowerCase() === normalized.toLowerCase()
+                        ? { ...task, category: null }
+                        : task,
+                ),
+                later: prev.later.map((task) =>
+                    task.category?.toLowerCase() === normalized.toLowerCase()
+                        ? { ...task, category: null }
+                        : task,
+                ),
+                done: prev.done.map((task) =>
+                    task.category?.toLowerCase() === normalized.toLowerCase()
+                        ? { ...task, category: null }
+                        : task,
+                ),
+            }));
+        } catch (error) {
+            console.error('Failed to clear categories from tasks:', error);
+        }
+    };
+
     // Filter tasks
     const filteredTasks = useMemo(() => {
         const filtered: Record<TaskStatus, Task[]> = {
@@ -237,7 +301,11 @@ export function TasksClient({
                     return false;
                 }
                 // Version filter
-                if (selectedVersionId && task.version_id?.toString() !== selectedVersionId) {
+                if (effectiveVersionFilter === UNASSIGNED_VERSION_VALUE) {
+                    if (task.version_id !== null) {
+                        return false;
+                    }
+                } else if (effectiveVersionFilter !== ALL_VERSIONS_VALUE && task.version_id?.toString() !== effectiveVersionFilter) {
                     return false;
                 }
                 // Assignee filter
@@ -254,7 +322,7 @@ export function TasksClient({
         });
 
         return filtered;
-    }, [tasks, selectedCategory, selectedVersionId, selectedAssignee]);
+    }, [tasks, selectedCategory, effectiveVersionFilter, selectedAssignee]);
 
     // Get the selected category label for progress bar
     const selectedCategoryLabel = selectedCategory
@@ -352,7 +420,9 @@ export function TasksClient({
     ) => {
         try {
             const fallbackVersion = versions.find((version) => version.is_active)?.id?.toString() ?? '';
-            const effectiveVersionId = selectedVersionId || fallbackVersion;
+            const effectiveVersionId = effectiveVersionFilter === ALL_VERSIONS_VALUE || effectiveVersionFilter === UNASSIGNED_VERSION_VALUE
+                ? fallbackVersion
+                : effectiveVersionFilter;
 
             let finalCategory = selectedCategory || null;
             if (category && category !== 'none') {
@@ -670,7 +740,7 @@ export function TasksClient({
                                         <div className="space-y-2">
                                             <Label>Column</Label>
                                             <Select value={newColumnNanoid} onValueChange={(v) => setNewColumnNanoid(v ?? '')}>
-                                                <SelectTrigger className="bg-input/10 border-border !w-full">
+                                                <SelectTrigger className="bg-input/10 border-border w-full!">
                                                     <SelectValue>{getColumnLabel(newColumnNanoid)}</SelectValue>
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -735,7 +805,7 @@ export function TasksClient({
                                                     setNewCategory(v === 'none' ? null : (v as TaskCategory));
                                                 }}
                                             >
-                                                <SelectTrigger className="bg-input/10 border-border !w-full">
+                                                <SelectTrigger className="bg-input/10 border-border w-full!">
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -793,8 +863,18 @@ export function TasksClient({
                                                     onValueChange={(v) => setNewAssignee(v ?? '')}
 
                                                 >
-                                                    <SelectTrigger className="bg-input/10 border-border !w-full">
-                                                        <SelectValue />
+                                                    <SelectTrigger className="bg-input/10 border-border w-full!">
+                                                        <SelectValue>
+                                                            {newAssignee === 'unassigned' 
+                                                                ? 'Unassigned' 
+                                                                : (() => {
+                                                                    const user = collaborators.find(c => c.user_id === newAssignee);
+                                                                    return user 
+                                                                        ? `${user.email.split('@')[0]}${user.user_id === currentUserId ? ' (You)' : ''}`
+                                                                        : newAssignee || 'Unassigned';
+                                                                })()
+                                                            }
+                                                        </SelectValue>
                                                     </SelectTrigger>
                                                     <SelectContent>
                                                         <SelectItem value="unassigned">Unassigned</SelectItem>
@@ -812,7 +892,7 @@ export function TasksClient({
                                             <div className="space-y-2">
                                                 <Label>Version 2</Label>
                                                 <Select value={newVersionId} onValueChange={(v) => setNewVersionId(v ?? '')}>
-                                                    <SelectTrigger className="bg-input/10 border-border !w-full">
+                                                    <SelectTrigger className="bg-input/10 border-border w-full!">
                                                         <SelectValue>{getVersionLabel(newVersionId)}</SelectValue>
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -860,6 +940,7 @@ export function TasksClient({
                 currentUserId={currentUserId}
                 categories={categoryOptions}
                 onAddCategory={addCategoryOption}
+                onDeleteCategory={deleteCategoryOption}
             />
 
 
@@ -895,6 +976,7 @@ export function TasksClient({
                     }}
                     categoryOptions={categoryOptions}
                     onAddCategory={addCategoryOption}
+                    versions={versions}
                 />
             )}
         </div>

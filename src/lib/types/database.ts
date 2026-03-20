@@ -233,6 +233,11 @@ export interface UserSettingsUpdate {
 export interface ProjectWithStats extends Project {
   version_count?: number;
   task_count?: number;
+  completed_task_count?: number;
+  progress_percentage?: number;
+  progress_label?: string;
+  collaborator_count?: number;
+  collaborator_emails?: string[];
   active_version?: Version | null;
   active_version_name?: string | null;
 }

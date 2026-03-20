@@ -50,6 +50,7 @@ export async function getUserProjectRole(
     .select("role")
     .eq("project_id", project.id)
     .eq("user_id", user.id)
+    .not("accepted_at", "is", null)
     .single();
 
   return collaborator?.role ?? null;
@@ -61,23 +62,120 @@ export async function getUserProjectRole(
  */
 export async function getProjects(): Promise<ProjectWithStats[]> {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const { data, error } = await supabase
-    .from("projects")
-    .select(
-      `
+  if (!user) {
+    return [];
+  }
+
+  const projectSelect = `
       *,
       versions:versions(count),
       tasks:tasks(count),
       active_version:versions!fk_projects_active_version(name)
-    `,
-    )
-    .order("is_pinned", { ascending: false })
-    .order("updated_at", { ascending: false });
+    `;
 
-  if (error) {
-    console.error("Error fetching projects:", error);
+  const [{ data: ownedProjects, error: ownedError }, { data: collaboratorRows, error: collaboratorError }] =
+    await Promise.all([
+      supabase
+        .from("projects")
+        .select(projectSelect)
+        .eq("user_id", user.id),
+      supabase
+        .from("project_collaborators")
+        .select("project_id")
+        .eq("user_id", user.id)
+        .not("accepted_at", "is", null),
+    ]);
+
+  if (ownedError) {
+    console.error("Error fetching owned projects:", ownedError);
     throw new Error("Failed to fetch projects");
+  }
+
+  if (collaboratorError) {
+    console.error("Error fetching shared projects:", collaboratorError);
+    throw new Error("Failed to fetch projects");
+  }
+
+  const collaboratorProjectIds = Array.from(
+    new Set((collaboratorRows || []).map((row) => row.project_id)),
+  );
+
+  const { data: sharedProjects, error: sharedError } = collaboratorProjectIds.length
+    ? await supabase
+        .from("projects")
+        .select(projectSelect)
+        .in("id", collaboratorProjectIds)
+    : { data: [], error: null };
+
+  if (sharedError) {
+    console.error("Error fetching shared projects:", sharedError);
+    throw new Error("Failed to fetch projects");
+  }
+
+  const data = Array.from(
+    new Map(
+      [...(ownedProjects || []), ...(sharedProjects || [])].map((project) => [
+        project.id,
+        project,
+      ]),
+    ).values(),
+  ).sort((a, b) => {
+    if (a.is_pinned !== b.is_pinned) {
+      return a.is_pinned ? -1 : 1;
+    }
+
+    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+  });
+
+  const projectIds = data.map((project) => project.id);
+
+  const [{ data: projectCollaborators, error: collaboratorsError }, { data: projectTasks, error: tasksError }] =
+    projectIds.length
+      ? await Promise.all([
+          supabase
+            .from("project_collaborators")
+            .select("project_id, email")
+            .in("project_id", projectIds)
+            .not("accepted_at", "is", null),
+          supabase
+            .from("tasks")
+            .select("project_id, is_completed")
+            .in("project_id", projectIds),
+        ])
+      : [{ data: [], error: null }, { data: [], error: null }];
+
+  if (collaboratorsError) {
+    console.error("Error fetching project collaborators:", collaboratorsError);
+    throw new Error("Failed to fetch projects");
+  }
+
+  if (tasksError) {
+    console.error("Error fetching project tasks:", tasksError);
+    throw new Error("Failed to fetch projects");
+  }
+
+  const collaboratorEmailsByProject = new Map<number, string[]>();
+  for (const row of projectCollaborators || []) {
+    const existing = collaboratorEmailsByProject.get(row.project_id) ?? [];
+    if (!existing.includes(row.email)) {
+      existing.push(row.email);
+      collaboratorEmailsByProject.set(row.project_id, existing);
+    }
+  }
+
+  const taskProgressByProject = new Map<number, { total: number; completed: number }>();
+  for (const task of projectTasks || []) {
+    const current = taskProgressByProject.get(task.project_id) ?? {
+      total: 0,
+      completed: 0,
+    };
+    current.total += 1;
+    if (task.is_completed) current.completed += 1;
+    taskProgressByProject.set(task.project_id, current);
   }
 
   // Transform the count aggregates and add active version name
@@ -85,6 +183,18 @@ export async function getProjects(): Promise<ProjectWithStats[]> {
     ...project,
     version_count: project.versions?.[0]?.count ?? 0,
     task_count: project.tasks?.[0]?.count ?? 0,
+    completed_task_count: taskProgressByProject.get(project.id)?.completed ?? 0,
+    progress_percentage:
+      (taskProgressByProject.get(project.id)?.total ?? 0) > 0
+        ? Math.round(
+            ((taskProgressByProject.get(project.id)?.completed ?? 0) /
+              (taskProgressByProject.get(project.id)?.total ?? 1)) *
+              100,
+          )
+        : 0,
+    progress_label: `${taskProgressByProject.get(project.id)?.completed ?? 0}/${taskProgressByProject.get(project.id)?.total ?? 0} completed`,
+    collaborator_count: collaboratorEmailsByProject.get(project.id)?.length ?? 0,
+    collaborator_emails: collaboratorEmailsByProject.get(project.id) ?? [],
     active_version_name: project.active_version?.[0]?.name ?? null,
   }));
 }

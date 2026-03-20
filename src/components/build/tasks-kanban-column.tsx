@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChevronLeft, ChevronRight, MoreVertical, Plus, Trash2 } from 'lucide-react';
-import type { KanbanColumn, Task, TaskStatus } from '@/lib/types/database';
+import type { KanbanColumn, Task, TaskStatus, Version } from '@/lib/types/database';
 import { cn } from '@/lib/utils';
 import {
     BugIcon,
@@ -39,6 +39,7 @@ interface TasksKanbanColumnProps {
     onEdit: (task: Task) => void;
     categoryOptions?: string[];
     onAddCategory?: (category: string) => void;
+    versions?: Version[];
 }
 
 type ColumnIconRule = {
@@ -103,6 +104,7 @@ export default function TasksKanbanColumn({
     onEdit,
     categoryOptions = [],
     onAddCategory,
+    versions = [],
 }: TasksKanbanColumnProps) {
     const shouldReduceMotion = useReducedMotion();
     const { setNodeRef, isOver } = useDroppable({
@@ -112,8 +114,8 @@ export default function TasksKanbanColumn({
     const [descriptionDraft, setDescriptionDraft] = useState(column.description ?? '');
     const [isAddingTask, setIsAddingTask] = useState(false);
     const [newTaskTitle, setNewTaskTitle] = useState('');
-    const [newTaskPriority, setNewTaskPriority] = useState<string>('');
-    const [newTaskCategory, setNewTaskCategory] = useState<string>('');
+    const [newTaskPriority, setNewTaskPriority] = useState<string>('none');
+    const [newTaskCategory, setNewTaskCategory] = useState<string>('none');
     const semantic = getColumnSemantic(column.title, column.is_done_column);
     const Icon = semantic.icon;
 
@@ -141,12 +143,12 @@ export default function TasksKanbanColumn({
     const handleCreateTask = async () => {
         const title = newTaskTitle.trim();
         if (!title) return;
-        const priority = newTaskPriority === '' || newTaskPriority === 'none' ? null : newTaskPriority;
-        const category = newTaskCategory === '' || newTaskCategory === 'none' ? null : newTaskCategory;
+        const priority = newTaskPriority === 'none' ? null : newTaskPriority;
+        const category = newTaskCategory === 'none' ? null : newTaskCategory;
         await onCreateTask(title, priority, category);
         setNewTaskTitle('');
-        setNewTaskPriority('');
-        setNewTaskCategory('');
+        setNewTaskPriority('none');
+        setNewTaskCategory('none');
         setIsAddingTask(false);
     };
 
@@ -259,18 +261,26 @@ export default function TasksKanbanColumn({
                             className="h-8 mb-2"
                         />
                         <div className="flex gap-2">
-                            <Select value={newTaskPriority || undefined} onValueChange={(val) => setNewTaskPriority(val || '')}>
-                                <SelectTrigger className="h-7 text-xs px-2 min-w-[90px] border-dashed"><SelectValue>{newTaskPriority !== 'none' && newTaskPriority ? newTaskPriority : "Priority"}</SelectValue></SelectTrigger>
+                            <Select value={newTaskPriority} onValueChange={(val) => setNewTaskPriority(val ?? 'none')}>
+                                <SelectTrigger className={cn("h-7 text-xs px-2 min-w-22.5 border", newTaskPriority === 'none' ? "border-dashed" : "bg-muted font-medium")}>
+                                    <SelectValue>{newTaskPriority !== 'none' ? <span className="capitalize">{newTaskPriority}</span> : "Priority"}</SelectValue>
+                                </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="none">Priority: None</SelectItem>
-                                    <SelectItem value="high">High</SelectItem>
-                                    <SelectItem value="medium">Medium</SelectItem>
-                                    <SelectItem value="low">Low</SelectItem>
+                                    <SelectItem value="high">
+                                        <span className="text-red-500 font-medium">High</span>
+                                    </SelectItem>
+                                    <SelectItem value="medium">
+                                        <span className="text-yellow-500 font-medium">Medium</span>
+                                    </SelectItem>
+                                    <SelectItem value="low">
+                                        <span className="text-green-500 font-medium">Low</span>
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
 
                             <Select 
-                                value={newTaskCategory || undefined} 
+                                value={newTaskCategory}
                                 onValueChange={(val) => {
                                     if (val === '__add_category__') {
                                         const newCat = prompt('New category name')?.trim();
@@ -280,10 +290,10 @@ export default function TasksKanbanColumn({
                                         }
                                         return;
                                     }
-                                    setNewTaskCategory(val || '');
+                                    setNewTaskCategory(val ?? 'none');
                                 }}
                             >
-                                <SelectTrigger className="h-7 text-xs px-2 min-w-[90px] border-dashed"><SelectValue>{newTaskCategory !== 'none' && newTaskCategory ? newTaskCategory : "Category"}</SelectValue></SelectTrigger>
+                                <SelectTrigger className="h-7 text-xs px-2 min-w-22.5 border-dashed"><SelectValue>{newTaskCategory !== 'none' ? newTaskCategory : "Category"}</SelectValue></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="none">Category: None</SelectItem>
                                     {categoryOptions?.map(cat => (
@@ -329,6 +339,7 @@ export default function TasksKanbanColumn({
                                 onEdit={onEdit}
                                 categoryOptions={categoryOptions}
                                 onAddCategory={onAddCategory}
+                                versions={versions}
                             />
                         ))
                     )}

@@ -11,10 +11,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { UserPlus, Trash2, Loader2 } from 'lucide-react';
+import { UserPlus, Trash2, Loader2, Copy } from 'lucide-react';
 import type { ProjectCollaborator, CollaboratorRole } from '@/lib/types/database';
 import { addCollaborator, removeCollaborator, updateCollaboratorRole } from '@/lib/actions/collaborators';
 import { useProjectRole } from '@/hooks/use-project-role';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 interface CollaboratorsClientProps {
     projectId: string;
@@ -30,6 +32,15 @@ export function CollaboratorsClient({ projectId, collaborators, currentUserEmail
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
 
+    const handleCopyInviteLink = async () => {
+        try {
+            await navigator.clipboard.writeText(`${window.location.origin}/projects/${projectId}/invite`);
+            toast.success('Invite link copied');
+        } catch {
+            toast.error('Failed to copy invite link');
+        }
+    };
+
     const handleAdd = (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
@@ -39,9 +50,9 @@ export function CollaboratorsClient({ projectId, collaborators, currentUserEmail
             try {
                 await addCollaborator(projectId, email, role);
                 setEmail('');
-                setMessage('Collaborator added successfully');
-            } catch (err: any) {
-                setError(err.message);
+                setMessage('Invitation sent successfully');
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'Failed to send invitation');
             }
         });
     };
@@ -54,8 +65,8 @@ export function CollaboratorsClient({ projectId, collaborators, currentUserEmail
             try {
                 await removeCollaborator(collaboratorNanoid, projectId);
                 setMessage('Collaborator removed');
-            } catch (err: any) {
-                setError(err.message);
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'Failed to remove collaborator');
             }
         });
     };
@@ -67,6 +78,12 @@ export function CollaboratorsClient({ projectId, collaborators, currentUserEmail
                     <h3 className="text-lg font-medium">Collaborators</h3>
                     <p className="text-sm text-muted-foreground">Invite team members to work on this project.</p>
                 </div>
+                {canManage && (
+                    <Button variant="outline" size="sm" onClick={handleCopyInviteLink}>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy invite link
+                    </Button>
+                )}
             </div>
 
             {/* Add Form - only visible to owners */}
@@ -139,8 +156,19 @@ export function CollaboratorsClient({ projectId, collaborators, currentUserEmail
                                             {c.email.substring(0, 2).toUpperCase()}
                                         </div>
                                         <div>
-                                            <div className="font-medium text-sm">{c.email}</div>
-                                            <div className="text-xs text-muted-foreground">Joined {new Date(c.created_at).toLocaleDateString()}</div>
+                                            <div className="font-medium text-sm flex items-center gap-2">
+                                                {c.email}
+                                                {c.accepted_at ? (
+                                                    <Badge variant="outline" className="text-[10px] uppercase">Active</Badge>
+                                                ) : (
+                                                    <Badge variant="secondary" className="text-[10px] uppercase">Pending</Badge>
+                                                )}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                {c.accepted_at
+                                                    ? `Joined ${new Date(c.accepted_at).toLocaleDateString()}`
+                                                    : `Invitation sent ${new Date(c.invited_at).toLocaleDateString()}`}
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">

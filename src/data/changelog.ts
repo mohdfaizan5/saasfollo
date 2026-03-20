@@ -7,6 +7,29 @@ import { Changelog } from '@/types/changelog';
  */
 export const changelog: Changelog = [
     {
+        version: "1.5.2",
+        date: "Mar 20, 2026",
+        title: "Project Cards: Live Collaborators, Real Progress, and UI Stability",
+        description: "Project cards now show real collaborator and task progress data, support dynamic progress color thresholds, and use deterministic icon variation with cleaner build/type safety.",
+        improvements: [
+            "Wired project cards to live collaborator data and replaced placeholder avatars with generated collaborator initials plus overflow count.",
+            "Connected progress bar and progress label to real task completion metrics (completed/total and percentage) from server-side project queries.",
+            "Added segmented progress color customization support via a single `color` prop that accepts Tailwind classes or CSS/hex colors.",
+            "Implemented threshold-based progress coloring: <50 uses theme primary, 50–75 uses orange fade, 75–100 uses green fade.",
+            "Updated project card icon rendering to use deterministic hash-based randomization with different criteria per UI slot while keeping the same icon pair."
+        ],
+        fixes: [
+            "Removed `@ts-nocheck` usage from build/project surfaces and fixed newly exposed type mismatches.",
+            "Resolved dialog and select prop incompatibilities that previously surfaced console/type warnings in task flows.",
+            "Fixed project card badge/icon JSX issues and stabilized rendering behavior across re-renders."
+        ],
+        patches: [
+            "Extended `ProjectWithStats` with progress and collaborator summary fields for UI consumption.",
+            "Updated `getProjects()` to aggregate accepted collaborators and task completion statistics per project.",
+            "Applied Tailwind class normalization and component-level diagnostics cleanup for changed files."
+        ]
+    },
+    {
         version: "1.5.1",
         date: "Mar 8, 2026",
         title: "Workflow Optimizations & UI Polish",

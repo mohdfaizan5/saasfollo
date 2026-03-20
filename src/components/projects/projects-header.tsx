@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { HelpCircle, Search } from 'lucide-react';
 import Logo from '@/components/logo';
 import { UserProfileDropdown } from '@/components/user-profile-dropdown';
+import { NotificationsBell } from '@/components/notifications-bell';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { FeedbackModal } from '@/components/feedback-modal';
 
@@ -61,6 +62,9 @@ export function ProjectsHeader({ userEmail }: ProjectsHeaderProps) {
                         <p>Help</p>
                     </TooltipContent>
                 </Tooltip>
+
+                {/* Notifications */}
+                <NotificationsBell />
 
                 {/* User Profile */}
                 <UserProfileDropdown email={userEmail} />

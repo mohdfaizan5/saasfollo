@@ -41,9 +41,10 @@ const Page = () => {
                             href={resource.href}
                             className="group block p-6 rounded-xl border bg-card hover:bg-accent transition-colors"
                         >
-                            <div className={`inline-flex p-3 rounded-lg ${resource.color} mb-4`}>
-                                <resource.icon className="h-6 w-6" />
-                            </div>
+                            {/* <div className={`inline-flex p-3 rounded-lg ${resource.color} mb-4`}> */}
+                        {/*  */}
+                            <resource.icon className="h-6 w-6" />
+                            {/* </div> */}
                             <h2 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">
                                 {resource.title}
                             </h2>
@@ -62,7 +63,7 @@ const Page = () => {
                         <div>
                             <h3 className="font-semibold mb-1">More coming soon</h3>
                             <p className="text-sm text-muted-foreground">
-                                We're working on more resources to help you succeed. 
+                                We're working on more resources to help you succeed.
                                 Check back soon for new guides and tools.
                             </p>
                         </div>

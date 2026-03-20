@@ -7,6 +7,7 @@
 - **Database Migrations**: Always create NEW numbered migration files (00001, 00002, etc.) in migrations/ folder. Never edit existing migrations unless they failed. Format: `00XXX_description.sql`
 - **Changelog**: After making user-facing changes, update `src/data/changelog.ts` by adding a NEW entry at the TOP of the array. Categorize changes into `improvements`, `fixes`, and `patches`. Include version, date, title, and description. This powers the public `/changelog` route.
 
+- while writing git commmit messages, give a quick and short summary and details below
 
 ----
 
