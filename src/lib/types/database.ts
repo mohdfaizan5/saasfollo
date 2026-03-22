@@ -28,6 +28,7 @@ export interface Project {
   icon_url: string | null;
   active_version_id: number | null;
   is_pinned: boolean;
+  is_archived: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -117,6 +118,7 @@ export interface ProjectInsert {
   description?: string | null;
   icon_url?: string | null;
   is_pinned?: boolean;
+  is_archived?: boolean;
 }
 
 export interface VersionInsert {
@@ -179,6 +181,7 @@ export interface ProjectUpdate {
   icon_url?: string | null;
   active_version_id?: number | null;
   is_pinned?: boolean;
+  is_archived?: boolean;
 }
 
 export interface VersionUpdate {
@@ -240,6 +243,7 @@ export interface ProjectWithStats extends Project {
   collaborator_emails?: string[];
   active_version?: Version | null;
   active_version_name?: string | null;
+  current_user_role?: CollaboratorRole | 'owner';
 }
 
 export interface VersionWithTasks extends Version {

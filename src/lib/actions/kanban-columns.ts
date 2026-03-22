@@ -1,29 +1,86 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { createAdminClient } from '@/lib/admin';
 import { createClient } from '@/lib/server';
 import type { KanbanColumn, KanbanColumnUpdate } from '@/lib/types/database';
 
-async function resolveProjectId(projectNanoid: string): Promise<number> {
+type ProjectColumnAccess = {
+  projectId: number;
+  projectNanoid: string;
+  role: 'owner' | 'editor' | 'reader';
+};
+
+function getAdminClientOrNull() {
+  try {
+    return createAdminClient();
+  } catch {
+    return null;
+  }
+}
+
+async function resolveProjectAccess(projectNanoid: string): Promise<ProjectColumnAccess> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error('Not authenticated');
+  }
+
+  const admin = getAdminClientOrNull();
+  const client = admin ?? supabase;
+
+  const { data, error } = await client
     .from('projects')
-    .select('id')
+    .select('id, nanoid, user_id')
     .eq('nanoid', projectNanoid)
-    .single();
+    .maybeSingle();
 
   if (error || !data) {
     throw new Error('Project not found');
   }
 
-  return data.id;
+  if (data.user_id === user.id) {
+    return {
+      projectId: data.id,
+      projectNanoid: data.nanoid,
+      role: 'owner',
+    };
+  }
+
+  const { data: collaborator, error: collaboratorError } = await client
+    .from('project_collaborators')
+    .select('role')
+    .eq('project_id', data.id)
+    .eq('user_id', user.id)
+    .not('accepted_at', 'is', null)
+    .maybeSingle();
+
+  if (collaboratorError || !collaborator) {
+    throw new Error('Project not found');
+  }
+
+  return {
+    projectId: data.id,
+    projectNanoid: data.nanoid,
+    role: collaborator.role as 'owner' | 'editor' | 'reader',
+  };
+}
+
+function assertCanEdit(role: ProjectColumnAccess['role']) {
+  if (role === 'reader') {
+    throw new Error('You do not have permission to edit kanban columns');
+  }
 }
 
 export async function getKanbanColumns(projectNanoid: string): Promise<KanbanColumn[]> {
-  const supabase = await createClient();
-  const projectId = await resolveProjectId(projectNanoid);
+  const admin = getAdminClientOrNull();
+  const client = admin ?? await createClient();
+  const { projectId } = await resolveProjectAccess(projectNanoid);
 
-  let { data, error } = await supabase
+  const { data: initialData, error } = await client
     .from('kanban_columns')
     .select('*')
     .eq('project_id', projectId)
@@ -35,8 +92,10 @@ export async function getKanbanColumns(projectNanoid: string): Promise<KanbanCol
     throw new Error('Failed to fetch kanban columns');
   }
 
+  let data = initialData;
+
   if (!data || data.length === 0) {
-    const { data: inserted, error: insertError } = await supabase
+    const { data: inserted, error: insertError } = await client
       .from('kanban_columns')
       .insert([
         { project_id: projectId, title: 'Backlog', description: 'Ideas and upcoming work', position: 0, is_done_column: false },
@@ -63,10 +122,13 @@ export async function createKanbanColumn(
   projectNanoid: string,
   input: { title: string; description?: string | null }
 ): Promise<KanbanColumn> {
-  const supabase = await createClient();
-  const projectId = await resolveProjectId(projectNanoid);
+  const admin = getAdminClientOrNull();
+  const client = admin ?? await createClient();
+  const access = await resolveProjectAccess(projectNanoid);
+  assertCanEdit(access.role);
+  const projectId = access.projectId;
 
-  const { data: lastColumn } = await supabase
+  const { data: lastColumn } = await client
     .from('kanban_columns')
     .select('position')
     .eq('project_id', projectId)
@@ -76,7 +138,7 @@ export async function createKanbanColumn(
 
   const nextPosition = (lastColumn?.position ?? -1) + 1;
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('kanban_columns')
     .insert({
       project_id: projectId,
@@ -102,7 +164,10 @@ export async function updateKanbanColumn(
   columnNanoid: string,
   updates: KanbanColumnUpdate
 ): Promise<KanbanColumn> {
-  const supabase = await createClient();
+  const admin = getAdminClientOrNull();
+  const client = admin ?? await createClient();
+  const access = await resolveProjectAccess(projectNanoid);
+  assertCanEdit(access.role);
 
   const sanitizedUpdates: KanbanColumnUpdate = { ...updates };
 
@@ -114,7 +179,7 @@ export async function updateKanbanColumn(
     sanitizedUpdates.description = sanitizedUpdates.description.trim() || null;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('kanban_columns')
     .update({
       ...sanitizedUpdates,
@@ -134,9 +199,12 @@ export async function updateKanbanColumn(
 }
 
 export async function deleteKanbanColumn(projectNanoid: string, columnNanoid: string): Promise<void> {
-  const supabase = await createClient();
+  const admin = getAdminClientOrNull();
+  const client = admin ?? await createClient();
+  const access = await resolveProjectAccess(projectNanoid);
+  assertCanEdit(access.role);
 
-  const { count, error: countError } = await supabase
+  const { count, error: countError } = await client
     .from('tasks')
     .select('id', { count: 'exact', head: true })
     .eq('kanban_column_nanoid', columnNanoid);
@@ -150,7 +218,7 @@ export async function deleteKanbanColumn(projectNanoid: string, columnNanoid: st
     throw new Error('Column must be empty before deleting');
   }
 
-  const { error } = await supabase
+  const { error } = await client
     .from('kanban_columns')
     .delete()
     .eq('nanoid', columnNanoid);

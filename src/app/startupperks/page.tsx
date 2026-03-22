@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo, Suspense } from 'react';
+import React, { useState, useMemo, Suspense } from 'react';
 import Link from 'next/link';
-import { Search, Gift, ChevronRight, Sparkles, DollarSign, Grid } from 'lucide-react';
+import Image from 'next/image';
+import { Search, Gift, ChevronRight, Sparkles, DollarSign, Grid, Layers, LineChart, Users, Cpu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -55,6 +56,7 @@ import {
   ArrowSquareOutIcon,
   BookmarkSimpleIcon
 } from '@phosphor-icons/react';
+import { Badge } from '@/components/ui/badge';
 
 const companyIcons: Record<string, React.ComponentType<any>> = {
   "Google Cloud": GoogleLogoIcon,
@@ -138,7 +140,7 @@ function CategoryFilter() {
   );
 }
 
-function PerkCard({
+export function PerkCard({
   perk,
   perkId,
   isBookmarked,
@@ -384,13 +386,83 @@ function StartupPerksContent() {
         {filteredPerks.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {filteredPerks.map((perk, index) => (
-              <PerkCard
-                key={perk.renderKey}
-                perk={perk.perk}
-                perkId={perk.bookmarkId}
-                isBookmarked={bookmarkedSet.has(perk.bookmarkId)}
-                onToggleBookmark={toggleBookmark}
-              />
+              <React.Fragment key={perk.renderKey}>
+                <PerkCard
+                  perk={perk.perk}
+                  perkId={perk.bookmarkId}
+                  isBookmarked={bookmarkedSet.has(perk.bookmarkId)}
+                  onToggleBookmark={toggleBookmark}
+                />
+
+                {/* Banner 1: Unlock Credits */}
+                {index === 5 && (
+                  <Card className="col-span-1 sm:col-span-2 lg:col-span-3 p-6 md:p-8 md:px-12 bg-[#110D09] relative text-white overflow-hidden my-2 sm:my-4 border-[#110D09] hover:shadow-xl transition-shadow duration-300">
+                    <div className="relative z-10 max-w-xl">
+                      <Badge
+                      // className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 text-sm mb-5 border border-white/10"
+                      >
+                        <Gift className="h-4 w-4 text-white" />
+                        <span className="font-medium">Exclusive Deals</span>
+                      </Badge>
+                      <h3 className="mt-1 text-2xl md:text-4xl font- font-serif-instrumental mb-2 opacity-90">Unlock $1M+ in credits</h3>
+                      <p className="text-white/70 mb-6 text-sm md:text-base max-w-md ">
+                        Create an account to seamlessly claim all exclusive partner deals and securely save your bookmarks across devices.
+                      </p>
+                      <Link href="/login">
+                        <Button className="bg-white text-black hover:bg-neutral-200 font-semibold px-6">
+                          Create Free Account
+                        </Button>
+                      </Link>
+                    </div>
+                    <Image
+                      src="/computer-in-dark.jpg"
+                      alt="Unlock Credits"
+                      width={320}
+                      height={320}
+                      className="absolute -bottom-20 md:-bottom-28 rounded-full -right-10 md:-right-4 opacity-50 md:opacity-80 pointer-events-none select-none mix-blend-screen"
+                    />
+                  </Card>
+                )}
+
+                {/* Banner 2: Ship faster */}
+                {index === 14 && (
+                  <Card className="col-span-1 sm:col-span-2 lg:col-span-3 p-6 md:p-8 bg-[#2C4839] relative text-white overflow-hidden my-2 sm:my-4 border-[#2C4839] hover:shadow-xl transition-shadow duration-300">
+                    <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8 md:gap-12">
+                      <div className="flex-1">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-sm mb-2 border border-white/10">
+                          <SparkleIcon size={16} weight="duotone" />
+                          <span className="font-medium">Execution Engine</span>
+                        </div>
+                        <h3 className="text-2xl md:text-4xl font- font-serif-instrumental mb-3 opacity-90">Ship your startup faster</h3>
+                        <p className="text-white/80 mb-4 text-sm md:text-base max-w-lg ">
+                          Stop switching between tools. Manage tasks, track growth, and collaborate with your AI co-founder all in one centralized workspace.
+                        </p>
+                        <Link href="/dashboard">
+                          <Button className="bg-white text-[#2C4839] hover:bg-neutral-200 font-semibold px-6">
+                            Go to Dashboard
+                          </Button>
+                        </Link>
+                      </div>
+                      <div className="hidden md:block pr-8">
+                        <div className="grid grid-cols-2 -gap-x-2 gap-y-3 opacity-90">
+                          <div className="p-4 bg-white/10 border border-white/5 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-xl">
+                            <Layers className="h-8 w-8 text-white/90" />
+                          </div>
+                          <div className="p-4 bg-white/10 border border-white/5 rounded-2xl flex items-center justify-center translate-y-6 backdrop-blur-sm shadow-xl">
+                            <LineChart className="h-8 w-8 text-white/90" />
+                          </div>
+                          <div className="p-4 bg-white/10 border border-white/5 rounded-2xl flex items-center justify-center -translate-y-6 backdrop-blur-sm shadow-xl">
+                            <Users className="h-8 w-8 text-white/90" />
+                          </div>
+                          <div className="p-4 bg-white/10 border border-white/5 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-xl">
+                            <Cpu className="h-8 w-8 text-white/90" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+              </React.Fragment>
             ))}
           </div>
         ) : (

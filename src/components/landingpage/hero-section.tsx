@@ -2,6 +2,7 @@ import Link from "next/link";
 import Logo from "../logo";
 import type { HeroContent } from "@/data/landing-content";
 import Image from "next/image";
+import Navbar2 from "./navbar2";
 
 interface HeroSectionProps {
   content: HeroContent;
@@ -32,32 +33,7 @@ export function HeroSection({ content }: HeroSectionProps) {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(166,174,164,0.08)_0%,transparent_70%)] pointer-events-none z-0" />
 
       {/* Navigation */}
-      <nav className="w-full flex justify-center py-5 px-6 relative z-20">
-        <div className="w-full max-w-4xl flex justify-between items-center">
-          <Logo height={24} width={24} full textClassName="text-foreground ml-[1px] text-base font-medium" />
-          <div className="flex items-center gap-5">
-            <Link
-              href="/blog"
-              className="text-foreground/80 text-[13px] font-sans hover:text-foreground transition-colors hidden sm:block"
-            >
-              Blog
-            </Link>
-            <Link
-              href="/resources"
-              className="text-foreground/80 text-[13px] font-sans hover:text-foreground transition-colors hidden sm:block"
-            >
-              Resources
-            </Link>
-            <Link
-              href="/auth/login"
-              className="h-8 px-5 bg-[#F6F1EA] text-[#2C4839] text-[13px] font-medium font-sans rounded-full flex items-center hover:bg-white transition-colors"
-            >
-              Log in
-            </Link>
-          </div>
-        </div>
-      </nav>
-
+      <Navbar2 />
       {/* Hero Content */}
       <div className="flex flex-1 flex-col items-center justify-center px-6 pt-20 pb-28 md:pt-18 md:pb-40 relative z-10">
         <div className="max-w-2xl text-center flex flex-col items-center gap-2">

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pin, PinOff, MoreVertical, Trash2, Pencil, Layers, CheckSquare, CircleAlertIcon } from 'lucide-react';
+import { Pin, PinOff, MoreVertical, Trash2, Pencil, CircleAlertIcon, Archive, ArchiveRestore } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { toggleProjectPin, deleteProject } from '@/lib/actions/projects';
+import { toggleProjectPin, deleteProject, archiveProject, unarchiveProject } from '@/lib/actions/projects';
 import type { ProjectWithStats } from '@/lib/types/database';
 import { SegmentedProgress } from '../ui/progress-bar';
 import { CheckCircleIcon, GitBranchIcon } from '@phosphor-icons/react/dist/ssr';
@@ -55,6 +55,22 @@ export function ProjectCard({ project }: ProjectCardProps) {
         }
     };
 
+    const handleArchiveToggle = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsLoading(true);
+        try {
+            if (project.is_archived) {
+                await unarchiveProject(project.nanoid);
+            } else {
+                await archiveProject(project.nanoid);
+            }
+        } catch (error) {
+            console.error('Failed to toggle archive state:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const handleStartDelete = () => {
         setCountdown(3);
     };
@@ -81,6 +97,11 @@ export function ProjectCard({ project }: ProjectCardProps) {
     const progressValue = project.progress_percentage ?? 0;
     const progressLabel = project.progress_label ?? `${project.completed_task_count ?? 0}/${project.task_count ?? 0} completed`;
     const collaboratorEmails = project.collaborator_emails ?? [];
+    const shouldShowCollaborators = collaboratorEmails.length > 1;
+    const currentUserRole = project.current_user_role ?? 'owner';
+    const canArchive = currentUserRole === 'owner' || currentUserRole === 'editor';
+    const canDelete = currentUserRole === 'owner';
+    const canPin = currentUserRole !== 'reader';
 
     const getProgressColor = (value: number): string | null => {
         if (value < 50) return null;
@@ -155,7 +176,14 @@ export function ProjectCard({ project }: ProjectCardProps) {
                         )}
                     </div>
                     <div className="min-w-0 flex-1">
-                        <h3 className="font-semibold text-lg truncate">{project.name}</h3>
+                        <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-lg truncate">{project.name}</h3>
+                            {project.is_archived && (
+                                <Badge variant="secondary" className="shrink-0">
+                                    Archived
+                                </Badge>
+                            )}
+                        </div>
                         {project.description && (
                             <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                                 {project.description}
@@ -220,26 +248,28 @@ export function ProjectCard({ project }: ProjectCardProps) {
                             +3
                         </Button>
                     </div> */}
-                        <div className="-space-x-[0.45rem] flex">
-                            {collaboratorEmails.slice(0, 2).map((email) => (
-                                <div
-                                    key={email}
-                                    className="flex size-6 items-center justify-center rounded-full ring-1 ring-background bg-secondary text-[10px] font-semibold text-muted-foreground"
-                                    title={email}
-                                >
-                                    {getInitialsFromEmail(email)}
-                                </div>
-                            ))}
-                            {collaboratorEmails.length > 2 && (
-                                <Button
-                                    className="flex size-6 items-center justify-center rounded-full bg-secondary text-muted-foreground text-xs ring-2 ring-background hover:bg-secondary hover:text-foreground"
-                                    size="icon"
-                                    variant="secondary"
-                                >
-                                    +{collaboratorEmails.length - 2}
-                                </Button>
-                            )}
-                        </div>
+                        {shouldShowCollaborators && (
+                            <div className="-space-x-[0.45rem] flex">
+                                {collaboratorEmails.slice(0, 2).map((email) => (
+                                    <div
+                                        key={email}
+                                        className="flex size-6 items-center justify-center rounded-full ring-1 ring-background bg-secondary text-[10px] font-semibold text-muted-foreground"
+                                        title={email}
+                                    >
+                                        {getInitialsFromEmail(email)}
+                                    </div>
+                                ))}
+                                {collaboratorEmails.length > 2 && (
+                                    <Button
+                                        className="flex size-6 items-center justify-center rounded-full bg-secondary text-muted-foreground text-xs ring-2 ring-background hover:bg-secondary hover:text-foreground"
+                                        size="icon"
+                                        variant="secondary"
+                                    >
+                                        +{collaboratorEmails.length - 2}
+                                    </Button>
+                                )}
+                            </div>
+                        )}
                     </div>
 
 
@@ -259,20 +289,21 @@ export function ProjectCard({ project }: ProjectCardProps) {
 
                 {/* Actions (visible on hover) */}
                 <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={handlePinToggle}
-                        disabled={isLoading}
-                    >
-                        {project.is_pinned ? (
-                            <PinOff className="h-4 w-4" />
-                        ) : (
-                            <Pin className="h-4 w-4" />
-                        )}
-                    </Button>
-
+                    {canPin && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={handlePinToggle}
+                            disabled={isLoading}
+                        >
+                            {project.is_pinned ? (
+                                <PinOff className="h-4 w-4" />
+                            ) : (
+                                <Pin className="h-4 w-4" />
+                            )}
+                        </Button>
+                    )}
                     <DropdownMenu>
                         <DropdownMenuTrigger
                             render={<Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()} />}
@@ -284,10 +315,22 @@ export function ProjectCard({ project }: ProjectCardProps) {
                                 <Pencil className="h-4 w-4 mr-2" />
                                 Open Project
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive">
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete Project
-                            </DropdownMenuItem>
+                            {canArchive && (
+                                <DropdownMenuItem onClick={handleArchiveToggle}>
+                                    {project.is_archived ? (
+                                        <ArchiveRestore className="h-4 w-4 mr-2" />
+                                    ) : (
+                                        <Archive className="h-4 w-4 mr-2" />
+                                    )}
+                                    {project.is_archived ? 'Restore Project' : 'Archive Project'}
+                                </DropdownMenuItem>
+                            )}
+                            {canDelete && (
+                                <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive">
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete Project
+                                </DropdownMenuItem>
+                            )}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>

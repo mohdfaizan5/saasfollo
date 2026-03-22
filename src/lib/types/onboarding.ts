@@ -29,7 +29,7 @@ export interface BranchBAnswers {
 
 // Branch C answers (Launched but no revenue)
 export interface BranchCAnswers {
-  getting_users_how?: string;
+  getting_users_how?: string[];
   whats_happening?: string;
   growth_actions_last_week?: string;
 }

@@ -18,6 +18,7 @@ import {
 import { OnboardingRadioGroup } from './onboarding-cards';
 import { BranchQuestions } from './branch-questions';
 import { saveOnboarding } from '@/lib/actions/onboarding';
+import { useOptionClickSound } from '@/hooks/use-option-click-sound';
 import Logo from '@/components/logo';
 import {
   LightbulbFilament,
@@ -86,8 +87,54 @@ interface OnboardingFlowProps {
   redirectTo?: string;
 }
 
+function hasAnswer(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+
+  if (typeof value === 'string') {
+    return value.trim().length > 0;
+  }
+
+  return Boolean(value);
+}
+
+function isBranchComplete(
+  stage: OnboardingStage | null,
+  answers: Record<string, unknown>,
+) {
+  if (!stage) {
+    return false;
+  }
+
+  switch (stage) {
+    case 'just_an_idea':
+      return hasAnswer(answers.stopping_from_shipping) &&
+        hasAnswer(answers.defined_first_version) &&
+        hasAnswer(answers.monthly_win);
+    case 'building_mvp':
+      return hasAnswer(answers.biggest_bottleneck) &&
+        hasAnswer(answers.version_goals_or_backlog) &&
+        hasAnswer(answers.next_version_ship_date);
+    case 'launched_no_revenue':
+      return hasAnswer(answers.getting_users_how) &&
+        hasAnswer(answers.whats_happening) &&
+        hasAnswer(answers.growth_actions_last_week);
+    case 'making_revenue':
+      return hasAnswer(answers.mrr_range) &&
+        hasAnswer(answers.growth_bottleneck) &&
+        hasAnswer(answers.shipping_monthly);
+    case 'fulltime':
+      return hasAnswer(answers.energy_drain) &&
+        hasAnswer(answers.tools_juggling);
+    default:
+      return false;
+  }
+}
+
 export default function OnboardingFlow({ redirectTo = '/projects' }: OnboardingFlowProps) {
   const router = useRouter();
+  const playOptionClick = useOptionClickSound();
   const [currentStep, setCurrentStep] = useState(1);
   const [direction, setDirection] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -108,7 +155,7 @@ export default function OnboardingFlow({ redirectTo = '/projects' }: OnboardingF
       case 1:
         return !!stage;
       case 2:
-        return Object.keys(branchAnswers).length > 0;
+        return isBranchComplete(stage, branchAnswers);
       case 3:
         return !!weakestRole;
       case 4:
@@ -330,6 +377,7 @@ export default function OnboardingFlow({ redirectTo = '/projects' }: OnboardingF
                       setStage(v as OnboardingStage);
                       setBranchAnswers({}); // Reset branch on stage change
                     }}
+                    onOptionSelect={playOptionClick}
                     options={STAGE_OPTIONS.map((o) => ({
                       ...o,
                       icon: STAGE_ICONS[o.value],
@@ -351,6 +399,7 @@ export default function OnboardingFlow({ redirectTo = '/projects' }: OnboardingF
                     stage={stage}
                     answers={branchAnswers}
                     onChange={setBranchAnswers}
+                    onOptionSelect={playOptionClick}
                   />
                 </div>
               )}
@@ -368,6 +417,7 @@ export default function OnboardingFlow({ redirectTo = '/projects' }: OnboardingF
                   <OnboardingRadioGroup
                     value={weakestRole}
                     onChange={(v) => setWeakestRole(v as WeakestRole)}
+                    onOptionSelect={playOptionClick}
                     options={ROLE_OPTIONS.map((o) => ({
                       ...o,
                       icon: ROLE_ICONS[o.value],

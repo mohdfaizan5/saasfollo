@@ -19,13 +19,25 @@ export interface PendingInvitation extends ProjectCollaborator {
     projects?: InvitationProject;
 }
 
+function getAdminClientOrNull() {
+    try {
+        return createAdminClient();
+    } catch (error) {
+        console.error('Admin Supabase client unavailable, falling back to scoped client:', error);
+        return null;
+    }
+}
+
 async function getProjectsForInvitations(projectIds: number[]) {
     if (projectIds.length === 0) {
         return new Map<number, NonNullable<InvitationProject>>();
     }
 
-    const admin = createAdminClient();
-    const { data, error } = await admin
+    const admin = getAdminClientOrNull();
+    const supabase = await createClient();
+    const client = admin ?? supabase;
+
+    const { data, error } = await client
         .from('projects')
         .select('id, name, nanoid, icon_url')
         .in('id', projectIds);
@@ -74,16 +86,50 @@ async function getPendingInvitationRecord(collaboratorNanoid: string, userId: st
  */
 async function resolveProjectId(projectNanoid: string): Promise<number> {
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
     const { data, error } = await supabase
         .from('projects')
         .select('id')
         .eq('nanoid', projectNanoid)
         .single();
 
-    if (error || !data) {
-        throw new Error('Project not found');
+    if (!error && data) {
+        return data.id;
     }
-    return data.id;
+
+    if (user) {
+        try {
+            const admin = createAdminClient();
+            const { data: adminProject } = await admin
+                .from('projects')
+                .select('id, user_id')
+                .eq('nanoid', projectNanoid)
+                .maybeSingle();
+
+            if (adminProject) {
+                if (adminProject.user_id === user.id) {
+                    return adminProject.id;
+                }
+
+                const { data: membership } = await supabase
+                    .from('project_collaborators')
+                    .select('id')
+                    .eq('project_id', adminProject.id)
+                    .eq('user_id', user.id)
+                    .not('accepted_at', 'is', null)
+                    .maybeSingle();
+
+                if (membership) {
+                    return adminProject.id;
+                }
+            }
+        } catch {
+            // ignore admin fallback errors and throw canonical not found below
+        }
+    }
+
+    throw new Error('Project not found');
 }
 
 /**
@@ -91,7 +137,52 @@ async function resolveProjectId(projectNanoid: string): Promise<number> {
  */
 export async function getProjectCollaborators(projectNanoid: string): Promise<ProjectCollaborator[]> {
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
     const projectId = await resolveProjectId(projectNanoid);
+    const admin = getAdminClientOrNull();
+
+    if (admin) {
+        const { data: projectMeta, error: projectMetaError } = await admin
+            .from('projects')
+            .select('id, user_id')
+            .eq('id', projectId)
+            .maybeSingle();
+
+        if (projectMetaError || !projectMeta) {
+            return [];
+        }
+
+        const isOwner = projectMeta.user_id === user.id;
+
+        if (!isOwner) {
+            const { data: membership, error: membershipError } = await supabase
+                .from('project_collaborators')
+                .select('id')
+                .eq('project_id', projectId)
+                .eq('user_id', user.id)
+                .not('accepted_at', 'is', null)
+                .maybeSingle();
+
+            if (membershipError || !membership) {
+                return [];
+            }
+        }
+
+        const { data: collaborators, error: collaboratorsError } = await admin
+            .from('project_collaborators')
+            .select('*')
+            .eq('project_id', projectId)
+            .order('created_at', { ascending: true });
+
+        if (collaboratorsError) {
+            console.error('Error fetching collaborators:', collaboratorsError);
+            throw new Error('Failed to fetch collaborators');
+        }
+
+        return (collaborators || []) as ProjectCollaborator[];
+    }
 
     const { data, error } = await supabase
         .from('project_collaborators')
@@ -103,7 +194,8 @@ export async function getProjectCollaborators(projectNanoid: string): Promise<Pr
         console.error('Error fetching collaborators:', error);
         throw new Error('Failed to fetch collaborators');
     }
-    return data || [];
+
+    return (data || []) as ProjectCollaborator[];
 }
 
 /**
@@ -220,7 +312,38 @@ export async function getPendingInvitationForProject(projectNanoid: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
-    const admin = createAdminClient();
+    const admin = getAdminClientOrNull();
+
+    if (!admin) {
+        const { data, error } = await supabase
+            .from('project_collaborators')
+            .select('*, projects:projects!inner(id, name, nanoid, icon_url)')
+            .eq('user_id', user.id)
+            .is('accepted_at', null)
+            .eq('projects.nanoid', projectNanoid)
+            .maybeSingle();
+
+        if (error) {
+            console.error('Error fetching project invitation via scoped fallback:', error);
+            return null;
+        }
+
+        if (!data) return null;
+
+        const project = Array.isArray(data.projects) ? data.projects[0] : data.projects;
+
+        return {
+            ...(data as ProjectCollaborator),
+            projects: project
+                ? {
+                    name: project.name,
+                    nanoid: project.nanoid,
+                    icon_url: project.icon_url,
+                }
+                : null,
+        } as PendingInvitation;
+    }
+
     const { data: project, error: projectError } = await admin
         .from('projects')
         .select('id, name, nanoid, icon_url')

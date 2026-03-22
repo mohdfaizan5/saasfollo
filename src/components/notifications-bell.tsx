@@ -1,24 +1,45 @@
 ﻿'use client';
 
 import { useState, useEffect } from 'react';
-import { Bell, Check, X } from 'lucide-react';
+import { Bell, Check, RefreshCw, X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { getPendingInvitations, declineInvitation, type PendingInvitation } from '@/lib/actions/collaborators';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
+import { BellIcon } from '@phosphor-icons/react/dist/ssr';
 
 export function NotificationsBell() {
     const [invitations, setInvitations] = useState<PendingInvitation[]>([]);
     const [open, setOpen] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const router = useRouter();
+
+    const loadInvitations = async () => {
+        setIsRefreshing(true);
+        try {
+            const data = await getPendingInvitations();
+            setInvitations(data || []);
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
 
     useEffect(() => {
         let mounted = true;
-        getPendingInvitations().then(data => {
-            if (mounted) setInvitations(data || []);
-        });
+
+        const run = async () => {
+            try {
+                const data = await getPendingInvitations();
+                if (mounted) setInvitations(data || []);
+            } finally {
+                if (mounted) setIsRefreshing(false);
+            }
+        };
+
+        setIsRefreshing(true);
+        run();
         return () => { mounted = false; };
     }, []);
 
@@ -51,12 +72,22 @@ export function NotificationsBell() {
                 )}
             </PopoverTrigger>
             <PopoverContent className="w-80 p-0" align="end">
-                <div className="p-4 border-b">
+                <div className="p-4 border-b flex items-center justify-between">
                     <h4 className="font-semibold text-sm">Notifications</h4>
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        onClick={() => void loadInvitations()}
+                        disabled={isRefreshing}
+                    >
+                        <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </Button>
                 </div>
                 <div className="max-h-75 overflow-y-auto">
                     {invitations.length === 0 ? (
-                        <div className="p-4 text-sm text-muted-foreground text-center">
+                        <div className="p-4 flex flex-col items-center text-sm text-muted-foreground text-center">
+                            <BellIcon size={32} weight="duotone" />
                             No new notifications
                         </div>
                     ) : (

@@ -6,6 +6,12 @@ import { Toaster } from "@/components/ui/sonner"
 
 const inter = Inter_Tight({ subsets: ['latin'], variable: '--font-inter' });
 
+import posthog from 'posthog-js'
+
+posthog.init('phc_ty7rHdmiwRnwdk2DPKDS5TiunkMdlhM9L0DFJjzEldS', {
+  api_host: 'https://us.i.posthog.com',
+  defaults: '2026-01-30'
+})
 // const geistSans = Geist({
 //   variable: "--font-geist-sans",
 //   subsets: ["latin"],

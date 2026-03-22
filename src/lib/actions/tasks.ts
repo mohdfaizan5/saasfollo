@@ -7,6 +7,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/server';
+import { createAdminClient } from '@/lib/admin';
 import type { Task, TaskInsert, TaskUpdate, TaskStatus } from '@/lib/types/database';
 
 /**
@@ -14,16 +15,50 @@ import type { Task, TaskInsert, TaskUpdate, TaskStatus } from '@/lib/types/datab
  */
 async function resolveProjectId(projectNanoid: string): Promise<number> {
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
     const { data, error } = await supabase
         .from('projects')
         .select('id')
         .eq('nanoid', projectNanoid)
         .single();
 
-    if (error || !data) {
-        throw new Error('Project not found');
+    if (!error && data) {
+        return data.id;
     }
-    return data.id;
+
+    if (user) {
+        try {
+            const admin = createAdminClient();
+            const { data: adminProject } = await admin
+                .from('projects')
+                .select('id, user_id')
+                .eq('nanoid', projectNanoid)
+                .maybeSingle();
+
+            if (adminProject) {
+                if (adminProject.user_id === user.id) {
+                    return adminProject.id;
+                }
+
+                const { data: membership } = await supabase
+                    .from('project_collaborators')
+                    .select('id')
+                    .eq('project_id', adminProject.id)
+                    .eq('user_id', user.id)
+                    .not('accepted_at', 'is', null)
+                    .maybeSingle();
+
+                if (membership) {
+                    return adminProject.id;
+                }
+            }
+        } catch {
+            // ignore admin fallback errors and throw canonical not found below
+        }
+    }
+
+    throw new Error('Project not found');
 }
 
 /**

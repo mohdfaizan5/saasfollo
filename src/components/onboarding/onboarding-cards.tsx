@@ -22,10 +22,12 @@ export function OnboardingRadioGroup({
   options,
   value,
   onChange,
+  onOptionSelect,
 }: {
   options: OptionCardProps[];
   value: string | null;
   onChange: (v: string) => void;
+  onOptionSelect?: () => void;
 }) {
   const id = useId();
 
@@ -33,7 +35,10 @@ export function OnboardingRadioGroup({
     <RadioGroup
       className="gap-3"
       value={value ?? ''}
-      onValueChange={onChange}
+      onValueChange={(nextValue) => {
+        onOptionSelect?.();
+        onChange(nextValue);
+      }}
     >
       <AnimatePresence mode="popLayout">
         {options.map((opt, i) => (
@@ -90,14 +95,17 @@ export function OnboardingCheckboxGroup({
   options,
   values,
   onChange,
+  onOptionSelect,
 }: {
   options: OptionCardProps[];
   values: string[];
   onChange: (v: string[]) => void;
+  onOptionSelect?: () => void;
 }) {
   const id = useId();
 
   const toggle = (val: string) => {
+    onOptionSelect?.();
     if (values.includes(val)) {
       onChange(values.filter((v) => v !== val));
     } else {
@@ -117,6 +125,7 @@ export function OnboardingCheckboxGroup({
           >
             <label
               htmlFor={`${id}-${opt.value}`}
+              onClick={() => toggle(opt.value)}
               className={cn(
                 'relative flex w-full items-center gap-3 rounded-xl border border-input p-4 shadow-xs outline-none transition-all duration-200 cursor-pointer',
                 values.includes(opt.value) &&
