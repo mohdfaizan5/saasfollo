@@ -161,7 +161,7 @@ export default async function BlogPost({ params }: BlogPostProps) {
     const MDXContent = page.data.body as React.ComponentType<any>;
 
     return (
-        <div className="min-h-screen w-6xl bg-[#F6F1EA]">
+        <DocsPage className="min-h-screen mx-auto bg-[#F6F1EA]- ">
             {/* Header */}
             <div className="bg-[#2C4839] text-white py-10 md:py-16 px-4 border-b border-[#A6AEA4]/20">
                 <div className="max-w-4xl mx-auto">
@@ -268,7 +268,7 @@ export default async function BlogPost({ params }: BlogPostProps) {
                     </Link>
                 </div>
             </footer>
-        </div>
+        </DocsPage>
     );
 }
 

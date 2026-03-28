@@ -1,0 +1,179 @@
+---
+title: "Connecting an AI Agent via MCP"
+description: "How to connect Cursor, Windsurf, and other MCP clients to SaaSfollo."
+date: "March 28, 2026"
+category: "Product"
+author: "Faizan"
+readTime: "4 min read"
+isUnlisted: true
+---
+
+## SaaSfollo MCP Server
+
+SaaSfollo exposes an MCP server so AI agents can read your projects, versions, and tasks directly from your app data.
+
+## Current setup
+
+Right now the MCP server is designed mainly for local or self-hosted use.
+
+- There is not yet a user-facing flow in the app for generating MCP API keys.
+- `MCP_USER_EMAIL` is the important required variable because it tells the server which SaaSfollo account to read from.
+- `MCP_API_KEY` is optional. If you set it, clients must send `Authorization: Bearer <key>`. If you do not set it, the server allows unauthenticated MCP requests.
+
+## Required environment variables
+
+Add this to your local environment:
+
+```bash
+MCP_USER_EMAIL=you@example.com
+```
+
+Optional:
+
+```bash
+MCP_API_KEY=your_secure_api_key_here
+```
+
+### Why `MCP_USER_EMAIL` is required
+
+The MCP route uses the admin Supabase client, so it needs a clear way to scope queries to one SaaSfollo user. Until SaaSfollo has a fuller MCP auth story, `MCP_USER_EMAIL` is how the server knows which account to expose.
+
+## Endpoint shape
+
+Use this as the main MCP endpoint in IDEs:
+
+```text
+http://localhost:3000/api/mcp
+```
+
+Under the hood, the transport-specific routes are:
+
+- `/api/mcp/mcp` for Streamable HTTP
+- `/api/mcp/sse` for SSE
+- `/api/mcp/message` for SSE messages
+
+You usually do not need to configure those transport-specific paths manually unless you are debugging the transport layer.
+
+## Cursor / Windsurf / other IDE setup
+
+### Clients that support remote HTTP MCP directly
+
+Use:
+
+```json
+{
+  "mcpServers": {
+    "saasfollo": {
+      "url": "http://localhost:3000/api/mcp"
+    }
+  }
+}
+```
+
+If you configured `MCP_API_KEY`, add the header your client supports:
+
+```json
+{
+  "mcpServers": {
+    "saasfollo": {
+      "url": "http://localhost:3000/api/mcp",
+      "headers": {
+        "Authorization": "Bearer your_secure_api_key_here"
+      }
+    }
+  }
+}
+```
+
+### Stdio-only clients with `mcp-remote`
+
+If your IDE only supports stdio MCP servers, use `mcp-remote`:
+
+```json
+{
+  "mcpServers": {
+    "saasfollo": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "http://localhost:3000/api/mcp"
+      ]
+    }
+  }
+}
+```
+
+If `MCP_API_KEY` is enabled, include the header:
+
+```json
+{
+  "mcpServers": {
+    "saasfollo": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "http://localhost:3000/api/mcp",
+        "--header",
+        "Authorization: Bearer your_secure_api_key_here"
+      ]
+    }
+  }
+}
+```
+
+## Local test flow
+
+1. Start SaaSfollo locally.
+2. Set `MCP_USER_EMAIL` to the SaaSfollo account you want the agent to read from.
+3. Add the MCP config in your IDE.
+4. Ask the agent to call `list_projects`.
+5. Use one of the returned `nanoid` values with `list_versions` or `list_tasks`.
+
+## Available tools
+
+### `list_projects`
+
+Returns the projects owned by the user configured in `MCP_USER_EMAIL`.
+
+### `list_versions`
+
+Parameters:
+
+- `projectNanoid`: Required project nanoid
+
+Returns versions for a project owned by the configured MCP user.
+
+### `list_tasks`
+
+Parameters:
+
+- `projectNanoid`: Required project nanoid
+- `versionId`: Optional numeric version id
+- `status`: Optional `now`, `next`, `later`, or `done`
+- `priority`: Optional `low`, `medium`, or `high`
+
+Returns tasks for a project owned by the configured MCP user.
+
+## Troubleshooting
+
+### I get redirected to `/auth/login`
+
+The MCP route should be excluded from app auth middleware. If you still see a redirect, restart the local dev server so the latest middleware changes are picked up.
+
+### I get HTML instead of MCP responses
+
+Most often this means the client is pointed at the wrong URL. Use `/api/mcp`, not just the site root, and not an unrelated page route.
+
+### I get `MCP_USER_EMAIL is required`
+
+Add `MCP_USER_EMAIL` to your environment and restart the server.
+
+### I get `Unauthorized: Invalid MCP API key`
+
+Either remove `MCP_API_KEY` from the server environment or configure your client to send the matching bearer token.
+
+## Extending the server
+
+If you want your agent to fetch more SaaSfollo data, extend the tool definitions in `src/app/api/mcp/server.ts`.

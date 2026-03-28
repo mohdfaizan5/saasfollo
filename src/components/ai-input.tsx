@@ -510,7 +510,7 @@ export function AICofounderInput({
                     </span>
                   </AIInputPillButton>
 
-                  <AIInputDropdown
+                  {/* <AIInputDropdown
                     isOpen={activeDropdown === 'persona'}
                     onClose={() => setActiveDropdown(null)}
                     items={personas.map((p) => ({
@@ -540,7 +540,7 @@ export function AICofounderInput({
                         </button>
                       )
                     }}
-                  />
+                  /> */}
                 </div>
 
                 {/* Send / Clear */}

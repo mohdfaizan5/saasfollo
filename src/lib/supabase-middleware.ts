@@ -8,6 +8,7 @@ export async function updateSession(request: NextRequest) {
     pathname === '/' ||
     pathname.startsWith('/login') ||
     pathname.startsWith('/auth') ||
+    pathname.startsWith('/api/mcp') ||
     pathname.startsWith('/changelog') ||
     pathname.startsWith('/blog') ||
     pathname.startsWith('/resources') ||
@@ -69,7 +70,7 @@ export async function updateSession(request: NextRequest) {
           throw error
         }
         user = data?.user ?? null
-      } catch (userError) {
+      } catch {
         console.error('[auth] getUser fallback also failed in middleware')
         user = null
       }
