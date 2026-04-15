@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogClose, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { createProject } from '@/lib/actions/projects';
 
 interface CreateProjectDialogProps {
@@ -103,10 +103,12 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
                 </div>
 
                 <AlertDialogFooter>
-                    <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleSubmit} disabled={isLoading}>
+                    <AlertDialogClose render={<Button variant="outline" disabled={isLoading} />}>
+                        Cancel
+                    </AlertDialogClose>
+                    <Button onClick={handleSubmit} disabled={isLoading}>
                         {isLoading ? 'Creating...' : 'Create Project'}
-                    </AlertDialogAction>
+                    </Button>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>

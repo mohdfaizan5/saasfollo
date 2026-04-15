@@ -41,6 +41,7 @@ const NAV_ITEMS: NavItem[] = [
     { href: 'build', label: 'Build', icon: CheckSquareIcon },
     { href: 'growth', label: 'Growth', icon: TrendUpIcon },
     { href: 'versions', label: 'Versions', icon: CubeIcon },
+    { href: 'version/roadmap', label: 'Roadmaps', icon: FileTextIcon },
     { href: 'aicofounder', label: 'AI Cofounder', icon: BrainIcon },
     { href: 'links', label: 'Links', icon: LinkIcon },
     { href: 'notes', label: 'Notes', icon: FileTextIcon },
@@ -98,7 +99,7 @@ export function ProjectSidebar({ project, userRole = 'owner', userEmail = '' }: 
                                     </span>
                                 )}
                             </div>
-                            <span className="text-sm font-medium truncate max-w-[120px]">{project.name}</span>
+                            <span className="text-sm font-medium truncate max-w-30">{project.name}</span>
                         </div>
                     </div>
                     {/* Collapsed icon view */}

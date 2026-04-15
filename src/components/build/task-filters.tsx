@@ -36,6 +36,7 @@ function getVersionLabel(value: string | null, versions: Version[]): string {
 function getAssigneeLabel(value: string | null, currentUserId: string, collaborators: ProjectCollaborator[]): string {
     if (!value) return '';
     if (value === currentUserId) return 'You';
+    if (value === 'team') return 'Team';
     if (value === 'unassigned') return 'Unassigned';
     const collab = collaborators.find(c => c.user_id === value);
     return collab ? collab.email.split('@')[0] : value;
@@ -113,7 +114,7 @@ export function TaskFilters({
                             value={category}
                             className="text-foreground w-full cursor-pointer"
                         >
-                            <div className="flex items-center justify-between w-[200px]">
+                            <div className="flex items-center justify-between w-50">
                                 <span className="truncate pr-2">{category}</span>
                                 {onDeleteCategory && (
                                     <Trash 
@@ -202,7 +203,8 @@ export function TaskFilters({
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="all">Everyone</SelectItem>
-                    <SelectItem value={currentUserId}>You</SelectItem>
+                    {currentUserId && <SelectItem value={currentUserId}>You</SelectItem>}
+                    <SelectItem value="team">Team</SelectItem>
                     {collaborators
                         .filter((c) => c.user_id !== currentUserId)
                         .map((collab) => (

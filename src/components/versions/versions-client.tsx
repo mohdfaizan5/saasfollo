@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogClose, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { createVersion, setVersionActive, deleteVersion, updateVersion, moveVersion } from '@/lib/actions/versions';
 import { useProjectRole } from '@/hooks/use-project-role';
 import type { Version, Task, ProjectCollaborator } from '@/lib/types/database';
@@ -219,7 +219,9 @@ export function VersionsClient({ initialVersions, projectId, activeVersionId, ta
                             </div>
                             <AlertDialogFooter className="flex items-center justify-between sm:justify-between w-full">
                                 {step === 1 ? (
-                                    <AlertDialogCancel disabled={isCreating}>Cancel</AlertDialogCancel>
+                                    <AlertDialogClose render={<Button variant="outline" disabled={isCreating} />}>
+                                        Cancel
+                                    </AlertDialogClose>
                                 ) : (
                                     <Button variant="outline" onClick={handlePrevStep} disabled={isCreating}>Back</Button>
                                 )}

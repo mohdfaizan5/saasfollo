@@ -78,7 +78,7 @@ function assertCanEdit(role: ProjectColumnAccess['role']) {
 export async function getKanbanColumns(projectNanoid: string): Promise<KanbanColumn[]> {
   const admin = getAdminClientOrNull();
   const client = admin ?? await createClient();
-  const { projectId } = await resolveProjectAccess(projectNanoid);
+  const { projectId, role } = await resolveProjectAccess(projectNanoid);
 
   const { data: initialData, error } = await client
     .from('kanban_columns')
@@ -95,6 +95,10 @@ export async function getKanbanColumns(projectNanoid: string): Promise<KanbanCol
   let data = initialData;
 
   if (!data || data.length === 0) {
+    if (role === 'reader') {
+      return [];
+    }
+
     const { data: inserted, error: insertError } = await client
       .from('kanban_columns')
       .insert([
@@ -109,7 +113,19 @@ export async function getKanbanColumns(projectNanoid: string): Promise<KanbanCol
 
     if (insertError) {
       console.error('Error creating default kanban columns:', insertError);
-      throw new Error('Failed to initialize kanban columns');
+      const { data: retryData, error: retryError } = await client
+        .from('kanban_columns')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('position', { ascending: true })
+        .order('created_at', { ascending: true });
+
+      if (retryError) {
+        console.error('Error refetching kanban columns:', retryError);
+        throw new Error('Failed to initialize kanban columns');
+      }
+
+      return retryData || [];
     }
 
     data = inserted || [];

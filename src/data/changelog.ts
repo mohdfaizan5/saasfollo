@@ -7,6 +7,27 @@ import { Changelog } from '@/types/changelog';
  */
 export const changelog: Changelog = [
     {
+        version: "1.5.3",
+        date: "Apr 15, 2026",
+        title: "Roadmaps: Editable PRD Flow, Safer Navigation, and Sidebar Updates",
+        description: "Improved roadmap usability with a cleaner save flow, unsaved-change protection on navigation, and direct Roadmaps access in project navigation.",
+        improvements: [
+            "Added a dedicated 'Roadmaps' item in project navigation that routes to the roadmap experience and supports the /version/roadmap path alias.",
+            "Simplified roadmap editing UX by keeping a single top-level 'Save all changes' action instead of repeated inline save-all prompts.",
+            "Polished project sidebar scrolling by hiding visible native scrollbar chrome while preserving scroll behavior."
+        ],
+        fixes: [
+            "Fixed roadmap state synchronization that could trigger a 'Maximum update depth exceeded' render loop.",
+            "Added unsaved-change confirmation when users attempt route changes via links/sidebar actions before saving roadmap edits.",
+            "Added browser close/refresh warning behavior for unsaved roadmap changes to prevent accidental data loss."
+        ],
+        patches: [
+            "Stabilized roadmap version derivation and state guards so local draft maps only update when values actually change.",
+            "Refined timeline save-all visibility rules to render only when there are unsaved changes or an active save operation.",
+            "Cleaned roadmap timeline markup by removing deprecated commented layout blocks."
+        ]
+    },
+    {
         version: "1.5.2",
         date: "Mar 20, 2026",
         title: "Project Cards: Live Collaborators, Real Progress, and UI Stability",

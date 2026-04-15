@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogClose, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { createNote, createNoteFromTemplate, deleteNote } from '@/lib/actions/notes';
 import { NOTE_TEMPLATES, type NoteTemplateKey } from '@/lib/constants/note-templates';
 import { useProjectRole } from '@/hooks/use-project-role';
@@ -164,10 +164,12 @@ export function NotesClient({ initialNotes, initialVersions = [], projectId }: N
                                 {error && <p className="text-sm text-destructive">{error}</p>}
                             </div>
                             <AlertDialogFooter>
-                                <AlertDialogCancel disabled={isCreating}>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleCreate} disabled={isCreating}>
+                                <AlertDialogClose render={<Button variant="outline" disabled={isCreating} />}>
+                                    Cancel
+                                </AlertDialogClose>
+                                <Button onClick={handleCreate} disabled={isCreating}>
                                     {isCreating ? 'Creating...' : 'Create Note'}
-                                </AlertDialogAction>
+                                </Button>
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>

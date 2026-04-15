@@ -29,9 +29,11 @@ interface TasksKanbanBoardProps {
     onMoveColumnRight: (columnNanoid: string) => Promise<void>;
     onCreateTaskInColumn: (columnNanoid: string, title: string, priority: string | null, category: string | null) => Promise<void>;
     onMoveTaskToColumn: (task: Task, column: KanbanColumn) => Promise<void>;
+    onReorderTaskInColumn: (taskNanoid: string, overTaskNanoid: string, columnNanoid: string) => void;
     onTaskUpdate: (taskNanoid: string, status: TaskStatus, updates: Partial<Task>) => void;
     onDelete: (taskNanoid: string, status: TaskStatus) => void;
     onEditTask: (task: Task) => void;
+    assigneeLabelById?: Record<string, string>;
     categoryOptions?: string[];
     onAddCategory?: (category: string) => void;
     versions?: Version[];
@@ -48,9 +50,11 @@ export default function TasksKanbanBoard({
     onMoveColumnRight,
     onCreateTaskInColumn,
     onMoveTaskToColumn,
+    onReorderTaskInColumn,
     onTaskUpdate,
     onDelete,
     onEditTask,
+    assigneeLabelById,
     categoryOptions = [],
     onAddCategory,
     versions = [],
@@ -87,21 +91,31 @@ export default function TasksKanbanBoard({
         const sourceTask = tasks.find(t => t.nanoid === activeId);
         if (!sourceTask) return;
 
-        let targetColumn: KanbanColumn | undefined;
-
         if (overId.startsWith('column:')) {
             const columnNanoid = overId.replace('column:', '');
-            targetColumn = columns.find((column) => column.nanoid === columnNanoid);
-        } else {
+            const targetColumn = columns.find((column) => column.nanoid === columnNanoid);
+            if (targetColumn && sourceTask.kanban_column_nanoid !== targetColumn.nanoid) {
+                await onMoveTaskToColumn(sourceTask, targetColumn);
+            }
+            return;
+        }
+
+        if (overId.startsWith('task:')) {
             const overTaskId = overId.replace('task:', '');
             const overTask = tasks.find((task) => task.nanoid === overTaskId);
             if (overTask) {
-                targetColumn = columns.find((column) => column.nanoid === overTask.kanban_column_nanoid);
-            }
-        }
+                if (overTask.nanoid === sourceTask.nanoid) return;
 
-        if (targetColumn && sourceTask.kanban_column_nanoid !== targetColumn.nanoid) {
-            await onMoveTaskToColumn(sourceTask, targetColumn);
+                const targetColumn = columns.find((column) => column.nanoid === overTask.kanban_column_nanoid);
+                if (!targetColumn) return;
+
+                if (sourceTask.kanban_column_nanoid === targetColumn.nanoid) {
+                    onReorderTaskInColumn(sourceTask.nanoid, overTask.nanoid, targetColumn.nanoid);
+                    return;
+                }
+
+                await onMoveTaskToColumn(sourceTask, targetColumn);
+            }
         }
     };
 
@@ -135,6 +149,7 @@ export default function TasksKanbanBoard({
                                     onTaskUpdate={onTaskUpdate}
                                     onDelete={onDelete}
                                     onEdit={onEditTask}
+                                    assigneeLabelById={assigneeLabelById}
                                     categoryOptions={categoryOptions}
                                     onAddCategory={onAddCategory}
                                     versions={versions}
@@ -162,6 +177,7 @@ export default function TasksKanbanBoard({
                                 onDelete={() => { }}
                                 onEdit={() => { }}
                                 isDragging
+                                assigneeLabel={activeTask.assignee ? assigneeLabelById?.[activeTask.assignee] : undefined}
                                 versions={versions}
                             />
                         </div>

@@ -1,11 +1,10 @@
 {
-  "$schema": "https://ui.shadcn.com/schema.json",
   "style": "base-nova",
   "rsc": true,
   "tsx": true,
   "tailwind": {
     "config": "",
-    "css": "app/globals.css",
+    "css": "@/app/globals.css",
     "baseColor": "neutral",
     "cssVariables": true,
     "prefix": ""
@@ -22,6 +21,7 @@
   },
   "registries": {
     "@supabase": "https://supabase.com/ui/r/{name}.json",
-    "@magicui": "https://magicui.design/r/{name}"
+    "@magicui": "https://magicui.design/r/{name}",
+    "@coss": "https://coss.com/ui/r/{name}.json"
   }
 }

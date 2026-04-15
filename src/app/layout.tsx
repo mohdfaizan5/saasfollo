@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Inter_Tight, Source_Serif_4, Playfair_Display, Instrument_Serif } from "next/font/google";
+import { Geist_Mono, Inter_Tight, Source_Serif_4, Playfair_Display, Instrument_Serif, Inter } from "next/font/google";
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner"
@@ -7,6 +7,12 @@ import { Toaster } from "@/components/ui/sonner"
 const inter = Inter_Tight({ subsets: ['latin'], variable: '--font-inter' });
 
 import posthog from 'posthog-js'
+import { cn } from "@/lib/utils";
+
+const interHeading = Inter({subsets:['latin'],variable:'--font-heading'});
+
+// const inter = Inter({subsets:['latin'],variable:'--font-sans'});
+
 
 posthog.init('phc_ty7rHdmiwRnwdk2DPKDS5TiunkMdlhM9L0DFJjzEldS', {
   api_host: 'https://us.i.posthog.com',
@@ -48,7 +54,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${playfairDisplay.variable} ${instrumentSerif.variable}`}>
+    <html lang="en" className={cn(playfairDisplay.variable, instrumentSerif.variable, "font-sans", inter.variable, interHeading.variable)}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased  bg-[#F7F5F3]`}
       >

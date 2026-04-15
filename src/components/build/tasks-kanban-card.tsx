@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { CheckCircleIcon, CircleIcon, Trash } from '@phosphor-icons/react';
-import { Plus, ArrowDown, ArrowRight, ArrowUp } from 'lucide-react';
+import { Plus, ArrowDown, ArrowRight, ArrowUp, GripVertical, UserRound } from 'lucide-react';
 import type { Task, TaskStatus, Version } from '@/lib/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,7 @@ interface TasksKanbanCardProps {
     onDelete: (taskNanoid: string, status: TaskStatus) => void;
     onEdit: (task: Task) => void;
     isDragging?: boolean;
+    assigneeLabel?: string;
     categoryOptions?: string[];
     onAddCategory?: (category: string) => void;
     versions?: Version[];
@@ -32,7 +33,17 @@ const PRIORITY_COLORS: Record<string, string> = {
     low: 'text-blue-400 bg-blue-400/10',
 };
 
-export default function TasksKanbanCard({ task, onUpdate, onDelete, onEdit, isDragging, categoryOptions = [], onAddCategory, versions = [] }: TasksKanbanCardProps) {
+export default function TasksKanbanCard({
+    task,
+    onUpdate,
+    onDelete,
+    onEdit,
+    isDragging,
+    assigneeLabel,
+    categoryOptions = [],
+    onAddCategory,
+    versions = [],
+}: TasksKanbanCardProps) {
     const [isHovered, setIsHovered] = useState(false);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [titleDraft, setTitleDraft] = useState(task.title);
@@ -128,10 +139,8 @@ export default function TasksKanbanCard({ task, onUpdate, onDelete, onEdit, isDr
             <div
                 ref={setNodeRef}
                 style={style}
-                {...attributes}
-                {...listeners}
                 className={cn(
-                    "group relative p-3 rounded-xl bg-[#242528] transition-all cursor-grab active:cursor-grabbing border border-transparent hover:border-primary/20 hover:shadow-sm",
+                    "group relative p-3 rounded-xl bg-[#242528] transition-all cursor-pointer border border-transparent hover:border-primary/20 hover:shadow-sm",
                     isSortableDragging || isDragging ? 'opacity-50 shadow-lg ring-2 ring-primary/20' : '',
                     task.is_completed ? 'opacity-60' : ''
                 )}
@@ -163,6 +172,17 @@ export default function TasksKanbanCard({ task, onUpdate, onDelete, onEdit, isDr
                     )}>
                         {task.title}
                     </h4>
+
+                    <button
+                        type="button"
+                        {...attributes}
+                        {...listeners}
+                        onClick={(event) => event.stopPropagation()}
+                        className="text-muted-foreground/70 hover:text-foreground transition-colors p-0.5 -mt-1 shrink-0 cursor-grab active:cursor-grabbing"
+                        aria-label="Drag task"
+                    >
+                        <GripVertical className="w-3.5 h-3.5" />
+                    </button>
 
                     {isHovered && (
                         <button
@@ -196,6 +216,13 @@ export default function TasksKanbanCard({ task, onUpdate, onDelete, onEdit, isDr
                                 PRIORITY_COLORS[task.priority] || 'bg-secondary text-secondary-foreground'
                             )}>
                                 {task.priority}
+                            </span>
+                        )}
+
+                        {task.assignee && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-white/20 bg-white/5 text-white/80 font-medium select-none">
+                                <UserRound className="h-3 w-3" />
+                                {assigneeLabel ?? (task.assignee === 'team' ? 'Team' : task.assignee)}
                             </span>
                         )}
                     </div>
@@ -235,9 +262,9 @@ export default function TasksKanbanCard({ task, onUpdate, onDelete, onEdit, isDr
                                 <Label>Priority</Label>
                                 <ToggleGroup
                                     className="justify-start inline-flex w-full border rounded-md p-1 bg-muted/20"
-                                    type="single"
-                                    value={priorityDraft}
-                                    onValueChange={(val) => setPriorityDraft(val || 'none')}
+                                    // type="single"
+                                    value={priorityDraft === 'none' ? [] : [priorityDraft]}
+                                    onValueChange={(val) => setPriorityDraft(val[0] ?? 'none')}
                                 >
                                     <ToggleGroupItem value="low" aria-label="Toggle low" className="flex-1 gap-2 data-[state=on]:bg-green-500/15 data-[state=on]:text-green-600 dark:data-[state=on]:text-green-400 hover:bg-green-500/10 hover:text-green-600 dark:hover:text-green-400">
                                         <ArrowDown size={16} />

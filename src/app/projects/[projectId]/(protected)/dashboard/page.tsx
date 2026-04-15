@@ -591,7 +591,7 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                                     className="flex items-center justify-between rounded-lg border border-border/70 bg-muted/40 py-1 px-3"
                                 >
                                     <div className="flex items-center gap-3 min-w-0">
-                                        <Avatar size="sm">
+                                        <Avatar >
                                             <AvatarFallback>{getInitials(person.label)}</AvatarFallback>
                                         </Avatar>
                                         <p className="text-sm font-medium truncate">{person.label}</p>

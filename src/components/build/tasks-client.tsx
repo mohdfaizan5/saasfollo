@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { CheckSquare, Plus, ArrowDown, ArrowRight, ArrowUp } from 'lucide-react';
+import { CheckSquare, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogClose, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
@@ -39,6 +39,8 @@ import Image from 'next/image';
 const DEFAULT_CATEGORIES = ['Website', 'Marketing', 'SEO', 'Content'];
 const ALL_VERSIONS_VALUE = 'all';
 const UNASSIGNED_VERSION_VALUE = 'unassigned';
+const UNASSIGNED_ASSIGNEE_VALUE = 'unassigned';
+const TEAM_ASSIGNEE_VALUE = 'team';
 
 type ColumnIconRule = {
     keywords: string[];
@@ -132,7 +134,7 @@ export function TasksClient({
     const [newVersionId, setNewVersionId] = useState<string>('');
     const [newPriority, setNewPriority] = useState<string>('');
     const [newCategory, setNewCategory] = useState<TaskCategory>(null);
-    const [newAssignee, setNewAssignee] = useState<string>('');
+    const [newAssignee, setNewAssignee] = useState<string>(UNASSIGNED_ASSIGNEE_VALUE);
     const [newFilterNameInput, setNewFilterNameInput] = useState('');
     const [newFilterValuesInput, setNewFilterValuesInput] = useState('');
     const [isCreating, setIsCreating] = useState(false);
@@ -198,6 +200,43 @@ export function TasksClient({
         return version?.name ?? 'Select version';
     };
 
+    const assigneeOptions = useMemo(() => {
+        const options: Array<{ value: string; label: string }> = [
+            { value: UNASSIGNED_ASSIGNEE_VALUE, label: 'Unassigned' },
+            { value: TEAM_ASSIGNEE_VALUE, label: 'Team' },
+        ];
+
+        if (currentUserId) {
+            options.push({ value: currentUserId, label: 'You' });
+        }
+
+        const seen = new Set(options.map((option) => option.value));
+        for (const collaborator of collaborators) {
+            if (seen.has(collaborator.user_id)) continue;
+            options.push({
+                value: collaborator.user_id,
+                label: collaborator.user_id === currentUserId
+                    ? 'You'
+                    : collaborator.email.split('@')[0],
+            });
+            seen.add(collaborator.user_id);
+        }
+
+        return options;
+    }, [collaborators, currentUserId]);
+
+    const assigneeLabelById = useMemo(() => {
+        return assigneeOptions.reduce<Record<string, string>>((acc, option) => {
+            acc[option.value] = option.label;
+            return acc;
+        }, {});
+    }, [assigneeOptions]);
+
+    const normalizeAssignee = (value: string | null | undefined) => {
+        if (!value || value === UNASSIGNED_ASSIGNEE_VALUE) return null;
+        return value;
+    };
+
     const initializeCreateForm = () => {
         setNewStatus('next');
         setNewColumnNanoid((prev) => {
@@ -207,7 +246,7 @@ export function TasksClient({
         setNewVersionId(defaultVersionId);
         setNewPriority('medium');
         setNewCategory(null);
-        setNewAssignee('unassigned');
+        setNewAssignee(UNASSIGNED_ASSIGNEE_VALUE);
         setNewFilterNameInput('');
         setNewFilterValuesInput('');
     };
@@ -310,10 +349,10 @@ export function TasksClient({
                 }
                 // Assignee filter
                 if (selectedAssignee) {
-                    if (selectedAssignee === 'unassigned' && task.assignee) {
+                    if (selectedAssignee === UNASSIGNED_ASSIGNEE_VALUE && task.assignee) {
                         return false;
                     }
-                    if (selectedAssignee !== 'unassigned' && task.assignee !== selectedAssignee) {
+                    if (selectedAssignee !== UNASSIGNED_ASSIGNEE_VALUE && task.assignee !== selectedAssignee) {
                         return false;
                     }
                 }
@@ -354,7 +393,7 @@ export function TasksClient({
                 version_id: effectiveVersionId ? parseInt(effectiveVersionId, 10) : null,
                 priority: newPriority === 'none' ? null : (newPriority as Task['priority']) || null,
                 category: newCategory,
-                assignee: newAssignee === 'unassigned' ? null : (newAssignee || null),
+                assignee: normalizeAssignee(newAssignee),
                 is_completed: selectedColumn?.is_done_column ? true : newStatus === 'done',
             };
 
@@ -443,7 +482,7 @@ export function TasksClient({
                 version_id: effectiveVersionId ? parseInt(effectiveVersionId, 10) : null,
                 category: finalCategory,
                 priority: finalPriority as Task['priority'] | null,
-                assignee: selectedAssignee === 'unassigned' ? null : (selectedAssignee || null),
+                assignee: normalizeAssignee(selectedAssignee),
                 is_completed: status === 'done', // Set is_completed based on status
             };
 
@@ -673,6 +712,47 @@ export function TasksClient({
         await handleTaskUpdate(task.nanoid, task.status, updates);
     };
 
+    const handleReorderTaskInColumn = (taskNanoid: string, overTaskNanoid: string, columnNanoid: string) => {
+        if (taskNanoid === overTaskNanoid) return;
+
+        setTasks((prev) => {
+            const next: Record<TaskStatus, Task[]> = {
+                now: [...prev.now],
+                next: [...prev.next],
+                later: [...prev.later],
+                done: [...prev.done],
+            };
+
+            const statusKeys: TaskStatus[] = ['now', 'next', 'later', 'done'];
+            const statusKey = statusKeys.find((key) =>
+                next[key].some((task) => task.nanoid === taskNanoid || task.nanoid === overTaskNanoid),
+            );
+
+            if (!statusKey) return prev;
+
+            const statusList = next[statusKey];
+            const sameColumnTasks = statusList.filter((task) => task.kanban_column_nanoid === columnNanoid);
+            const fromIndex = sameColumnTasks.findIndex((task) => task.nanoid === taskNanoid);
+            const toIndex = sameColumnTasks.findIndex((task) => task.nanoid === overTaskNanoid);
+
+            if (fromIndex === -1 || toIndex === -1) return prev;
+
+            const reordered = [...sameColumnTasks];
+            const [moved] = reordered.splice(fromIndex, 1);
+            reordered.splice(toIndex, 0, moved);
+
+            let columnCursor = 0;
+            next[statusKey] = statusList.map((task) => {
+                if (task.kanban_column_nanoid !== columnNanoid) return task;
+                const replacement = reordered[columnCursor];
+                columnCursor += 1;
+                return replacement;
+            });
+
+            return next;
+        });
+    };
+
     return (
         <div className=" space-y-4">
             {/* Header */}
@@ -763,9 +843,9 @@ export function TasksClient({
                                             <Label>Priority</Label>
                                             <ToggleGroup
                                                 className="justify-start inline-flex w-full border rounded-md  bg-muted/20"
-                                                type="single"
-                                                value={newPriority}
-                                                onValueChange={(val) => setNewPriority(val)}
+                                                // type="single"
+                                                value={newPriority ? [newPriority] : []}
+                                                onValueChange={(val) => setNewPriority(val[0] ?? '')}
                                             >
                                                 <ToggleGroupItem value="low" aria-label="Toggle low" className="flex-1 p-1 gap-2 data-[state=on]:bg-green-500/15 data-[state=on]:text-green-600 dark:data-[state=on]:text-green-400 hover:bg-green-500/10 hover:text-green-600 dark:hover:text-green-400">
                                                     {/* <ArrowDown size={16} /> */}
@@ -792,7 +872,7 @@ export function TasksClient({
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-2 ">
                                             <Label>Category</Label>
                                             <Select
@@ -855,42 +935,31 @@ export function TasksClient({
                                             </div> */}
 
                                         </div>
-                                        {collaborators.length > 0 && (
-                                            <div className="space-y-2">
-                                                <Label>Assign to</Label>
-                                                <Select
-                                                    value={newAssignee}
-                                                    onValueChange={(v) => setNewAssignee(v ?? '')}
+                                    </div>
 
-                                                >
-                                                    <SelectTrigger className="bg-input/10 border-border w-full!">
-                                                        <SelectValue>
-                                                            {newAssignee === 'unassigned' 
-                                                                ? 'Unassigned' 
-                                                                : (() => {
-                                                                    const user = collaborators.find(c => c.user_id === newAssignee);
-                                                                    return user 
-                                                                        ? `${user.email.split('@')[0]}${user.user_id === currentUserId ? ' (You)' : ''}`
-                                                                        : newAssignee || 'Unassigned';
-                                                                })()
-                                                            }
-                                                        </SelectValue>
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="unassigned">Unassigned</SelectItem>
-                                                        {collaborators.map((collab) => (
-                                                            <SelectItem key={collab.id} value={collab.user_id}>
-                                                                {collab.email.split('@')[0]}
-                                                                {collab.user_id === currentUserId && ' (You)'}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                        )}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label>Assign to</Label>
+                                            <Select
+                                                value={newAssignee || UNASSIGNED_ASSIGNEE_VALUE}
+                                                onValueChange={(value) => setNewAssignee(value ?? UNASSIGNED_ASSIGNEE_VALUE)}
+                                            >
+                                                <SelectTrigger className="bg-input/10 border-border w-full!">
+                                                    <SelectValue placeholder="Unassigned" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {assigneeOptions.map((option) => (
+                                                        <SelectItem key={option.value} value={option.value}>
+                                                            {option.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
                                         {versions.length > 0 && (
                                             <div className="space-y-2">
-                                                <Label>Version 2</Label>
+                                                <Label>Version</Label>
                                                 <Select value={newVersionId} onValueChange={(v) => setNewVersionId(v ?? '')}>
                                                     <SelectTrigger className="bg-input/10 border-border w-full!">
                                                         <SelectValue>{getVersionLabel(newVersionId)}</SelectValue>
@@ -911,10 +980,12 @@ export function TasksClient({
                                     {error && <p className="text-sm text-destructive">{error}</p>}
                                 </div>
                                 <AlertDialogFooter>
-                                    <AlertDialogCancel disabled={isCreating}>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleCreate} disabled={isCreating}>
+                                    <AlertDialogClose render={<Button variant="outline" disabled={isCreating} />}>
+                                        Cancel
+                                    </AlertDialogClose>
+                                    <Button onClick={handleCreate} disabled={isCreating}>
                                         {isCreating ? 'Creating...' : 'Create Task'}
-                                    </AlertDialogAction>
+                                    </Button>
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
@@ -923,13 +994,19 @@ export function TasksClient({
             </div>
 
             {/* Progress Bar */}
-            <Card className="p-4 relative">
+            <Card className="p-4 relative overflow-hidden">
                 <TaskProgressBar
                     totalTasks={totalTasks}
                     completedTasks={completedTasks}
                     label={selectedCategoryLabel}
                 />
-                <Image className="absolute -bottom-8 -right-9 -rotate-6" src="/completed-todolist.png" alt="Login Background" width={160} height={160} />
+                <Image
+                    className="pointer-events-none select-none absolute -bottom-8 -right-9 -rotate-6"
+                    src="/completed-todolist.png"
+                    alt="Task completion"
+                    width={160}
+                    height={160}
+                />
 
             </Card>
 
@@ -969,11 +1046,13 @@ export function TasksClient({
                     onMoveColumnRight={handleMoveColumnRight}
                     onCreateTaskInColumn={handleCreateTaskInColumn}
                     onMoveTaskToColumn={handleMoveTaskToColumn}
+                    onReorderTaskInColumn={handleReorderTaskInColumn}
                     onTaskUpdate={handleTaskUpdate}
                     onDelete={handleDelete}
                     onEditTask={(task) => {
                         console.log('Edit task', task);
                     }}
+                    assigneeLabelById={assigneeLabelById}
                     categoryOptions={categoryOptions}
                     onAddCategory={addCategoryOption}
                     versions={versions}

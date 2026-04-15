@@ -37,6 +37,7 @@ interface TasksKanbanColumnProps {
     onTaskUpdate: (taskNanoid: string, status: TaskStatus, updates: Partial<Task>) => void;
     onDelete: (taskNanoid: string, status: TaskStatus) => void;
     onEdit: (task: Task) => void;
+    assigneeLabelById?: Record<string, string>;
     categoryOptions?: string[];
     onAddCategory?: (category: string) => void;
     versions?: Version[];
@@ -102,6 +103,7 @@ export default function TasksKanbanColumn({
     onTaskUpdate,
     onDelete,
     onEdit,
+    assigneeLabelById,
     categoryOptions = [],
     onAddCategory,
     versions = [],
@@ -337,6 +339,7 @@ export default function TasksKanbanColumn({
                                 onUpdate={onTaskUpdate}
                                 onDelete={onDelete}
                                 onEdit={onEdit}
+                                assigneeLabel={task.assignee ? assigneeLabelById?.[task.assignee] : undefined}
                                 categoryOptions={categoryOptions}
                                 onAddCategory={onAddCategory}
                                 versions={versions}

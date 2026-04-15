@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogClose, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { createSecret, deleteSecret, revealSecret, setupPin, hasPinSetup } from '@/lib/actions/secrets';
 import type { Secret } from '@/lib/types/database';
 
@@ -186,9 +186,9 @@ export function SecretsClient({ initialSecrets, projectId, hasPinInitially }: Se
                             {pinError && <p className="text-sm text-destructive">{pinError}</p>}
                         </div>
                         <AlertDialogFooter>
-                            <AlertDialogAction onClick={handleSetupPin} disabled={isSettingPin}>
+                            <Button onClick={handleSetupPin} disabled={isSettingPin}>
                                 {isSettingPin ? 'Setting up...' : 'Set PIN'}
-                            </AlertDialogAction>
+                            </Button>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
@@ -244,10 +244,12 @@ export function SecretsClient({ initialSecrets, projectId, hasPinInitially }: Se
                             {addError && <p className="text-sm text-destructive">{addError}</p>}
                         </div>
                         <AlertDialogFooter>
-                            <AlertDialogCancel disabled={isAdding}>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleAddSecret} disabled={isAdding}>
+                            <AlertDialogClose render={<Button variant="outline" disabled={isAdding} />}>
+                                Cancel
+                            </AlertDialogClose>
+                            <Button onClick={handleAddSecret} disabled={isAdding}>
                                 {isAdding ? 'Adding...' : 'Add Secret'}
-                            </AlertDialogAction>
+                            </Button>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
@@ -277,12 +279,15 @@ export function SecretsClient({ initialSecrets, projectId, hasPinInitially }: Se
                         {revealError && <p className="text-sm text-destructive">{revealError}</p>}
                     </div>
                     <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => { setRevealSecretId(null); setRevealPin(''); setRevealError(null); }}>
+                        <AlertDialogClose
+                            onClick={() => { setRevealSecretId(null); setRevealPin(''); setRevealError(null); }}
+                            render={<Button variant="outline" />}
+                        >
                             Cancel
-                        </AlertDialogCancel>
-                        <AlertDialogAction onClick={handleReveal} disabled={isRevealing}>
+                        </AlertDialogClose>
+                        <Button onClick={handleReveal} disabled={isRevealing}>
                             {isRevealing ? 'Verifying...' : 'Reveal'}
-                        </AlertDialogAction>
+                        </Button>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
