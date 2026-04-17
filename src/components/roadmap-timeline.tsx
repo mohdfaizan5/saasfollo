@@ -51,12 +51,7 @@ export default function RoadmapTimeline({ versions, activeVersionId, projectNano
     orderedVersions[orderedVersions.length - 1]?.id ??
     null;
 
-  const activeIndex = orderedVersions.findIndex((version) => version.id === resolvedActiveVersionId);
-  const displayVersions = useMemo(() => {
-    const versionsUpToActive =
-      activeIndex >= 0 ? orderedVersions.slice(0, activeIndex + 1) : orderedVersions;
-    return [...versionsUpToActive].reverse();
-  }, [activeIndex, orderedVersions]);
+  const displayVersions = useMemo(() => [...orderedVersions].reverse(), [orderedVersions]);
 
   const [savedPrdByVersionId, setSavedPrdByVersionId] = useState<PrdMap>(() => toPrdMap(displayVersions));
   const [draftPrdByVersionId, setDraftPrdByVersionId] = useState<PrdMap>(() => toPrdMap(displayVersions));

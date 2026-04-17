@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogClose, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogPopup, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogClose, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { createVersion, setVersionActive, deleteVersion, updateVersion, moveVersion } from '@/lib/actions/versions';
 import { useProjectRole } from '@/hooks/use-project-role';
 import type { Version, Task, ProjectCollaborator } from '@/lib/types/database';
@@ -147,14 +147,14 @@ export function VersionsClient({ initialVersions, projectId, activeVersionId, ta
                         setIsDialogOpen(open);
                     }}>
                         <AlertDialogTrigger render={<Button><Plus className="h-4 w-4 mr-2" />New Version</Button>} />
-                        <AlertDialogContent className="max-w-md">
+                        <AlertDialogPopup className="max-w-md">
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Create New Version</AlertDialogTitle>
                                 <AlertDialogDescription>
                                     Step {step} of 2 {step === 1 ? "- Basic Info" : "- Details"}
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
-                            <div className="space-y-4 py-4">
+                            <div className="space-y-4 px-6 py-4">
                                 {step === 1 ? (
                                     <>
                                         <div className="space-y-2">
@@ -234,7 +234,7 @@ export function VersionsClient({ initialVersions, projectId, activeVersionId, ta
                                     </Button>
                                 )}
                             </AlertDialogFooter>
-                        </AlertDialogContent>
+                        </AlertDialogPopup>
                     </AlertDialog>
                 )}
             </div>

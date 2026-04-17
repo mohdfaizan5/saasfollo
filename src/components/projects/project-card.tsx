@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogPopup, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -337,8 +337,8 @@ export function ProjectCard({ project }: ProjectCardProps) {
             </Card>
 
             <Dialog open={isDeleteDialogOpen} onOpenChange={(open) => { if (!open) cancelDelete(); else setIsDeleteDialogOpen(true); }}>
-                <DialogContent>
-                    <div className="flex flex-col items-center gap-2">
+                <DialogPopup>
+                    <div className="flex flex-col items-center gap-2 px-6 pt-6">
                         <div
                             aria-hidden="true"
                             className="flex size-9 shrink-0 items-center justify-center rounded-full border"
@@ -355,7 +355,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
                         </DialogHeader>
                     </div>
 
-                    <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+                    <form className="space-y-5 px-6 pb-6" onSubmit={(e) => e.preventDefault()}>
                         <div className="*:not-first:mt-2">
                             <Label htmlFor="delete-input">Project name</Label>
                             <Input
@@ -391,7 +391,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
                             </Button>
                         </DialogFooter>
                     </form>
-                </DialogContent>
+                </DialogPopup>
             </Dialog>
         </>
     );

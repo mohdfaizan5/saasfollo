@@ -15,7 +15,8 @@ import { useProjectRole } from '@/hooks/use-project-role';
 import type { Link as LinkType } from '@/lib/types/database';
 import {
     Dialog,
-    DialogContent,
+    DialogPanel,
+    DialogPopup,
     DialogDescription,
     DialogFooter,
     DialogHeader,
@@ -632,13 +633,13 @@ export function LinksClient({ initialLinks, projectId }: LinksClientProps) {
                     }
                 }}
             >
-                <DialogContent>
+                <DialogPopup>
                     <DialogHeader>
                         <DialogTitle>Edit Link</DialogTitle>
                         <DialogDescription>Update URL and optional tag.</DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-3">
+                    <DialogPanel className="space-y-3">
                         <Input
                             placeholder="https://example.com"
                             value={editUrlInput}
@@ -694,9 +695,9 @@ export function LinksClient({ initialLinks, projectId }: LinksClientProps) {
                                 </div>
                             )}
                         </div>
-                    </div>
 
-                    {editError && <p className="text-sm text-destructive">{editError}</p>}
+                        {editError && <p className="text-sm text-destructive">{editError}</p>}
+                    </DialogPanel>
 
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setEditingLink(null)} disabled={isSavingEdit}>
@@ -706,7 +707,7 @@ export function LinksClient({ initialLinks, projectId }: LinksClientProps) {
                             {isSavingEdit ? 'Saving...' : 'Save'}
                         </Button>
                     </DialogFooter>
-                </DialogContent>
+                </DialogPopup>
             </Dialog>
 
             {/* Bento Grid */}

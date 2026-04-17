@@ -20,11 +20,11 @@ export default function RatingInput({ value, onChange, label = "How would you ra
   ];
 
   return (
-    <fieldset className="space-y-4">
+    <fieldset className="mb-4">
       <legend className="font-medium text-foreground text-sm leading-none">
         {label}
       </legend>
-      <RadioGroup className="flex gap-1.5" value={value} defaultValue="3" onValueChange={onChange}>
+      <RadioGroup className="flex flex-row gap-1.5" value={value} defaultValue="3" onValueChange={onChange}>
         {items.map((item) => (
           <label
             className="relative flex size-9 cursor-pointer flex-col items-center justify-center rounded-full border border-input text-center text-xl shadow-xs outline-none transition-[color,box-shadow] has-data-disabled:cursor-not-allowed has-data-[state=checked]:border-primary/50 has-focus-visible:border-ring has-data-disabled:opacity-50 has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50"

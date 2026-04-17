@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import {
     Dialog,
-    DialogContent,
+    DialogPanel,
+    DialogPopup,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
@@ -176,55 +177,57 @@ export function GrowthDashboard({ plan, versionName }: GrowthDashboardProps) {
                                 Log Activity
                             </Button>
                         } />
-                        <DialogContent className="sm:max-w-106.25">
+                        <DialogPopup className="sm:max-w-106.25">
                             <DialogHeader>
                                 <DialogTitle>Log Progress</DialogTitle>
                             </DialogHeader>
-                            <form onSubmit={handleLogSubmit} className="space-y-6 mt-4">
-                                <div className="space-y-2">
-                                    <Label>Activity</Label>
-                                    <Select value={logActivityId} onValueChange={(val) => setLogActivityId(val || '')} required>
-                                        <SelectTrigger>
-                                            <SelectValue>
-                                                {!logActivityId && <span className="text-muted-foreground">Select activity completed</span>}
-                                            </SelectValue>
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {plan.activities.map((act) => (
-                                                <SelectItem key={act.id} value={act.id.toString()}>
-                                                    {act.custom_name || act.type.replace(/_/g, ' ')}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                            <DialogPanel className="pt-4">
+                                <form onSubmit={handleLogSubmit} className="space-y-6">
+                                    <div className="space-y-2">
+                                        <Label>Activity</Label>
+                                        <Select value={logActivityId} onValueChange={(val) => setLogActivityId(val || '')} required>
+                                            <SelectTrigger>
+                                                <SelectValue>
+                                                    {!logActivityId && <span className="text-muted-foreground">Select activity completed</span>}
+                                                </SelectValue>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {plan.activities.map((act) => (
+                                                    <SelectItem key={act.id} value={act.id.toString()}>
+                                                        {act.custom_name || act.type.replace(/_/g, ' ')}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
 
-                                <div className="space-y-2">
-                                    <Label>Quantity Done</Label>
-                                    <Input
-                                        type="number"
-                                        min="1"
-                                        required
-                                        value={logQuantity}
-                                        onChange={(e) => setLogQuantity(parseInt(e.target.value) || 0)}
-                                    />
-                                    <p className="text-xs text-muted-foreground">Amount completed in this session.</p>
-                                </div>
+                                    <div className="space-y-2">
+                                        <Label>Quantity Done</Label>
+                                        <Input
+                                            type="number"
+                                            min="1"
+                                            required
+                                            value={logQuantity}
+                                            onChange={(e) => setLogQuantity(parseInt(e.target.value) || 0)}
+                                        />
+                                        <p className="text-xs text-muted-foreground">Amount completed in this session.</p>
+                                    </div>
 
-                                <div className="space-y-2">
-                                    <Label>(Optional) Note</Label>
-                                    <Textarea
-                                        placeholder="E.g. messaged top 5 prospects"
-                                        value={logNote}
-                                        onChange={(e) => setLogNote(e.target.value)}
-                                    />
-                                </div>
+                                    <div className="space-y-2">
+                                        <Label>(Optional) Note</Label>
+                                        <Textarea
+                                            placeholder="E.g. messaged top 5 prospects"
+                                            value={logNote}
+                                            onChange={(e) => setLogNote(e.target.value)}
+                                        />
+                                    </div>
 
-                                <Button type="submit" className="w-full font-bold" disabled={isLogging || !logActivityId}>
-                                    {isLogging ? 'Logging...' : 'Submit Log'}
-                                </Button>
-                            </form>
-                        </DialogContent>
+                                    <Button type="submit" className="w-full font-bold" disabled={isLogging || !logActivityId}>
+                                        {isLogging ? 'Logging...' : 'Submit Log'}
+                                    </Button>
+                                </form>
+                            </DialogPanel>
+                        </DialogPopup>
                     </Dialog>
                     {/* <p className="text-muted-foreground flex items-center gap-2 mt-1 font-medium">
                         {deadlinePassed ? (

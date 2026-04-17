@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogClose, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogPopup, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogClose, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { createProject } from '@/lib/actions/projects';
 
 interface CreateProjectDialogProps {
@@ -65,7 +65,7 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
             <AlertDialogTrigger
                 render={<Button><Plus className="h-4 w-4 mr-2" />New Project</Button>}
             />
-            <AlertDialogContent>
+            <AlertDialogPopup>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Create New Project</AlertDialogTitle>
                     <AlertDialogDescription>
@@ -73,7 +73,7 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
                     </AlertDialogDescription>
                 </AlertDialogHeader>
 
-                <div className="space-y-4 py-4">
+                <div className="space-y-4 px-6 py-4">
                     <div className="space-y-2">
                         <Label htmlFor="project-name">Project Name</Label>
                         <Input
@@ -110,7 +110,7 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
                         {isLoading ? 'Creating...' : 'Create Project'}
                     </Button>
                 </AlertDialogFooter>
-            </AlertDialogContent>
+            </AlertDialogPopup>
         </AlertDialog>
     );
 }

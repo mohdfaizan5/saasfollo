@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import {
     Dialog,
-    DialogContent,
+    DialogPopup,
     DialogDescription,
     DialogFooter,
     DialogHeader,
@@ -60,7 +60,7 @@ export function DeleteProjectSection({ project }: { project: Project }) {
                     <DialogTrigger render={<Button variant="destructive" className="w-full sm:w-auto" />}>
                         Delete Project
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogPopup>
                         <DialogHeader>
                             <DialogTitle>Delete Project</DialogTitle>
                             <DialogDescription>
@@ -70,7 +70,7 @@ export function DeleteProjectSection({ project }: { project: Project }) {
                             </DialogDescription>
                         </DialogHeader>
 
-                        <div className="space-y-4 py-4">
+                        <div className="space-y-4 px-6 py-4">
                             <div className="space-y-2">
                                 <Label htmlFor="confirm">Type the project name to confirm</Label>
                                 <Input
@@ -94,7 +94,7 @@ export function DeleteProjectSection({ project }: { project: Project }) {
                                 Delete Project
                             </Button>
                         </DialogFooter>
-                    </DialogContent>
+                    </DialogPopup>
                 </Dialog>
             </div>
         </div>

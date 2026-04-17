@@ -54,6 +54,7 @@ export interface Task {
   nanoid: string;
   project_id: number;
   kanban_column_nanoid: string | null;
+  position: number | null;
   version_id: number | null;
   title: string;
   description: string | null;
@@ -135,6 +136,7 @@ export interface VersionInsert {
 export interface TaskInsert {
   project_id: number;
   kanban_column_nanoid?: string | null;
+  position?: number | null;
   version_id?: number | null;
   title: string;
   description?: string | null;
@@ -196,6 +198,7 @@ export interface VersionUpdate {
 
 export interface TaskUpdate {
   kanban_column_nanoid?: string | null;
+  position?: number | null;
   version_id?: number | null;
   title?: string;
   description?: string | null;

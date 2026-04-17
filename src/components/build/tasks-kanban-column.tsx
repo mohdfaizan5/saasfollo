@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { motion, useReducedMotion } from 'motion/react';
@@ -120,6 +120,20 @@ export default function TasksKanbanColumn({
     const [newTaskCategory, setNewTaskCategory] = useState<string>('none');
     const semantic = getColumnSemantic(column.title, column.is_done_column);
     const Icon = semantic.icon;
+    const sortedTasks = useMemo(
+        () =>
+            [...tasks].sort((a, b) => {
+                const positionA = a.position ?? Number.MAX_SAFE_INTEGER;
+                const positionB = b.position ?? Number.MAX_SAFE_INTEGER;
+
+                if (positionA !== positionB) {
+                    return positionA - positionB;
+                }
+
+                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+            }),
+        [tasks],
+    );
 
     useEffect(() => {
         setTitleDraft(column.title);
@@ -193,7 +207,12 @@ export default function TasksKanbanColumn({
                     </div>
                     {canEdit && (
                         <div className="flex items-center gap-1">
-                            <Button variant="link" size="icon-sm" onClick={() => setIsAddingTask((prev) => !prev)}>
+                            <Button
+                                variant="link"
+                                size="icon-sm"
+                                onClick={() => setIsAddingTask((prev) => !prev)}
+                                className="rounded-md text-white/80 opacity-100 hover:bg-white/10 hover:text-white"
+                            >
                                 <Plus className="h-4 w-4" />
                             </Button>
                             <DropdownMenu>
@@ -323,8 +342,8 @@ export default function TasksKanbanColumn({
                 ref={setNodeRef}
                 className="min-h-25 flex-1 space-y-2 overflow-y-auto pr-1"
             >
-                <SortableContext items={tasks.map((task) => `task:${task.nanoid}`)} strategy={verticalListSortingStrategy}>
-                    {tasks.length === 0 ? (
+                <SortableContext items={sortedTasks.map((task) => `task:${task.nanoid}`)} strategy={verticalListSortingStrategy}>
+                    {sortedTasks.length === 0 ? (
                         <div className={cn(
                             "text-center text-white/50 text-sm py-8 rounded-xl border-2 border-dashed transition-colors",
                             isOver ? 'border-primary/30 bg-primary/5' : 'border-transparent'
@@ -332,7 +351,7 @@ export default function TasksKanbanColumn({
                             Drop tasks here
                         </div>
                     ) : (
-                        tasks.map((task) => (
+                        sortedTasks.map((task) => (
                             <TasksKanbanCard
                                 key={task.nanoid}
                                 task={task}

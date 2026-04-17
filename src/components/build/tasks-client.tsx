@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogClose, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogPopup, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogClose, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
@@ -85,6 +85,38 @@ function getColumnSemantic(title: string, isDoneColumn: boolean) {
         icon: matchedRule?.icon ?? CubeIcon,
         iconWeight: matchedRule?.weight ?? ('duotone' as const),
     };
+}
+
+function sortTasksByPositionThenNewest(tasks: Task[]): Task[] {
+    return [...tasks].sort((a, b) => {
+        const positionA = a.position ?? Number.MAX_SAFE_INTEGER;
+        const positionB = b.position ?? Number.MAX_SAFE_INTEGER;
+
+        if (positionA !== positionB) {
+            return positionA - positionB;
+        }
+
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+}
+
+function getNextTaskPosition(tasks: Task[], columnNanoid: string | null | undefined): number | undefined {
+    if (!columnNanoid) {
+        return undefined;
+    }
+
+    const columnTasks = tasks.filter((task) => task.kanban_column_nanoid === columnNanoid);
+    let hasNumericPosition = false;
+    let maxPosition = 0;
+
+    for (const task of columnTasks) {
+        if (typeof task.position === 'number') {
+            hasNumericPosition = true;
+            maxPosition = Math.max(maxPosition, task.position);
+        }
+    }
+
+    return hasNumericPosition ? maxPosition + 1 : columnTasks.length + 1;
 }
 
 interface TasksClientProps {
@@ -385,11 +417,13 @@ export function TasksClient({
         try {
             const selectedColumn = columns.find((column) => column.nanoid === newColumnNanoid);
             const effectiveVersionId = newVersionId || defaultVersionId;
+            const nextPosition = getNextTaskPosition(Object.values(tasks).flat(), selectedColumn?.nanoid ?? null);
             const taskData = {
                 title: newTitle.trim(),
                 description: newDescription.trim() || null,
                 status: selectedColumn?.is_done_column ? 'done' : newStatus,
                 kanban_column_nanoid: selectedColumn?.nanoid ?? null,
+                position: nextPosition,
                 version_id: effectiveVersionId ? parseInt(effectiveVersionId, 10) : null,
                 priority: newPriority === 'none' ? null : (newPriority as Task['priority']) || null,
                 category: newCategory,
@@ -475,10 +509,13 @@ export function TasksClient({
                 finalPriority = priority;
             }
 
+            const nextPosition = getNextTaskPosition(Object.values(tasks).flat(), columnNanoid ?? null);
+
             const taskData = {
                 title: title.trim(),
                 status: status,
                 kanban_column_nanoid: columnNanoid ?? null,
+                position: nextPosition,
                 version_id: effectiveVersionId ? parseInt(effectiveVersionId, 10) : null,
                 category: finalCategory,
                 priority: finalPriority as Task['priority'] | null,
@@ -697,8 +734,16 @@ export function TasksClient({
     };
 
     const handleMoveTaskToColumn = async (task: Task, column: KanbanColumn) => {
+        const nextPosition = getNextTaskPosition(
+            Object.values(tasks)
+                .flat()
+                .filter((item) => item.nanoid !== task.nanoid),
+            column.nanoid,
+        );
+
         const updates: Partial<Task> = {
             kanban_column_nanoid: column.nanoid,
+            position: nextPosition,
         };
 
         if (column.is_done_column) {
@@ -715,41 +760,63 @@ export function TasksClient({
     const handleReorderTaskInColumn = (taskNanoid: string, overTaskNanoid: string, columnNanoid: string) => {
         if (taskNanoid === overTaskNanoid) return;
 
-        setTasks((prev) => {
-            const next: Record<TaskStatus, Task[]> = {
-                now: [...prev.now],
-                next: [...prev.next],
-                later: [...prev.later],
-                done: [...prev.done],
-            };
+        let positionUpdates: Array<{ nanoid: string; position: number }> = [];
 
-            const statusKeys: TaskStatus[] = ['now', 'next', 'later', 'done'];
-            const statusKey = statusKeys.find((key) =>
-                next[key].some((task) => task.nanoid === taskNanoid || task.nanoid === overTaskNanoid),
+        setTasks((prev) => {
+            const columnTasks = sortTasksByPositionThenNewest(Object.values(prev).flat()).filter(
+                (task) => task.kanban_column_nanoid === columnNanoid,
             );
 
-            if (!statusKey) return prev;
-
-            const statusList = next[statusKey];
-            const sameColumnTasks = statusList.filter((task) => task.kanban_column_nanoid === columnNanoid);
-            const fromIndex = sameColumnTasks.findIndex((task) => task.nanoid === taskNanoid);
-            const toIndex = sameColumnTasks.findIndex((task) => task.nanoid === overTaskNanoid);
+            const fromIndex = columnTasks.findIndex((task) => task.nanoid === taskNanoid);
+            const toIndex = columnTasks.findIndex((task) => task.nanoid === overTaskNanoid);
 
             if (fromIndex === -1 || toIndex === -1) return prev;
 
-            const reordered = [...sameColumnTasks];
-            const [moved] = reordered.splice(fromIndex, 1);
-            reordered.splice(toIndex, 0, moved);
+            const reordered = [...columnTasks];
+            const [movedTask] = reordered.splice(fromIndex, 1);
+            reordered.splice(toIndex, 0, movedTask);
 
-            let columnCursor = 0;
-            next[statusKey] = statusList.map((task) => {
-                if (task.kanban_column_nanoid !== columnNanoid) return task;
-                const replacement = reordered[columnCursor];
-                columnCursor += 1;
-                return replacement;
-            });
+            positionUpdates = reordered.map((task, index) => ({
+                nanoid: task.nanoid,
+                position: index + 1,
+            }));
 
-            return next;
+            const positionByNanoid = new Map(positionUpdates.map((item) => [item.nanoid, item.position]));
+
+            return {
+                now: prev.now.map((task) =>
+                    positionByNanoid.has(task.nanoid)
+                        ? { ...task, position: positionByNanoid.get(task.nanoid)! }
+                        : task,
+                ),
+                next: prev.next.map((task) =>
+                    positionByNanoid.has(task.nanoid)
+                        ? { ...task, position: positionByNanoid.get(task.nanoid)! }
+                        : task,
+                ),
+                later: prev.later.map((task) =>
+                    positionByNanoid.has(task.nanoid)
+                        ? { ...task, position: positionByNanoid.get(task.nanoid)! }
+                        : task,
+                ),
+                done: prev.done.map((task) =>
+                    positionByNanoid.has(task.nanoid)
+                        ? { ...task, position: positionByNanoid.get(task.nanoid)! }
+                        : task,
+                ),
+            };
+        });
+
+        if (positionUpdates.length === 0) {
+            return;
+        }
+
+        void Promise.all(
+            positionUpdates.map((update) =>
+                updateTask(update.nanoid, projectId, { position: update.position }),
+            ),
+        ).catch((err) => {
+            console.error('Failed to persist task order:', err);
         });
     };
 
@@ -784,14 +851,14 @@ export function TasksClient({
                             }}
                         >
                             <AlertDialogTrigger render={<Button><Plus className="h-4 w-4 mr-2" />New Task</Button>} />
-                            <AlertDialogContent className="data-[size=default]:sm:max-w-xl">
+                            <AlertDialogPopup className="sm:max-w-xl">
                                 <AlertDialogHeader>
                                     <AlertDialogTitle className="text-xl font-semibold">Create New Task</AlertDialogTitle>
                                     <AlertDialogDescription>
                                         Add a task to track work for this project.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
-                                <div className="space-y-5 py-4">
+                                <div className="space-y-5 px-6 py-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="task-title">Title</Label>
                                         <Input
@@ -843,7 +910,7 @@ export function TasksClient({
                                             <Label>Priority</Label>
                                             <ToggleGroup
                                                 className="justify-start inline-flex w-full border rounded-md  bg-muted/20"
-                                                // type="single"
+                                                multiple={false}
                                                 value={newPriority ? [newPriority] : []}
                                                 onValueChange={(val) => setNewPriority(val[0] ?? '')}
                                             >
@@ -987,7 +1054,7 @@ export function TasksClient({
                                         {isCreating ? 'Creating...' : 'Create Task'}
                                     </Button>
                                 </AlertDialogFooter>
-                            </AlertDialogContent>
+                            </AlertDialogPopup>
                         </AlertDialog>
                     )}
                 </div>

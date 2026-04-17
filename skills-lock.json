@@ -5,6 +5,11 @@
       "source": "coreyhaines31/marketingskills",
       "sourceType": "github",
       "computedHash": "39b7a636c7e254a2f08dee43db6b9f6faf6723de999a6bbce2eb5ac95a130207"
+    },
+    "coss-particles": {
+      "source": "cosscom/coss",
+      "sourceType": "github",
+      "computedHash": "7f99b88dc87f9b262fc4860cd4126fa81ee184bfe2b7471ec6f3027cf212a739"
     }
   }
 }

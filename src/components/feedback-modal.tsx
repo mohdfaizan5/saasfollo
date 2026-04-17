@@ -3,10 +3,11 @@
 import * as React from 'react';
 import {
     Dialog,
-    DialogContent,
+    DialogPopup,
     DialogHeader,
     DialogTitle,
     DialogDescription,
+    DialogPanel,
     DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -85,17 +86,19 @@ export function FeedbackModal({ open, onOpenChange, userEmail = '' }: FeedbackMo
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent className="sm:max-w-md">
+            <DialogPopup className="sm:max-w-md">
                 {isSubmitted ? (
-                    <div className="flex flex-col items-center justify-center py-8 gap-3">
-                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-green-100">
-                            <CheckCircle className="w-6 h-6 text-green-600" />
+                    <DialogPanel>
+                        <div className="flex flex-col items-center justify-center py-8 gap-3">
+                            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-green-100">
+                                <CheckCircle className="w-6 h-6 text-green-600" />
+                            </div>
+                            <p className="text-sm font-medium text-foreground">Thank you for your feedback!</p>
+                            <p className="text-xs text-muted-foreground">Your response has been recorded.</p>
                         </div>
-                        <p className="text-sm font-medium text-foreground">Thank you for your feedback!</p>
-                        <p className="text-xs text-muted-foreground">Your response has been recorded.</p>
-                    </div>
+                    </DialogPanel>
                 ) : (
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={handleSubmit} className="contents">
                         <DialogHeader>
                             <DialogTitle>Share Your Feedback</DialogTitle>
                             <DialogDescription>
@@ -103,7 +106,7 @@ export function FeedbackModal({ open, onOpenChange, userEmail = '' }: FeedbackMo
                             </DialogDescription>
                         </DialogHeader>
 
-                        <div className="grid gap-4 py-4">
+                        <DialogPanel className="grid gap-4 py-4">
                             {/* Email (read-only, prefilled) */}
                             <div className="grid gap-2">
                                 <Label htmlFor="feedback-email">Email</Label>
@@ -150,7 +153,7 @@ export function FeedbackModal({ open, onOpenChange, userEmail = '' }: FeedbackMo
                                     rows={3}
                                 />
                             </div>
-                        </div>
+                        </DialogPanel>
 
                         <DialogFooter>
                             <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
@@ -166,7 +169,7 @@ export function FeedbackModal({ open, onOpenChange, userEmail = '' }: FeedbackMo
                         </DialogFooter>
                     </form>
                 )}
-            </DialogContent>
+            </DialogPopup>
         </Dialog>
     );
 }

@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogClose, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogPopup, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogClose, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { createSecret, deleteSecret, revealSecret, setupPin, hasPinSetup } from '@/lib/actions/secrets';
 import type { Secret } from '@/lib/types/database';
 
@@ -150,7 +150,7 @@ export function SecretsClient({ initialSecrets, projectId, hasPinInitially }: Se
         return (
             <div className="p-6">
                 <AlertDialog open={isPinDialogOpen} onOpenChange={() => { }}>
-                    <AlertDialogContent>
+                    <AlertDialogPopup>
                         <AlertDialogHeader>
                             <AlertDialogTitle className="flex items-center gap-2">
                                 <KeyRound className="h-5 w-5" />
@@ -160,7 +160,7 @@ export function SecretsClient({ initialSecrets, projectId, hasPinInitially }: Se
                                 Create a 6-digit PIN to protect your secrets. You&apos;ll need this PIN to reveal any secret values.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
-                        <div className="space-y-4 py-4">
+                        <div className="space-y-4 px-6 py-4">
                             <div className="space-y-2">
                                 <Label>Enter 6-digit PIN</Label>
                                 <Input
@@ -190,7 +190,7 @@ export function SecretsClient({ initialSecrets, projectId, hasPinInitially }: Se
                                 {isSettingPin ? 'Setting up...' : 'Set PIN'}
                             </Button>
                         </AlertDialogFooter>
-                    </AlertDialogContent>
+                    </AlertDialogPopup>
                 </AlertDialog>
             </div>
         );
@@ -214,14 +214,14 @@ export function SecretsClient({ initialSecrets, projectId, hasPinInitially }: Se
 
                 <AlertDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                     <AlertDialogTrigger render={<Button><Plus className="h-4 w-4 mr-2" />Add Secret</Button>} />
-                    <AlertDialogContent>
+                    <AlertDialogPopup>
                         <AlertDialogHeader>
                             <AlertDialogTitle>Add New Secret</AlertDialogTitle>
                             <AlertDialogDescription>
                                 Store a key-value pair securely
                             </AlertDialogDescription>
                         </AlertDialogHeader>
-                        <div className="space-y-4 py-4">
+                        <div className="space-y-4 px-6 py-4">
                             <div className="space-y-2">
                                 <Label>Key (e.g., API_KEY)</Label>
                                 <Input
@@ -251,13 +251,13 @@ export function SecretsClient({ initialSecrets, projectId, hasPinInitially }: Se
                                 {isAdding ? 'Adding...' : 'Add Secret'}
                             </Button>
                         </AlertDialogFooter>
-                    </AlertDialogContent>
+                    </AlertDialogPopup>
                 </AlertDialog>
             </div>
 
             {/* Reveal PIN Dialog */}
             <AlertDialog open={revealSecretId !== null} onOpenChange={(open) => !open && setRevealSecretId(null)}>
-                <AlertDialogContent>
+                <AlertDialogPopup>
                     <AlertDialogHeader>
                         <AlertDialogTitle className="flex items-center gap-2">
                             <KeyRound className="h-5 w-5" />
@@ -267,7 +267,7 @@ export function SecretsClient({ initialSecrets, projectId, hasPinInitially }: Se
                             Enter your 6-digit PIN to reveal this secret
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <div className="space-y-4 py-4">
+                    <div className="space-y-4 px-6 py-4">
                         <Input
                             type="password"
                             maxLength={6}
@@ -289,7 +289,7 @@ export function SecretsClient({ initialSecrets, projectId, hasPinInitially }: Se
                             {isRevealing ? 'Verifying...' : 'Reveal'}
                         </Button>
                     </AlertDialogFooter>
-                </AlertDialogContent>
+                </AlertDialogPopup>
             </AlertDialog>
 
             {/* Secrets List */}

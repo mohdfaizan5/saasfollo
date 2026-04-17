@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogClose, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogPopup, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogClose, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { createNote, createNoteFromTemplate, deleteNote } from '@/lib/actions/notes';
 import { NOTE_TEMPLATES, type NoteTemplateKey } from '@/lib/constants/note-templates';
 import { useProjectRole } from '@/hooks/use-project-role';
@@ -143,14 +143,14 @@ export function NotesClient({ initialNotes, initialVersions = [], projectId }: N
                 {canEdit && (
                     <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                         <AlertDialogTrigger render={<Button size="lg"><Plus className="h-5 w-5 mr-2" />New Note</Button>} />
-                        <AlertDialogContent>
+                        <AlertDialogPopup>
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Create New Note</AlertDialogTitle>
                                 <AlertDialogDescription>
                                     Add a note to capture ideas and thoughts
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
-                            <div className="space-y-4 py-4">
+                            <div className="space-y-4 px-6 py-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="note-title">Title</Label>
                                     <Input
@@ -171,7 +171,7 @@ export function NotesClient({ initialNotes, initialVersions = [], projectId }: N
                                     {isCreating ? 'Creating...' : 'Create Note'}
                                 </Button>
                             </AlertDialogFooter>
-                        </AlertDialogContent>
+                        </AlertDialogPopup>
                     </AlertDialog>
                 )}
             </div>

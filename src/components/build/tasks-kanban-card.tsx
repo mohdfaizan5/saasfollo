@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogDescription, DialogFooter, DialogHeader, DialogPanel, DialogPopup, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 interface TasksKanbanCardProps {
@@ -139,6 +139,8 @@ export default function TasksKanbanCard({
             <div
                 ref={setNodeRef}
                 style={style}
+                {...attributes}
+                {...listeners}
                 className={cn(
                     "group relative p-3 rounded-xl bg-[#242528] transition-all cursor-pointer border border-transparent hover:border-primary/20 hover:shadow-sm",
                     isSortableDragging || isDragging ? 'opacity-50 shadow-lg ring-2 ring-primary/20' : '',
@@ -175,8 +177,6 @@ export default function TasksKanbanCard({
 
                     <button
                         type="button"
-                        {...attributes}
-                        {...listeners}
                         onClick={(event) => event.stopPropagation()}
                         className="text-muted-foreground/70 hover:text-foreground transition-colors p-0.5 -mt-1 shrink-0 cursor-grab active:cursor-grabbing"
                         aria-label="Drag task"
@@ -235,13 +235,13 @@ export default function TasksKanbanCard({
                 }
                 setIsDetailsOpen(open);
             }}>
-                <DialogContent className="sm:max-w-lg">
+                <DialogPopup className="sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle>Task Details</DialogTitle>
                         <DialogDescription>View and update task information.</DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-3">
+                    <DialogPanel className="space-y-3">
                         <div className="space-y-1.5">
                             <Label>Title</Label>
                             <Input value={titleDraft} onChange={(event) => setTitleDraft(event.target.value)} />
@@ -262,7 +262,7 @@ export default function TasksKanbanCard({
                                 <Label>Priority</Label>
                                 <ToggleGroup
                                     className="justify-start inline-flex w-full border rounded-md p-1 bg-muted/20"
-                                    // type="single"
+                                    multiple={false}
                                     value={priorityDraft === 'none' ? [] : [priorityDraft]}
                                     onValueChange={(val) => setPriorityDraft(val[0] ?? 'none')}
                                 >
@@ -338,7 +338,7 @@ export default function TasksKanbanCard({
                                 </Select>
                             </div>
                         )}
-                    </div>
+                    </DialogPanel>
 
                     <DialogFooter>
                         <Button
@@ -355,7 +355,7 @@ export default function TasksKanbanCard({
                             Save Changes
                         </Button>
                     </DialogFooter>
-                </DialogContent>
+                </DialogPopup>
             </Dialog>
         </>
     );
