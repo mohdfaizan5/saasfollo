@@ -11,12 +11,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogDescription, DialogFooter, DialogHeader, DialogPanel, DialogPopup, DialogTitle } from '@/components/ui/dialog';
+import { RichTextEditor, htmlToPlainText } from '@/components/ui/rich-text-editor';
 import { cn } from '@/lib/utils';
 
 interface TasksKanbanCardProps {
     task: Task;
+    projectNanoid?: string;
     onUpdate: (taskNanoid: string, status: TaskStatus, updates: Partial<Task>) => void;
     onDelete: (taskNanoid: string, status: TaskStatus) => void;
     onEdit: (task: Task) => void;
@@ -35,6 +36,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 
 export default function TasksKanbanCard({
     task,
+    projectNanoid,
     onUpdate,
     onDelete,
     onEdit,
@@ -195,11 +197,16 @@ export default function TasksKanbanCard({
                     )}
                 </div>
 
-                {task.description && (
-                    <p className="text-xs text-white/60 line-clamp-2 mb-2">
-                        {task.description}
-                    </p>
-                )}
+                {task.description && (() => {
+                    // Descriptions are stored as rich-text HTML; show a plain-text
+                    // snippet on the compact card (legacy plain text passes through).
+                    const preview = htmlToPlainText(task.description);
+                    return preview ? (
+                        <p className="text-xs text-white/60 line-clamp-2 mb-2">
+                            {preview}
+                        </p>
+                    ) : null;
+                })()}
 
                 <div className="flex items-center justify-between text-[10px] mt-2">
                     <div className="flex flex-wrap gap-1">
@@ -235,7 +242,7 @@ export default function TasksKanbanCard({
                 }
                 setIsDetailsOpen(open);
             }}>
-                <DialogPopup className="sm:max-w-lg">
+                <DialogPopup className="sm:max-w-xl">
                     <DialogHeader>
                         <DialogTitle>Task Details</DialogTitle>
                         <DialogDescription>View and update task information.</DialogDescription>
@@ -249,11 +256,11 @@ export default function TasksKanbanCard({
 
                         <div className="space-y-1.5">
                             <Label>Description</Label>
-                            <Textarea
-                                rows={5}
+                            <RichTextEditor
                                 value={descriptionDraft}
-                                onChange={(event) => setDescriptionDraft(event.target.value)}
-                                placeholder="Add a description"
+                                onChange={setDescriptionDraft}
+                                projectNanoid={projectNanoid}
+                                placeholder="Add a description — checklists, code, images…"
                             />
                         </div>
 

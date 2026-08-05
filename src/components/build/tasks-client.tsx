@@ -5,11 +5,11 @@ import { CheckSquare, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogPopup, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogClose, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import {
     BugIcon,
     CheckCircleIcon,
@@ -872,14 +872,11 @@ export function TasksClient({
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="task-description">Description</Label>
-                                        <Textarea
-                                            id="task-description"
-                                            placeholder="Additional details..."
+                                        <RichTextEditor
                                             value={newDescription}
-                                            onChange={(e) => setNewDescription(e.target.value)}
-                                            disabled={isCreating}
-                                            rows={2}
-                                            className="bg-input border-border "
+                                            onChange={setNewDescription}
+                                            projectNanoid={projectId}
+                                            placeholder="Additional details, checklists, code, images…"
                                         />
                                     </div>
 
@@ -1105,6 +1102,7 @@ export function TasksClient({
                 <TasksKanbanBoard
                     tasks={filteredTaskList}
                     columns={columns}
+                    projectNanoid={projectId}
                     canEdit={canEdit}
                     onCreateColumn={handleCreateColumn}
                     onUpdateColumn={handleUpdateColumn}

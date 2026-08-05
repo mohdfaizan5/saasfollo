@@ -18,6 +18,7 @@ import { updateVersion } from '@/lib/actions/versions';
 import { TargetIcon } from '@phosphor-icons/react';
 import { FolderIcon } from '@phosphor-icons/react/dist/ssr';
 import Image from 'next/image';
+import { richTextToPlainText } from '@/components/ui/rich-text-editor';
 
 // Template card configuration with icons and colors
 const TEMPLATE_CONFIG: Record<NoteTemplateKey, { icon: React.ComponentType<{ className?: string }>; color: string; bgColor: string }> = {
@@ -34,23 +35,8 @@ interface NotesClientProps {
     projectId: string;
 }
 
-// Helper to get preview text from note content (handles both plain text and potential JSON)
 function getPreviewText(content: string | null): string {
-    if (!content) return '';
-    // Try to parse as JSON (Editor.js format) - fall back to plain text
-    try {
-        const parsed = JSON.parse(content);
-        if (parsed.blocks && Array.isArray(parsed.blocks)) {
-            return parsed.blocks
-                .slice(0, 3)
-                .map((block: { data?: { text?: string } }) => block.data?.text || '')
-                .filter(Boolean)
-                .join(' ');
-        }
-    } catch {
-        // Not JSON, return as plain text
-    }
-    return content;
+    return richTextToPlainText(content);
 }
 
 export function NotesClient({ initialNotes, initialVersions = [], projectId }: NotesClientProps) {
@@ -275,7 +261,7 @@ export function NotesClient({ initialNotes, initialVersions = [], projectId }: N
                     <h2 className="text-xl font-bold tracking-tight mb-4">Version PRDs</h2>
                     <div className="columns-1 md:columns-2 lg:columns-3 gap-4 space-y-4">
                         {versions.map((version) => {
-                            const preview = version.prd ? version.prd.substring(0, 250) + (version.prd.length > 250 ? '...' : '') : 'No PRD written yet.';
+                            const preview = version.prd ? richTextToPlainText(version.prd) || 'No PRD written yet.' : 'No PRD written yet.';
                             return (<Link key={version.nanoid} href={`/projects/${projectId}/notes/${version.nanoid}?type=prd`} className="block">
                                 <Card
                                     className="note-card bg-primary/5 p-5 hover:shadow-lg transition-all duration-200 hover:border-primary/40 group cursor-pointer  hover:-translate-y-1 break-inside-avoid"
@@ -291,7 +277,7 @@ export function NotesClient({ initialNotes, initialVersions = [], projectId }: N
                                         </div>
                                     </div>
                                     <p className="text-sm text-muted-foreground mt-3 line-clamp-6 leading-relaxed">
-                                        {preview}
+                                        {preview.slice(0, 250)}{preview.length > 250 ? '...' : ''}
                                     </p>
                                     <p className="text-xs text-muted-foreground/70 mt-4 pt-3 border-t">
                                         {new Date(version.updated_at).toLocaleDateString('en-US', {

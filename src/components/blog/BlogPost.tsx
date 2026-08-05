@@ -158,6 +158,7 @@ export default async function BlogPost({ params }: BlogPostProps) {
     const page = source.getPage(slugPath);
     console.log('Fetched page for slug:', slugPath, page);
     if (!page) notFound();
+    
     const MDXContent = page.data.body as React.ComponentType<any>;
 
     return (

@@ -19,12 +19,12 @@ export default async function NewsPage() {
         <div className="min-h-screen bg-background">
             <ProjectsHeader userEmail={user.email || ''} />
 
-            <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+            <div className="max-w-3xl mx-auto px-4 py-8 space-y-2">
                 <div>
                     <h1 className="text-3xl font-me font-serif">Create New Project</h1>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    {/* <p className="text-sm text-muted-foreground mt-1">
                         Set up your project and optional first version, then continue into onboarding or your dashboard.
-                    </p>
+                    </p> */}
                 </div>
 
                 <NewProjectRouteForm />

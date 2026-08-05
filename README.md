@@ -1,154 +1,77 @@
-VERSIONS:
-1. add questions like "Goals for this version", "PRD md file", "Deadline (soft or hard)", "
-2. let creating new Version be whole flow of steps.
-3. add tabs like layout for each version
-4. give the ability to atleast basic edit the PRD and show empty prd if no already existing.
-5. sort them in order of creation date or have a specific sort order.
-6. add ability to edit a version
-7. add active version and if single, let it be default version
-8. show total no of version, tellwhen was it created and when it is ending.
-9. Way to make your version active version
+# SaaSfollo
 
+A daily-use operating system for solo founders (and very small teams) building a SaaS product.
 
+## What it is
 
-BUILD
-1. Let us give an option to add a 'Section' tag for each task
-2. make the each card ui that is broken due to checkbox better✅
-3. give users the ability to create custom columns ✅
-4. make the input of task creation better - by removing the redundant fields and making it simple & and increase the width of the card.
+Most founders end up spread across a pile of disconnected tools — Notion for notes, Trello for tasks, a spreadsheet for growth metrics, a bookmarks folder for important links. SaaSfollo replaces that with one focused place that always answers four questions:
 
+- What are we building **now**?
+- What's **next**?
+- **Why** are we building it?
+- Are we making **progress**?
 
-GROWTH:
-1. onboarding user when they don't have a growth plan attach to the version to ask which do they primarly focus on for growth (we'll show them the list of `Things SOLO founders do on growth`) and based on platforms they selected, we'll ask them target number for each platform for this version.
-    1. We're going show icons and names of the growth tasks and ask them to select the growth tasks they want to focus on.
-    2. then we'll start asking `targets` for each growth task (this is limited for each version) and a deadline, (like before this time, this much work will be done)
-        2. 30 DMs sent on Linkedin/X
-        3. 10 cold emails sent
-        4. 5 blog posts published
-        5. 2 videos published
-        6. 1 podcast episode published
-        7. 1 newsletter sent
-    3. after taking their targets, we'll show , some quick wordings like, "based on your deadline, you need to do 10 cold emails per day" for every thing they selected.(this will be calculated based on the deadline they selected)
-    NOTE: use icons as much as possible to show the growth tasks instead of emojis.
+It's deliberately minimal and opinionated — no roles/permissions, no sprints, no backlog grooming. If a team needs heavyweight process management, this isn't the tool for them.
 
-2. /growth page
-    1. we'll use the data from the growth plan to show the progress of the growth plan.
-    2. you'll have a plus button when you click on it, it'll open a modal where you'll have a list of growth tasks and you can select the growth tasks you want to focus on.
-    3. have daily streaks, nudge them for reinforcement consistency.
-    4. show texts like "you hit your target 5 days in a row"
-    5. a simple progress bar having all their things of targets and their current progress.
-    
-- [ ]  should be able to change versions.
+### How it's used
 
+1. **Sign up → Projects.** You can run multiple SaaS products, each fully separate. Only one project is "active" at a time, so the app and its AI assistant always stay focused on what you're actually working on.
+2. **Versions** are the spine of each project — scope-based milestones (MVP, v1, v2...) rather than time-based sprints. Only one version is active at a time, and everything else (tasks, growth targets) hangs off it.
+3. **Build** is a Now/Next/Later-style task board that's grown into a full drag-and-drop Kanban with custom columns, scoped to the active version.
+4. **Growth** tracks founder-led growth work — cold DMs, cold emails, SEO, and similar — with targets, streaks, and progress bars. It's intentionally scoped to what a solo founder can actually do, not content/community/PR work.
+5. **Notes** is a lightweight, Notion-lite space (rich text editor) for things like an ICP doc — not meant to become a full wiki.
+6. **Links** is a dump for important project URLs (Figma, GitHub, Vercel...) with auto-detected icons.
+7. **Secrets** is a password-gated store for project credentials, for small teams sharing access.
+8. **AI Cofounder** is an in-app chat assistant that can take on personas (CTO, SEO expert, developer, customer, copywriter, content creator) and pull live project/task/version data into the conversation.
+9. **Collaboration** — you can invite others into a project via an accept/pending invite flow.
 
-Things SOLO founders do on growth
-1. SEO,     
-2. cold DMs (X, )
-3. cold emails,
-4. managing paid ads (Google, Facebook, LinkedIn), 
-5. running A/B tests, 
-    5. monitoring analytics,    
-6. gathering user feedback through surveys or calls, 
-7. refining pricing models, 
-8. optimizing website conversion rates,
-9. apply to startup accelerators
-10. reddit
-11. attend a event to promote my product
+Alongside the app itself, there's a public side: a **blog**, **resources** (SEO/copywriting guides), a **changelog**, and a **startup perks** directory of deals for founders.
 
+## Tech stack
 
-NOT focusing on:
-1. creating content,❌
-2. iterating on their value proposition, ❌
-3. building partnerships, ❌
-4. managing communities (e.g., Slack, Discord), ❌
-6. pursuing PR opportunities, ❌
-7. hosting webinars, ❌
-8. networking at events❌
+- **Framework**: Next.js 16 (App Router), React 19, TypeScript, Tailwind v4
+- **UI**: shadcn, Radix UI, Base UI
+- **Backend/Auth**: Supabase (Postgres + auth)
+- **AI**: Vercel AI SDK, wired to both Anthropic and OpenAI models, plus a custom MCP server exposed at `/api/mcp` so the app's own data (tasks, versions, etc.) can be queried as MCP tools
+- **CMS**: Sanity, powering the blog/content side
+- **Payments**: Polar.sh
 
-"""
-hey we're making a analog version of the growth feature, basically can you ask me a set of questions we'd 
-"""
+### Structure
 
-HOMEPAGE:
-- show their are 13 tasks to complete for growth
-- 5 tasks to complete to finish v2/current version
-- show how many days are left to finish v2/current version
+```
+src/app/projects/[projectId]/(protected)/
+  dashboard/   build/   growth/   notes/
+  links/       secrets/ versions/ aicofounder/  settings/
+```
 
+Each module above is its own route, gated behind a per-project protected layout. Public marketing/content pages (blog, resources, changelog, startup perks) live under `src/app/(public)`.
 
-SMALL TOOLS
-1. ICP builder or maybe template
+Database schema lives in `supabase/migrations` as incremental SQL files — start there to see how the data model (projects → versions → tasks, collaborators, growth plans, kanban columns) evolved.
 
+## Getting started
 
-BLOG IDEAS
-1. how to pick right ideas
-2. share inforgraphics with our logo
+```bash
+bun install
+bun run dev
+```
 
-OTHER:
-- make a intro video for the app
+You'll need a `.env.local` with (at minimum):
 
-LINKS:
-- add tags to them to categorize them
-    - maybe something on tech stack, would work
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_SANITY_PROJECT_ID=
+NEXT_PUBLIC_SANITY_DATASET=
+ANTHROPIC_API_KEY=
+AI_GATEWAY_API_KEY=
+POLAR_ACCESS_TOKEN=
+NEXT_PUBLIC_POSTHOG_KEY=
+NEXT_PUBLIC_POSTHOG_HOST=
+```
 
+## Product docs
 
-NOTES:
-- make the editor proper
-- implement waterfall/masonry grid for notes
-
-
-PROJECTS:
-- make each project look cleaner and better, 
-- show the recent one first
-- show the avatars of collaborators
-- show current version card
-- make the feedback button work
-- add skeletons to all pages.
-
-
-ONBOARDING FOR FIRST TIME APP AND EACH PROJECT AND EACH VERSION AND EACH FEATURE
-
-1. Questions to be asked for first time app
-
-    1. What is your name?
-    2. website?
-    3. why do you want SaaSfollo? Systems for marketing/sales/building product faster/gain claity on product
-    4. do you work solo or with team?
-    5. ask which version are you in and take quick timelines and create a full proper version for them.
-
-2. each feature should have a onboarding process
-    1. educate the user for how it's used and a video tutorial for understanding.
-
-    
-    
-    
-
-
-
-
-
-LANDING PAGE:
-1. simple landing page with hero section, and benefits map section
-
-
-
-
-
-
-
-
-
-
-
-
-
-bg - #F6F1EA
-#2C4839
-#F6F1EA
-#A6AEA4
-#0C1510
-
-
-
------------
-
-
+- [`prd-v0-mvp.md`](prd-v0-mvp.md), [`prd-v1.md`](prd-v1.md), [`prd-v2.md`](prd-v2.md) — the product requirements docs for each stage
+- [`ai-rules.md`](ai-rules.md) — coding conventions for this repo
+- [`TODO.md`](TODO.md) — current backlog: half-built features, known gaps, and ideas not yet started

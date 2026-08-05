@@ -18,7 +18,7 @@ export default function ProfilePicUploader({
   initialImageUrl = null,
   disabled = false,
   label = "Upload image file",
-  helperText = "Upload, drag-and-drop, or remove image",
+  helperText,
   onFileChange,
 }: ProfilePicUploaderProps) {
   const initialFiles = useMemo(
@@ -68,7 +68,6 @@ export default function ProfilePicUploader({
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="relative inline-flex">
-        {/* Drop area */}
         <button
           aria-label={previewUrl ? "Change image" : "Upload image"}
           className="relative flex size-16 items-center justify-center overflow-hidden rounded-full border border-input border-dashed outline-none transition-colors hover:bg-accent/50 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 has-disabled:pointer-events-none has-[img]:border-none has-disabled:opacity-50 data-[dragging=true]:bg-accent/50"
@@ -120,7 +119,17 @@ export default function ProfilePicUploader({
         className="mt-2 text-muted-foreground text-xs"
         role="region"
       >
-        {helperText}
+        {helperText ?? (
+          <>
+            Avatar uploader with droppable area ∙{" "}
+            <a
+              className="underline hover:text-foreground"
+              href="https://github.com/cosscom/coss/blob/main/apps/origin/docs/use-file-upload.md"
+            >
+              API
+            </a>
+          </>
+        )}
       </p>
     </div>
   );

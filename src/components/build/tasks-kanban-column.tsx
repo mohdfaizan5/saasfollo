@@ -7,16 +7,21 @@ import { motion, useReducedMotion } from 'motion/react';
 import TasksKanbanCard from './tasks-kanban-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronLeft, ChevronRight, MoreVertical, Plus, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Minimize2, MoreVertical, Plus, Trash2 } from 'lucide-react';
 import type { KanbanColumn, Task, TaskStatus, Version } from '@/lib/types/database';
 import { cn } from '@/lib/utils';
 import {
     BugIcon,
+    CellSignalLowIcon,
     CheckCircleIcon,
     CubeIcon,
     FileTextIcon,
+    FlagBannerFoldIcon,
+    HourglassMediumIcon,
     MagnifyingGlassIcon,
     RocketIcon,
     SparkleIcon,
@@ -25,6 +30,7 @@ import {
 
 interface TasksKanbanColumnProps {
     column: KanbanColumn;
+    projectNanoid: string;
     tasks: Task[];
     canEdit: boolean;
     canMoveLeft: boolean;
@@ -41,6 +47,8 @@ interface TasksKanbanColumnProps {
     categoryOptions?: string[];
     onAddCategory?: (category: string) => void;
     versions?: Version[];
+    isCollapsed?: boolean;
+    onToggleCollapsed?: () => void;
 }
 
 type ColumnIconRule = {
@@ -91,6 +99,7 @@ function getColumnSemantic(title: string, isDoneColumn: boolean) {
 
 export default function TasksKanbanColumn({
     column,
+    projectNanoid,
     tasks,
     canEdit,
     canMoveLeft,
@@ -107,8 +116,12 @@ export default function TasksKanbanColumn({
     categoryOptions = [],
     onAddCategory,
     versions = [],
+    isCollapsed = false,
+    onToggleCollapsed,
 }: TasksKanbanColumnProps) {
     const shouldReduceMotion = useReducedMotion();
+    // Same droppable id whether collapsed or expanded, so a card dropped on the
+    // collapsed strip still resolves to this column in the board's onDragEnd.
     const { setNodeRef, isOver } = useDroppable({
         id: `column:${column.nanoid}`,
     });
@@ -118,6 +131,7 @@ export default function TasksKanbanColumn({
     const [newTaskTitle, setNewTaskTitle] = useState('');
     const [newTaskPriority, setNewTaskPriority] = useState<string>('none');
     const [newTaskCategory, setNewTaskCategory] = useState<string>('none');
+    const [isSubmittingTask, setIsSubmittingTask] = useState(false);
     const semantic = getColumnSemantic(column.title, column.is_done_column);
     const Icon = semantic.icon;
     const sortedTasks = useMemo(
@@ -158,15 +172,55 @@ export default function TasksKanbanColumn({
 
     const handleCreateTask = async () => {
         const title = newTaskTitle.trim();
-        if (!title) return;
+        if (!title || isSubmittingTask) return;
         const priority = newTaskPriority === 'none' ? null : newTaskPriority;
         const category = newTaskCategory === 'none' ? null : newTaskCategory;
-        await onCreateTask(title, priority, category);
-        setNewTaskTitle('');
-        setNewTaskPriority('none');
-        setNewTaskCategory('none');
-        setIsAddingTask(false);
+
+        // Show a spinner on the Add button while the task persists. The parent
+        // prepends the created task to the board on success, so the card appears
+        // as soon as this resolves; we keep the composer open on failure.
+        setIsSubmittingTask(true);
+        try {
+            await onCreateTask(title, priority, category);
+            setNewTaskTitle('');
+            setNewTaskPriority('none');
+            setNewTaskCategory('none');
+            setIsAddingTask(false);
+        } catch (error) {
+            console.error('Failed to add task to column:', error);
+        } finally {
+            setIsSubmittingTask(false);
+        }
     };
+
+    // Collapsed state: the column shrinks to a narrow vertical strip showing just
+    // the task count and title. It keeps the same droppable id as the expanded
+    // column, so a card dragged onto the strip still lands in this column.
+    if (isCollapsed) {
+        return (
+            <motion.div
+                ref={setNodeRef}
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={shouldReduceMotion ? { duration: 0 } : undefined}
+                onClick={onToggleCollapsed}
+                role="button"
+                aria-label={`Expand ${column.title} column`}
+                title={`Expand ${column.title}`}
+                className={cn(
+                    "w-11 h-full shrink-0 rounded-xl border flex flex-col items-center gap-3 py-4 cursor-pointer transition-colors bg-[#101204]",
+                    isOver ? 'border-primary/50 ring-2 ring-primary/30 bg-primary/10' : 'border-border hover:border-white/30'
+                )}
+            >
+                <span className="text-xs font-semibold text-[#cecfd2]">{tasks.length}</span>
+                <span className="flex-1 flex items-center justify-center">
+                    <span className="[writing-mode:vertical-rl] rotate-180 text-[11px] font-semibold uppercase tracking-widest text-white/60 whitespace-nowrap">
+                        {column.title}
+                    </span>
+                </span>
+            </motion.div>
+        );
+    }
 
     return (
         <motion.div
@@ -214,6 +268,15 @@ export default function TasksKanbanColumn({
                                 className="rounded-md text-white/80 opacity-100 hover:bg-white/10 hover:text-white"
                             >
                                 <Plus className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="link"
+                                size="icon-sm"
+                                onClick={onToggleCollapsed}
+                                title="Collapse column"
+                                className="rounded-md text-white/80 opacity-100 hover:bg-white/10 hover:text-white"
+                            >
+                                <Minimize2 className="h-4 w-4" />
                             </Button>
                             <DropdownMenu>
                                 <DropdownMenuTrigger render={<Button variant="link" size="icon-sm" />}>
@@ -267,71 +330,87 @@ export default function TasksKanbanColumn({
                 </div>
 
                 {canEdit && isAddingTask && (
-                    <div className="space-y-2 px-1 pb-2">
-                        <Input
+                    <div className="space-y-2.5 px-1 pb-2">
+                        <Textarea
                             autoFocus
+                            rows={2}
                             value={newTaskTitle}
                             onChange={(event) => setNewTaskTitle(event.target.value)}
                             onKeyDown={(event) => {
-                                if (event.key === 'Enter') {
+                                // Enter submits, Shift+Enter inserts a newline.
+                                if (event.key === 'Enter' && !event.shiftKey) {
                                     event.preventDefault();
                                     void handleCreateTask();
                                 }
                             }}
-                            placeholder="Add a task"
-                            className="h-8 mb-2"
+                            disabled={isSubmittingTask}
+                            placeholder="What needs to be done?"
+                            className="min-h-16 resize-none bg-white/5 border-white/10 text-sm text-[#cecfd2] placeholder:text-white/30 focus-visible:ring-1 focus-visible:ring-primary/40"
                         />
-                        <div className="flex gap-2">
-                            <Select value={newTaskPriority} onValueChange={(val) => setNewTaskPriority(val ?? 'none')}>
-                                <SelectTrigger className={cn("h-7 text-xs px-2 min-w-22.5 border", newTaskPriority === 'none' ? "border-dashed" : "bg-muted font-medium")}>
-                                    <SelectValue>{newTaskPriority !== 'none' ? <span className="capitalize">{newTaskPriority}</span> : "Priority"}</SelectValue>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">Priority: None</SelectItem>
-                                    <SelectItem value="high">
-                                        <span className="text-red-500 font-medium">High</span>
-                                    </SelectItem>
-                                    <SelectItem value="medium">
-                                        <span className="text-yellow-500 font-medium">Medium</span>
-                                    </SelectItem>
-                                    <SelectItem value="low">
-                                        <span className="text-green-500 font-medium">Low</span>
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
 
-                            <Select 
-                                value={newTaskCategory}
-                                onValueChange={(val) => {
-                                    if (val === '__add_category__') {
-                                        const newCat = prompt('New category name')?.trim();
-                                        if (newCat) {
-                                            onAddCategory?.(newCat);
-                                            setNewTaskCategory(newCat);
-                                        }
-                                        return;
+                        {/* Priority: on-brand colored segments matching the main task dialog. */}
+                        <ToggleGroup
+                            className="grid grid-cols-3 w-full border border-white/10 rounded-md bg-white/5 p-0.5"
+                            multiple={false}
+                            value={newTaskPriority === 'none' ? [] : [newTaskPriority]}
+                            onValueChange={(val) => setNewTaskPriority(val[0] ?? 'none')}
+                        >
+                            <ToggleGroupItem value="low" aria-label="Low priority" className="gap-1.5 text-xs text-white/60 data-[state=on]:bg-green-500/15 data-[state=on]:text-green-400 hover:text-green-400">
+                                <CellSignalLowIcon size={14} />
+                                Low
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value="medium" aria-label="Medium priority" className="gap-1.5 text-xs text-white/60 data-[state=on]:bg-yellow-500/15 data-[state=on]:text-yellow-400 hover:text-yellow-400">
+                                <HourglassMediumIcon size={14} />
+                                Med
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value="high" aria-label="High priority" className="gap-1.5 text-xs text-white/60 data-[state=on]:bg-red-500/15 data-[state=on]:text-red-400 hover:text-red-400">
+                                <FlagBannerFoldIcon size={14} />
+                                High
+                            </ToggleGroupItem>
+                        </ToggleGroup>
+
+                        {/* Category fills the full width instead of a cramped fixed-width select. */}
+                        <Select
+                            value={newTaskCategory}
+                            onValueChange={(val) => {
+                                if (val === '__add_category__') {
+                                    const newCat = prompt('New category name')?.trim();
+                                    if (newCat) {
+                                        onAddCategory?.(newCat);
+                                        setNewTaskCategory(newCat);
                                     }
-                                    setNewTaskCategory(val ?? 'none');
-                                }}
+                                    return;
+                                }
+                                setNewTaskCategory(val ?? 'none');
+                            }}
+                        >
+                            <SelectTrigger className="h-8 w-full text-xs bg-white/5 border-white/10 text-[#cecfd2]">
+                                <SelectValue>{newTaskCategory !== 'none' ? newTaskCategory : <span className="text-white/40">Category</span>}</SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">Category: None</SelectItem>
+                                {categoryOptions?.map(cat => (
+                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                ))}
+                                <SelectItem value="__add_category__">
+                                    <span className="inline-flex items-center gap-2">
+                                        <Plus className="h-3.5 w-3.5" />
+                                        Add category
+                                    </span>
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        <div className="flex gap-2 pt-0.5">
+                            <Button
+                                size="sm"
+                                onClick={() => void handleCreateTask()}
+                                disabled={isSubmittingTask || !newTaskTitle.trim()}
+                                className="min-w-16"
                             >
-                                <SelectTrigger className="h-7 text-xs px-2 min-w-22.5 border-dashed"><SelectValue>{newTaskCategory !== 'none' ? newTaskCategory : "Category"}</SelectValue></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">Category: None</SelectItem>
-                                    {categoryOptions?.map(cat => (
-                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                    ))}
-                                    <SelectItem value="__add_category__">
-                                        <span className="inline-flex items-center gap-2">
-                                            <Plus className="h-3.5 w-3.5" />
-                                            Add category
-                                        </span>
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="flex gap-2 pt-1">
-                            <Button size="sm" onClick={() => void handleCreateTask()}>Add</Button>
-                            <Button size="sm" variant="ghost" onClick={() => setIsAddingTask(false)}>Cancel</Button>
+                                {isSubmittingTask ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Add'}
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setIsAddingTask(false)} disabled={isSubmittingTask}>Cancel</Button>
                         </div>
                     </div>
                 )}
@@ -355,6 +434,7 @@ export default function TasksKanbanColumn({
                             <TasksKanbanCard
                                 key={task.nanoid}
                                 task={task}
+                                projectNanoid={projectNanoid}
                                 onUpdate={onTaskUpdate}
                                 onDelete={onDelete}
                                 onEdit={onEdit}

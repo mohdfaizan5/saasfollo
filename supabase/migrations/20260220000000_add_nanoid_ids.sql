@@ -4,9 +4,6 @@
 --          and add PRD/goals/deadline support for the multi-step version creation wizard
 -- =============================================================================
 
--- Enable pgcrypto for random bytes generation
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
 -- =============================================================================
 -- Custom nanoid generator function
 -- Generates URL-safe random strings using the nanoid alphabet
@@ -20,15 +17,10 @@ DECLARE
   -- nanoid standard alphabet (URL-safe, no ambiguous chars)
   alphabet text := '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-';
   result text := '';
-  bytes bytea;
   i int;
-  idx int;
 BEGIN
-  bytes := gen_random_bytes(size);
-  FOR i IN 0..size-1 LOOP
-    -- mask to 6 bits (64 chars in alphabet) to avoid modulo bias
-    idx := get_byte(bytes, i) & 63;
-    result := result || substr(alphabet, idx + 1, 1);
+  FOR i IN 1..size LOOP
+    result := result || substr(alphabet, floor(random() * length(alphabet))::int + 1, 1);
   END LOOP;
   RETURN result;
 END;
@@ -44,8 +36,14 @@ UPDATE public.projects SET nanoid = public.generate_nanoid(18) WHERE nanoid IS N
 ALTER TABLE public.projects ALTER COLUMN nanoid SET NOT NULL;
 ALTER TABLE public.projects ALTER COLUMN nanoid SET DEFAULT public.generate_nanoid(18);
 DO $$ BEGIN
-  ALTER TABLE public.projects ADD CONSTRAINT projects_nanoid_unique UNIQUE (nanoid);
-EXCEPTION WHEN duplicate_object THEN NULL;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'projects_nanoid_unique'
+      AND conrelid = 'public.projects'::regclass
+  ) THEN
+    ALTER TABLE public.projects ADD CONSTRAINT projects_nanoid_unique UNIQUE (nanoid);
+  END IF;
 END $$;
 
 -- VERSIONS
@@ -54,8 +52,14 @@ UPDATE public.versions SET nanoid = public.generate_nanoid(18) WHERE nanoid IS N
 ALTER TABLE public.versions ALTER COLUMN nanoid SET NOT NULL;
 ALTER TABLE public.versions ALTER COLUMN nanoid SET DEFAULT public.generate_nanoid(18);
 DO $$ BEGIN
-  ALTER TABLE public.versions ADD CONSTRAINT versions_nanoid_unique UNIQUE (nanoid);
-EXCEPTION WHEN duplicate_object THEN NULL;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'versions_nanoid_unique'
+      AND conrelid = 'public.versions'::regclass
+  ) THEN
+    ALTER TABLE public.versions ADD CONSTRAINT versions_nanoid_unique UNIQUE (nanoid);
+  END IF;
 END $$;
 
 -- TASKS
@@ -64,8 +68,14 @@ UPDATE public.tasks SET nanoid = public.generate_nanoid(18) WHERE nanoid IS NULL
 ALTER TABLE public.tasks ALTER COLUMN nanoid SET NOT NULL;
 ALTER TABLE public.tasks ALTER COLUMN nanoid SET DEFAULT public.generate_nanoid(18);
 DO $$ BEGIN
-  ALTER TABLE public.tasks ADD CONSTRAINT tasks_nanoid_unique UNIQUE (nanoid);
-EXCEPTION WHEN duplicate_object THEN NULL;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'tasks_nanoid_unique'
+      AND conrelid = 'public.tasks'::regclass
+  ) THEN
+    ALTER TABLE public.tasks ADD CONSTRAINT tasks_nanoid_unique UNIQUE (nanoid);
+  END IF;
 END $$;
 
 -- LINKS
@@ -74,8 +84,14 @@ UPDATE public.links SET nanoid = public.generate_nanoid(18) WHERE nanoid IS NULL
 ALTER TABLE public.links ALTER COLUMN nanoid SET NOT NULL;
 ALTER TABLE public.links ALTER COLUMN nanoid SET DEFAULT public.generate_nanoid(18);
 DO $$ BEGIN
-  ALTER TABLE public.links ADD CONSTRAINT links_nanoid_unique UNIQUE (nanoid);
-EXCEPTION WHEN duplicate_object THEN NULL;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'links_nanoid_unique'
+      AND conrelid = 'public.links'::regclass
+  ) THEN
+    ALTER TABLE public.links ADD CONSTRAINT links_nanoid_unique UNIQUE (nanoid);
+  END IF;
 END $$;
 
 -- NOTES
@@ -84,8 +100,14 @@ UPDATE public.notes SET nanoid = public.generate_nanoid(18) WHERE nanoid IS NULL
 ALTER TABLE public.notes ALTER COLUMN nanoid SET NOT NULL;
 ALTER TABLE public.notes ALTER COLUMN nanoid SET DEFAULT public.generate_nanoid(18);
 DO $$ BEGIN
-  ALTER TABLE public.notes ADD CONSTRAINT notes_nanoid_unique UNIQUE (nanoid);
-EXCEPTION WHEN duplicate_object THEN NULL;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'notes_nanoid_unique'
+      AND conrelid = 'public.notes'::regclass
+  ) THEN
+    ALTER TABLE public.notes ADD CONSTRAINT notes_nanoid_unique UNIQUE (nanoid);
+  END IF;
 END $$;
 
 -- SECRETS
@@ -94,8 +116,14 @@ UPDATE public.secrets SET nanoid = public.generate_nanoid(18) WHERE nanoid IS NU
 ALTER TABLE public.secrets ALTER COLUMN nanoid SET NOT NULL;
 ALTER TABLE public.secrets ALTER COLUMN nanoid SET DEFAULT public.generate_nanoid(18);
 DO $$ BEGIN
-  ALTER TABLE public.secrets ADD CONSTRAINT secrets_nanoid_unique UNIQUE (nanoid);
-EXCEPTION WHEN duplicate_object THEN NULL;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'secrets_nanoid_unique'
+      AND conrelid = 'public.secrets'::regclass
+  ) THEN
+    ALTER TABLE public.secrets ADD CONSTRAINT secrets_nanoid_unique UNIQUE (nanoid);
+  END IF;
 END $$;
 
 -- USER_SETTINGS
@@ -104,8 +132,14 @@ UPDATE public.user_settings SET nanoid = public.generate_nanoid(18) WHERE nanoid
 ALTER TABLE public.user_settings ALTER COLUMN nanoid SET NOT NULL;
 ALTER TABLE public.user_settings ALTER COLUMN nanoid SET DEFAULT public.generate_nanoid(18);
 DO $$ BEGIN
-  ALTER TABLE public.user_settings ADD CONSTRAINT user_settings_nanoid_unique UNIQUE (nanoid);
-EXCEPTION WHEN duplicate_object THEN NULL;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'user_settings_nanoid_unique'
+      AND conrelid = 'public.user_settings'::regclass
+  ) THEN
+    ALTER TABLE public.user_settings ADD CONSTRAINT user_settings_nanoid_unique UNIQUE (nanoid);
+  END IF;
 END $$;
 
 -- PROJECT_COLLABORATORS
@@ -114,8 +148,14 @@ UPDATE public.project_collaborators SET nanoid = public.generate_nanoid(18) WHER
 ALTER TABLE public.project_collaborators ALTER COLUMN nanoid SET NOT NULL;
 ALTER TABLE public.project_collaborators ALTER COLUMN nanoid SET DEFAULT public.generate_nanoid(18);
 DO $$ BEGIN
-  ALTER TABLE public.project_collaborators ADD CONSTRAINT project_collaborators_nanoid_unique UNIQUE (nanoid);
-EXCEPTION WHEN duplicate_object THEN NULL;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'project_collaborators_nanoid_unique'
+      AND conrelid = 'public.project_collaborators'::regclass
+  ) THEN
+    ALTER TABLE public.project_collaborators ADD CONSTRAINT project_collaborators_nanoid_unique UNIQUE (nanoid);
+  END IF;
 END $$;
 
 -- =============================================================================

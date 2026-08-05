@@ -7,6 +7,51 @@ import { Changelog } from '@/types/changelog';
  */
 export const changelog: Changelog = [
     {
+        version: "1.6.0",
+        date: "Jul 24, 2026",
+        title: "Build: Rich-Text Task Descriptions",
+        description: "Task descriptions now use a proper rich-text editor with formatting, checklists, code, tables, and image uploads — a big step up from the plain text box.",
+        improvements: [
+            "Replaced the plain description box (in both the New Task dialog and the task detail view) with a rich-text editor built on Tiptap.",
+            "Supports headings, bold/italic/strike, bullet/numbered/checklist lists, blockquotes, links, and tables.",
+            "Code blocks now have syntax highlighting, and Markdown shortcuts (like '# ', '- ', '> ', and ```) work while typing.",
+            "Images can be added by drag-and-drop, paste, or the toolbar; they upload to storage and can be resized by dragging a corner handle.",
+            "Kanban cards show a clean plain-text snippet of rich descriptions; older plain-text descriptions keep working unchanged."
+        ],
+        fixes: [],
+        patches: [
+            "Added a dedicated public 'task-media' storage bucket and an authorized upload action for task description images."
+        ]
+    },
+    {
+        version: "1.5.5",
+        date: "Jul 24, 2026",
+        title: "Build: Nicer Inline Task Composer & Animated Progress",
+        description: "Refined the in-column 'add task' composer and gave the Build progress bar a satisfying reveal animation on load.",
+        improvements: [
+            "Reworked the in-column task composer: the title is now a multi-line field, priority uses on-brand colored segments, and priority/category fill the card width instead of cramped fixed-width dropdowns.",
+            "The Build progress bar and its percentage now animate up from zero when the page loads (respecting reduced-motion preferences)."
+        ],
+        fixes: [],
+        patches: [
+            "Added an inline spinner and disabled state to the in-column 'Add' button while a task is being created."
+        ]
+    },
+    {
+        version: "1.5.4",
+        date: "Jul 24, 2026",
+        title: "Kanban: Collapsible Columns",
+        description: "Build board columns can now be collapsed into a compact vertical strip, keeping the task count and title visible while freeing up horizontal space.",
+        improvements: [
+            "Added a collapse toggle to each Kanban column that shrinks it into a narrow vertical strip showing the task count and column title.",
+            "Collapsed columns remain a valid drop target, so dragging a task onto a collapsed strip still moves it into that column.",
+            "Clicking a collapsed column strip expands it back to the full view.",
+            "Collapsed state now persists across reloads and navigation via local storage, so a column stays collapsed until it's explicitly expanded again."
+        ],
+        fixes: [],
+        patches: []
+    },
+    {
         version: "1.5.3",
         date: "Apr 15, 2026",
         title: "Roadmaps: Editable PRD Flow, Safer Navigation, and Sidebar Updates",

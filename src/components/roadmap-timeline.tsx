@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { updateVersion } from '@/lib/actions/versions';
 import type { Version } from '@/lib/types/database';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 
 interface RoadmapTimelineProps {
   versions: Version[];
@@ -262,11 +262,12 @@ export default function RoadmapTimeline({ versions, activeVersionId, projectNano
                     {version.deadline}
                   </Badge>
                 )}
-                <Textarea
+                <RichTextEditor
                   value={draftPrd}
-                  onChange={(event) => handleDraftChange(version.id, event.target.value)}
+                  onChange={(value) => handleDraftChange(version.id, value)}
+                  projectNanoid={projectNanoid}
                   placeholder="Write PRD content for this version..."
-                  className="field-sizing-content max-h-56 min-h-0 resize-none py-1.75"
+                  className="min-h-56"
                 />
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                   <p className={saveError ? 'text-xs text-destructive' : 'text-xs text-muted-foreground'}>

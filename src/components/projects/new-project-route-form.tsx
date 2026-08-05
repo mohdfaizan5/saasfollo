@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { AnimatePresence, motion } from 'motion/react';
-import { toast } from 'sonner';
+import { useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "motion/react";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   ArrowRight,
@@ -12,25 +12,31 @@ import {
   Loader2,
   Sparkles,
   Upload,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { cn } from '@/lib/utils';
-import ProfilePicUploader from '@/components/profile-pic-uploader';
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { cn } from "@/lib/utils";
+import ProfilePicUploader from "@/components/profile-pic-uploader";
 import {
   createProject,
   deletePendingProjectIcon,
   uploadPendingProjectIcon,
-} from '@/lib/actions/projects';
-import { createVersion } from '@/lib/actions/versions';
-import { hasCompletedOnboarding } from '@/lib/actions/onboarding';
+} from "@/lib/actions/projects";
+import { createVersion } from "@/lib/actions/versions";
+import { hasCompletedOnboarding } from "@/lib/actions/onboarding";
 
-type VersionTiming = 'previous' | 'after';
-type CreateVersionChoice = 'yes' | 'no';
+type VersionTiming = "previous" | "after";
+type CreateVersionChoice = "yes" | "no";
 
 type PendingIconState = {
   publicUrl: string;
@@ -45,24 +51,28 @@ const stepVariants = {
 
 const STEP_COPY = {
   1: {
-    eyebrow: 'Foundation',
-    title: 'Name the project',
-    description: 'Start with the core identity. We will build the rest around it.',
+    eyebrow: "Foundation",
+    title: "Name the project",
+    description:
+      "Start with the core identity. We will build the rest around it.",
   },
   2: {
-    eyebrow: 'Context',
-    title: 'Add context and image',
-    description: 'Describe the project and upload the image right away so it is ready before creation.',
+    eyebrow: "Context",
+    title: "Add context and image",
+    description:
+      "Describe the project and upload the image right away so it is ready before creation.",
   },
   3: {
-    eyebrow: 'Direction',
-    title: 'Choose the version path',
-    description: 'Tell us how this project fits into your current version plan.',
+    eyebrow: "Direction",
+    title: "Choose the version path",
+    description:
+      "Tell us how this project fits into your current version plan.",
   },
   4: {
-    eyebrow: 'Launch',
-    title: 'Finish setup',
-    description: 'Create the first version now or skip it and head straight into the workspace.',
+    eyebrow: "Launch",
+    title: "Finish setup",
+    description:
+      "Create the first version now or skip it and head straight into the workspace.",
   },
 } as const;
 
@@ -70,17 +80,18 @@ export function NewProjectRouteForm() {
   const router = useRouter();
   const [step, setStep] = useState(1);
 
-  const [projectName, setProjectName] = useState('');
-  const [projectDescription, setProjectDescription] = useState('');
+  const [projectName, setProjectName] = useState("");
+  const [projectDescription, setProjectDescription] = useState("");
   const [uploaderKey, setUploaderKey] = useState(0);
 
-  const [currentVersionContext, setCurrentVersionContext] = useState('');
-  const [versionTiming, setVersionTiming] = useState<VersionTiming>('after');
-  const [createVersionNow, setCreateVersionNow] = useState<CreateVersionChoice>('yes');
+  const [currentVersionContext, setCurrentVersionContext] = useState("");
+  const [versionTiming, setVersionTiming] = useState<VersionTiming>("after");
+  const [createVersionNow, setCreateVersionNow] =
+    useState<CreateVersionChoice>("yes");
 
-  const [versionName, setVersionName] = useState('');
-  const [versionGoals, setVersionGoals] = useState('');
-  const [versionDeadline, setVersionDeadline] = useState('');
+  const [versionName, setVersionName] = useState("");
+  const [versionGoals, setVersionGoals] = useState("");
+  const [versionDeadline, setVersionDeadline] = useState("");
 
   const [pendingIcon, setPendingIcon] = useState<PendingIconState>(null);
   const [iconUploadError, setIconUploadError] = useState<string | null>(null);
@@ -92,13 +103,16 @@ export function NewProjectRouteForm() {
   const submitLockRef = useRef(false);
   const uploadRequestRef = useRef(0);
 
-  const stepMeta = useMemo(() => STEP_COPY[step as keyof typeof STEP_COPY], [step]);
+  const stepMeta = useMemo(
+    () => STEP_COPY[step as keyof typeof STEP_COPY],
+    [step],
+  );
 
   const canContinue = () => {
     if (step === 1) {
       return !!projectName.trim();
     }
-    if (step === 4 && createVersionNow === 'yes') {
+    if (step === 4 && createVersionNow === "yes") {
       return !!versionName.trim();
     }
     return true;
@@ -109,10 +123,10 @@ export function NewProjectRouteForm() {
   const goNext = () => {
     if (!canContinue()) {
       if (step === 1) {
-        setError('Project name is required');
+        setError("Project name is required");
       }
-      if (step === 4 && createVersionNow === 'yes') {
-        setError('Version name is required when creating a version now');
+      if (step === 4 && createVersionNow === "yes") {
+        setError("Version name is required when creating a version now");
       }
       return;
     }
@@ -130,7 +144,7 @@ export function NewProjectRouteForm() {
     try {
       await deletePendingProjectIcon(storagePath);
     } catch (deleteError) {
-      console.warn('Failed to delete temporary project icon:', deleteError);
+      console.warn("Failed to delete temporary project icon:", deleteError);
     }
   };
 
@@ -158,7 +172,7 @@ export function NewProjectRouteForm() {
 
     try {
       const iconData = new FormData();
-      iconData.append('icon', file);
+      iconData.append("icon", file);
 
       const uploadedIcon = await uploadPendingProjectIcon(iconData);
       if (uploadRequestRef.current !== currentUploadRequest) {
@@ -167,8 +181,9 @@ export function NewProjectRouteForm() {
       }
 
       setPendingIcon(uploadedIcon);
-      toast.success('Project image uploaded', {
-        description: 'Your image is ready and will be attached when the project is created.',
+      toast.success("Project image uploaded", {
+        description:
+          "Your image is ready and will be attached when the project is created.",
       });
     } catch (uploadError) {
       if (uploadRequestRef.current === currentUploadRequest) {
@@ -177,7 +192,7 @@ export function NewProjectRouteForm() {
         setIconUploadError(
           uploadError instanceof Error
             ? uploadError.message
-            : 'Failed to upload project image',
+            : "Failed to upload project image",
         );
       }
     } finally {
@@ -195,12 +210,12 @@ export function NewProjectRouteForm() {
     }
 
     if (!projectName.trim()) {
-      setError('Project name is required');
+      setError("Project name is required");
       return;
     }
 
-    if (createVersionNow === 'yes' && !versionName.trim()) {
-      setError('Version name is required when creating a version now');
+    if (createVersionNow === "yes" && !versionName.trim()) {
+      setError("Version name is required when creating a version now");
       return;
     }
 
@@ -215,32 +230,32 @@ export function NewProjectRouteForm() {
         icon_url: pendingIcon?.publicUrl ?? null,
       });
 
-      if (createVersionNow === 'yes') {
+      if (createVersionNow === "yes") {
         const relationSummary = [
           currentVersionContext.trim()
             ? `Current version context: ${currentVersionContext.trim()}`
             : null,
-          `Requested relation: create ${versionTiming === 'previous' ? 'before the current version' : 'after the current version'}`,
+          `Requested relation: create ${versionTiming === "previous" ? "before the current version" : "after the current version"}`,
         ]
           .filter(Boolean)
-          .join('\n');
+          .join("\n");
 
         await createVersion(project.nanoid, {
           name: versionName.trim(),
           description: relationSummary || null,
           goals: versionGoals.trim() || null,
           deadline: versionDeadline || null,
-          status: 'active',
+          status: "active",
         });
       }
 
       const completedOnboarding = await hasCompletedOnboarding();
       const redirectTarget = `/projects/${project.nanoid}/dashboard`;
 
-      toast.success('Project created successfully', {
+      toast.success("Project created successfully", {
         description: pendingIcon
-          ? 'Taking you into your workspace now.'
-          : 'Your project is ready. You can add an image later if needed.',
+          ? "Taking you into your workspace now."
+          : "Your project is ready. You can add an image later if needed.",
       });
 
       if (!completedOnboarding) {
@@ -251,11 +266,14 @@ export function NewProjectRouteForm() {
 
       router.push(redirectTarget);
     } catch (submitError) {
-      console.error('Failed to create project from /projects/new route:', submitError);
+      console.error(
+        "Failed to create project from /projects/new route:",
+        submitError,
+      );
       setError(
         submitError instanceof Error
           ? submitError.message
-          : 'Failed to create project',
+          : "Failed to create project",
       );
       submitLockRef.current = false;
       setIsSubmitting(false);
@@ -295,35 +313,15 @@ export function NewProjectRouteForm() {
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25 }}
-            className="space-y-2"
-          >
-            <Label htmlFor="project-description">Project description</Label>
-            <Textarea
-              id="project-description"
-              placeholder="Describe your product, users, positioning, pain points, roadmap context, and launch goals..."
-              value={projectDescription}
-              onChange={(event) => setProjectDescription(event.target.value)}
-              disabled={isSubmitting}
-              rows={6}
-            />
-            <p className="text-xs text-muted-foreground">
-              More context here gives onboarding and your workspace better starting material.
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.06, duration: 0.25 }}
-            className="space-y-4 rounded-2xl border border-border/60 bg-muted/20 p-5"
+            className="space-y-2 "
           >
-            <div className="space-y-1">
+            {/* <div className="space-y-1">
               <p className="text-sm font-medium">Project profile image</p>
               <p className="text-xs text-muted-foreground">
                 Upload happens immediately here, not during the final create step.
               </p>
-            </div>
+            </div> */}
 
             <ProfilePicUploader
               key={uploaderKey}
@@ -333,8 +331,9 @@ export function NewProjectRouteForm() {
               onFileChange={handleIconFileChange}
             />
 
-            <div className="rounded-xl border border-dashed bg-background/80 p-3">
-              <div className="flex items-center gap-2 text-sm">
+            {iconUploadError && (
+              <div className="rounded-xl border border-dashed bg-background/80 p-3">
+                {/* <div className="flex items-center gap-2 text-sm">
                 {isIconUploading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
@@ -351,13 +350,35 @@ export function NewProjectRouteForm() {
                     <span>No project image saved yet.</span>
                   </>
                 )}
-              </div>
-              {iconUploadError && (
+              </div> */}
                 <p className="mt-2 text-xs text-destructive">
-                  {iconUploadError} You can still create the project and upload the image later.
+                  {iconUploadError} You can still create the project and upload
+                  the image later.
                 </p>
-              )}
-            </div>
+              </div>
+            )}
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+            className="space-y-2"
+          >
+            <Label htmlFor="project-description">Project description</Label>
+            <Textarea
+              id="project-description"
+              placeholder="Describe your product, users, positioning, pain points, roadmap context, and launch goals..."
+              value={projectDescription}
+              onChange={(event) => setProjectDescription(event.target.value)}
+              disabled={isSubmitting}
+              rows={6}
+              className="bg-input border border-input"
+            />
+            {/* <p className="text-xs text-muted-foreground">
+              More context here gives onboarding and your workspace better
+              starting material.
+            </p> */}
           </motion.div>
         </div>
       );
@@ -372,7 +393,9 @@ export function NewProjectRouteForm() {
             transition={{ duration: 0.25 }}
             className="space-y-2"
           >
-            <Label htmlFor="current-version">Which current version are you in?</Label>
+            <Label htmlFor="current-version">
+              Which current version are you in?
+            </Label>
             <Input
               id="current-version"
               placeholder="e.g., v0, pre-product, MVP draft"
@@ -382,7 +405,7 @@ export function NewProjectRouteForm() {
             />
           </motion.div>
 
-          <motion.div
+          {/* <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.06, duration: 0.25 }}
@@ -391,19 +414,31 @@ export function NewProjectRouteForm() {
             <p className="text-sm font-medium">What do you want to create?</p>
             <RadioGroup
               value={versionTiming}
-              onValueChange={(value) => setVersionTiming(value as VersionTiming)}
+              onValueChange={(value) =>
+                setVersionTiming(value as VersionTiming)
+              }
               className="gap-2"
             >
-              <label className={cn('flex items-center gap-2 rounded-xl border p-4 transition-colors', versionTiming === 'previous' && 'border-primary bg-primary/5')}>
+              <label
+                className={cn(
+                  "flex items-center gap-2 rounded-xl border p-4 transition-colors",
+                  versionTiming === "previous" && "border-primary bg-primary/5",
+                )}
+              >
                 <RadioGroupItem value="previous" id="timing-previous" />
                 <span>Create a previous version</span>
               </label>
-              <label className={cn('flex items-center gap-2 rounded-xl border p-4 transition-colors', versionTiming === 'after' && 'border-primary bg-primary/5')}>
+              <label
+                className={cn(
+                  "flex items-center gap-2 rounded-xl border p-4 transition-colors",
+                  versionTiming === "after" && "border-primary bg-primary/5",
+                )}
+              >
                 <RadioGroupItem value="after" id="timing-after" />
                 <span>Create an after/next version</span>
               </label>
             </RadioGroup>
-          </motion.div>
+          </motion.div> */}
 
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -411,17 +446,31 @@ export function NewProjectRouteForm() {
             transition={{ delay: 0.12, duration: 0.25 }}
             className="space-y-2"
           >
-            <p className="text-sm font-medium">Do you want to create the version now?</p>
+            <p className="text-sm font-medium">
+              Do you want to create the version now?
+            </p>
             <RadioGroup
               value={createVersionNow}
-              onValueChange={(value) => setCreateVersionNow(value as CreateVersionChoice)}
+              onValueChange={(value) =>
+                setCreateVersionNow(value as CreateVersionChoice)
+              }
               className="gap-2"
             >
-              <label className={cn('flex items-center gap-2 rounded-xl border p-4 transition-colors', createVersionNow === 'yes' && 'border-primary bg-primary/5')}>
+              <label
+                className={cn(
+                  "flex items-center gap-2 rounded-xl border p-4 transition-colors",
+                  createVersionNow === "yes" && "border-primary bg-primary/5",
+                )}
+              >
                 <RadioGroupItem value="yes" id="create-version-yes" />
                 <span>Yes, create now</span>
               </label>
-              <label className={cn('flex items-center gap-2 rounded-xl border p-4 transition-colors', createVersionNow === 'no' && 'border-primary bg-primary/5')}>
+              <label
+                className={cn(
+                  "flex items-center gap-2 rounded-xl border p-4 transition-colors",
+                  createVersionNow === "no" && "border-primary bg-primary/5",
+                )}
+              >
                 <RadioGroupItem value="no" id="create-version-no" />
                 <span>No, create later</span>
               </label>
@@ -433,7 +482,7 @@ export function NewProjectRouteForm() {
 
     return (
       <div className="space-y-6">
-        {createVersionNow === 'yes' ? (
+        {createVersionNow === "yes" ? (
           <div className="space-y-4 rounded-2xl border border-border/60 bg-muted/15 p-5">
             <motion.div
               initial={{ opacity: 0, y: 12 }}
@@ -491,7 +540,8 @@ export function NewProjectRouteForm() {
             transition={{ duration: 0.25 }}
             className="rounded-2xl border border-dashed bg-muted/15 p-5 text-sm text-muted-foreground"
           >
-            You chose to create the version later. We will create the project now and take you directly into onboarding or the project dashboard.
+            You chose to create the version later. We will create the project
+            now and take you directly into onboarding or the project dashboard.
           </motion.div>
         )}
       </div>
@@ -499,8 +549,8 @@ export function NewProjectRouteForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid gap-3 rounded-2xl border border-border/70 bg-card/80 p-4 backdrop-blur">
+    <form onSubmit={handleSubmit} className="space-b-6">
+      <div className="grid gap-3 rounded-2xl py-4 backdrop-blur">
         <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-muted-foreground">
           <span>{stepMeta.eyebrow}</span>
           <span>Step {step} of 4</span>
@@ -510,8 +560,8 @@ export function NewProjectRouteForm() {
             <div
               key={stepNumber}
               className={cn(
-                'h-2 rounded-full transition-colors',
-                stepNumber <= step ? 'bg-primary' : 'bg-muted',
+                "h-2 rounded-full transition-colors",
+                stepNumber <= step ? "bg-primary" : "bg-muted",
               )}
             />
           ))}
@@ -520,10 +570,10 @@ export function NewProjectRouteForm() {
 
       <Card className="overflow-hidden border-border/70 shadow-sm">
         <CardHeader className="border-b bg-gradient-to-br from-primary/5 via-background to-background">
-          <div className="inline-flex w-fit items-center gap-2 rounded-full border bg-background/80 px-3 py-1 text-xs text-muted-foreground">
+          {/* <div className="inline-flex w-fit items-center gap-2 rounded-full border bg-background/80 px-3 py-1 text-xs text-muted-foreground">
             <Sparkles className="h-3.5 w-3.5" />
             Guided setup
-          </div>
+          </div> */}
           <CardTitle className="text-2xl">{stepMeta.title}</CardTitle>
           <CardDescription className="max-w-xl">
             {stepMeta.description}
@@ -538,7 +588,7 @@ export function NewProjectRouteForm() {
               initial="enter"
               animate="center"
               exit="exit"
-              transition={{ duration: 0.24, ease: 'easeInOut' }}
+              transition={{ duration: 0.24, ease: "easeInOut" }}
             >
               {renderStepContent()}
             </motion.div>
@@ -551,17 +601,18 @@ export function NewProjectRouteForm() {
           {error && <p className="text-destructive">{error}</p>}
           {!error && iconUploadError && (
             <p className="text-muted-foreground">
-              The project image failed earlier, but project creation is still available.
+              The project image failed earlier, but project creation is still
+              available.
             </p>
           )}
         </div>
       )}
 
-      <div className="flex items-center justify-end gap-3">
+      <div className="flex items-center justify-end gap-3 mt-2">
         <Button
           type="button"
           variant="outline"
-          onClick={() => router.push('/projects')}
+          onClick={() => router.push("/projects")}
           disabled={isSubmitting}
         >
           Cancel

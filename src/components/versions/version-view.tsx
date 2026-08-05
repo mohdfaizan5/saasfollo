@@ -21,7 +21,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import type { Version, Task, ProjectCollaborator } from '@/lib/types/database';
 import VersionRadialProgressChart from "./version-radial-progress-chart";
 import { ScrollArea, ScrollBar } from "../ui/scroll-area";
-import { Textarea } from "../ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
 interface VersionViewProps {
   versions: Version[];
@@ -100,7 +100,7 @@ export default function VersionView({ versions, currentActiveId, tasks, collabor
     if (!selectedVersion) return;
     setPrdDraft(selectedVersion.prd ?? '');
     setPrdError(null);
-  }, [selectedVersion?.nanoid, selectedVersion?.prd]);
+  }, [selectedVersion]);
 
   const isPrdDirty = (selectedVersion?.prd ?? '') !== prdDraft;
 
@@ -367,14 +367,14 @@ export default function VersionView({ versions, currentActiveId, tasks, collabor
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Textarea
-                    value={prdDraft}
-                    onChange={(event) => setPrdDraft(event.target.value)}
-                    placeholder="Write your product requirements for this version..."
-                    rows={12}
-                    disabled={!canEdit || isSavingPrd}
-                    className="bg-background/70 font-mono text-sm"
-                  />
+                    <RichTextEditor
+                      value={prdDraft}
+                      onChange={setPrdDraft}
+                      projectNanoid={projectId}
+                      placeholder="Write PRD content for this version..."
+                      editable={canEdit && !isSavingPrd}
+                      className="min-h-72"
+                    />
                   {prdError && (
                     <p className="mt-2 text-sm text-destructive">{prdError}</p>
                   )}

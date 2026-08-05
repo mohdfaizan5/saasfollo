@@ -1,14 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import useLocalStorageState from 'use-local-storage-state';
 import {
     DndContext,
     DragOverlay,
     closestCorners,
+    pointerWithin,
     KeyboardSensor,
     PointerSensor,
     useSensor,
     useSensors,
+    type CollisionDetection,
     type DragEndEvent,
     type DragStartEvent,
 } from '@dnd-kit/core';
@@ -21,6 +24,7 @@ import type { KanbanColumn, Task, TaskStatus, Version } from '@/lib/types/databa
 interface TasksKanbanBoardProps {
     tasks: Task[];
     columns: KanbanColumn[];
+    projectNanoid: string;
     canEdit: boolean;
     onCreateColumn: () => Promise<void>;
     onUpdateColumn: (columnNanoid: string, updates: Partial<KanbanColumn>) => Promise<void>;
@@ -42,6 +46,7 @@ interface TasksKanbanBoardProps {
 export default function TasksKanbanBoard({
     tasks,
     columns,
+    projectNanoid,
     canEdit,
     onCreateColumn,
     onUpdateColumn,
@@ -60,6 +65,32 @@ export default function TasksKanbanBoard({
     versions = [],
 }: TasksKanbanBoardProps) {
     const [activeTask, setActiveTask] = useState<Task | null>(null);
+
+    // Persist collapsed columns per-browser (not per-project) since this is a
+    // personal viewing preference, not shared project data — column nanoids are
+    // globally unique so no project scoping is needed.
+    const [collapsedColumnIds, setCollapsedColumnIds] = useLocalStorageState<string[]>('kanbanCollapsedColumns', {
+        defaultValue: [],
+    });
+    const collapsedColumns = useMemo(() => new Set(collapsedColumnIds ?? []), [collapsedColumnIds]);
+
+    // closestCorners alone compares the dragged card's rect corners to each
+    // droppable's corners, which reliably loses to wide columns when the target
+    // is a narrow collapsed strip. Check the literal cursor position first, and
+    // only fall back to corner-distance for in-column card reordering.
+    const collisionDetectionStrategy: CollisionDetection = (args) => {
+        const pointerCollisions = pointerWithin(args);
+        return pointerCollisions.length > 0 ? pointerCollisions : closestCorners(args);
+    };
+
+    const toggleColumnCollapsed = (columnNanoid: string) => {
+        setCollapsedColumnIds((prev) => {
+            const current = prev ?? [];
+            return current.includes(columnNanoid)
+                ? current.filter((id) => id !== columnNanoid)
+                : [...current, columnNanoid];
+        });
+    };
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -123,7 +154,7 @@ export default function TasksKanbanBoard({
         <div className="h-[calc(100vh-280px)] min-h-125">
             <DndContext
                 sensors={sensors}
-                collisionDetection={closestCorners}
+                collisionDetection={collisionDetectionStrategy}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
             >
@@ -137,10 +168,13 @@ export default function TasksKanbanBoard({
                                 <TasksKanbanColumn
                                     key={column.nanoid}
                                     column={column}
+                                    projectNanoid={projectNanoid}
                                     tasks={tasks.filter((task) => task.kanban_column_nanoid === column.nanoid)}
                                     canEdit={canEdit}
                                     canMoveLeft={canMoveLeft}
                                     canMoveRight={canMoveRight}
+                                    isCollapsed={collapsedColumns.has(column.nanoid)}
+                                    onToggleCollapsed={() => toggleColumnCollapsed(column.nanoid)}
                                     onUpdateColumn={onUpdateColumn}
                                     onDeleteColumn={onDeleteColumn}
                                     onMoveColumnLeft={onMoveColumnLeft}
@@ -173,6 +207,7 @@ export default function TasksKanbanBoard({
                         <div className="opacity-90 rotate-2 w-72">
                             <TasksKanbanCard
                                 task={activeTask}
+                                projectNanoid={projectNanoid}
                                 onUpdate={() => { }}
                                 onDelete={() => { }}
                                 onEdit={() => { }}

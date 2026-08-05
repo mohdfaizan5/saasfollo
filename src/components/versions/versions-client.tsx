@@ -11,6 +11,7 @@ import { createVersion, setVersionActive, deleteVersion, updateVersion, moveVers
 import { useProjectRole } from '@/hooks/use-project-role';
 import type { Version, Task, ProjectCollaborator } from '@/lib/types/database';
 import VersionView from './version-view';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 
 interface VersionsClientProps {
     initialVersions: Version[];
@@ -183,14 +184,14 @@ export function VersionsClient({ initialVersions, projectId, activeVersionId, ta
                                 ) : (
                                     <>
                                         <div className="space-y-2">
-                                            <Label htmlFor="version-prd">PRD (Markdown)</Label>
-                                            <Textarea
-                                                id="version-prd"
-                                                placeholder="Product Requirements Document..."
+                                            <Label htmlFor="version-prd">PRD</Label>
+                                            <RichTextEditor
                                                 value={newPrd}
-                                                onChange={(e) => setNewPrd(e.target.value)}
-                                                disabled={isCreating}
-                                                rows={4}
+                                                onChange={setNewPrd}
+                                                projectNanoid={projectId}
+                                                placeholder="Product requirements, scope, acceptance notes, and images…"
+                                                editable={!isCreating}
+                                                className="min-h-64"
                                             />
                                         </div>
                                         <div className="space-y-2">
