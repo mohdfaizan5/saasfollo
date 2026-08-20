@@ -9,6 +9,11 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith('/login') ||
     pathname.startsWith('/auth') ||
     pathname.startsWith('/api/mcp') ||
+    // UploadThing calls this route server-to-server (no Supabase session
+    // cookie) to deliver the upload-complete callback; our own auth check
+    // happens inside the file router's `.middleware()` for the initial
+    // presigned-URL request, which does run with the browser's cookies.
+    pathname.startsWith('/api/uploadthing') ||
     pathname.startsWith('/changelog') ||
     pathname.startsWith('/blog') ||
     pathname.startsWith('/resources') ||

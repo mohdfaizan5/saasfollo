@@ -23,19 +23,25 @@ export function richTextToPlainText(content: string | null | undefined): string 
         return (container.textContent || '').replace(/\s+/g, ' ').trim();
     }
 
-    // Server-side fallback: strip markdown and any remaining tags, then decode
-    // a few common entities.
+    // Markdown fallback (also the primary path for markdown-stored content,
+    // since notes/tasks now save as markdown rather than HTML): strip syntax
+    // and any remaining tags, then decode a few common entities.
     return content
-        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '$1')
-        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
+        .replace(/ ?%%size=\d+x\d*%%/g, '') // hidden image-resize suffix (see resizable-image.ts)
+        .replace(/^\s*\|?[\s:|-]+\|[\s:|-]*$/gm, '') // table separator rows, e.g. | --- | --- |
         .replace(/^#{1,6}\s+/gm, '')
         .replace(/^>\s?/gm, '')
+        .replace(/^[-*+]\s+\[[ xX]\]\s+/gm, '') // task list checkboxes, e.g. "- [x] "
         .replace(/^[-*+]\s+/gm, '')
         .replace(/^\d+\.\s+/gm, '')
+        .replace(/^(?:-{3,}|\*{3,}|_{3,})$/gm, '') // horizontal rules
+        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '$1')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
         .replace(/`{1,3}([^`]+)`{1,3}/g, '$1')
         .replace(/(\*\*|__)(.*?)\1/g, '$2')
         .replace(/(\*|_)(.*?)\1/g, '$2')
         .replace(/~~(.*?)~~/g, '$1')
+        .replace(/\|/g, ' ') // remaining table cell separators
         .replace(/<[^>]+>/g, ' ')
         .replace(/&nbsp;/g, ' ')
         .replace(/&amp;/g, '&')

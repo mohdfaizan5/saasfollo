@@ -11,6 +11,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
     SidebarRail,
+    useSidebar,
 } from "@/components/ui/sidebar"
 import Logo from '@/components/logo';
 import type { Project } from '@/lib/types/database';
@@ -57,10 +58,20 @@ interface ProjectSidebarProps {
 export function ProjectSidebar({ project, userRole = 'owner', userEmail = '' }: ProjectSidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
+    const { isMobile, setOpenMobile } = useSidebar();
     const [feedbackOpen, setFeedbackOpen] = React.useState(false);
     const baseUrl = `/projects/${project.nanoid}`;
     const isReader = userRole === 'reader';
     const canManage = userRole === 'owner';
+
+    // On mobile the sidebar is a slide-in Sheet; router.push alone navigates
+    // but leaves the sheet open over the new page, so close it explicitly.
+    const navigate = (href: string) => {
+        router.push(href);
+        if (isMobile) {
+            setOpenMobile(false);
+        }
+    };
 
     const isActive = (href: string) => {
         const fullHref = `${baseUrl}/${href}`;
@@ -115,7 +126,7 @@ export function ProjectSidebar({ project, userRole = 'owner', userEmail = '' }: 
                             <SidebarMenuButton
                                 isActive={isActive(item.href)}
                                 tooltip={item.label}
-                                onClick={() => router.push(`${baseUrl}/${item.href}`)}
+                                onClick={() => navigate(`${baseUrl}/${item.href}`)}
                             >
                                 <item.icon size={56} weight="duotone" />
                                 <span className="inline-flex items-center gap-2">
@@ -158,7 +169,7 @@ export function ProjectSidebar({ project, userRole = 'owner', userEmail = '' }: 
                             <SidebarMenuButton
                                 isActive={pathname.startsWith(`${baseUrl}/settings`)}
                                 tooltip="Settings"
-                                onClick={() => router.push(`${baseUrl}/settings`)}
+                                onClick={() => navigate(`${baseUrl}/settings`)}
                             >
                                 <GearIcon weight="duotone" />
                                 <span>Settings</span>

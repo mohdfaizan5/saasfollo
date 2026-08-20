@@ -6,12 +6,18 @@ import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
+import { Placeholder } from '@tiptap/extensions';
 import { Markdown } from '@tiptap/markdown';
-import { Loader2, Bold, Italic, Strikethrough, Code, Heading1, Heading2, List, ListOrdered, ListChecks, Quote, Link as LinkIcon, Image as ImageIcon, Code2 } from 'lucide-react';
+import { Loader2, Bold, Italic, Strikethrough, Code, Heading1, Heading2, List, ListOrdered, ListChecks, Quote, Link as LinkIcon, Image as ImageIcon, Code2, Table as TableIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { ResizableImage } from './resizable-image';
-import { uploadTaskMedia } from '@/lib/actions/task-media';
+import { SlashCommand } from './slash-command';
+import { uploadFiles } from '@/lib/uploadthing';
 
 interface RichTextEditorProps {
     value: string;
@@ -20,6 +26,13 @@ interface RichTextEditorProps {
     placeholder?: string;
     editable?: boolean;
     className?: string;
+    /**
+     * 'compact' (default) caps the editor body and scrolls internally — for use
+     * inside dialogs/modals with limited space. 'full' removes the internal cap
+     * so the editor grows with its content and the surrounding page scrolls
+     * instead (e.g. the full-page notes editor).
+     */
+    variant?: 'compact' | 'full';
 }
 
 function ToolbarButton({
@@ -65,6 +78,7 @@ export function RichTextEditor({
     placeholder = 'Write something…',
     editable = true,
     className,
+    variant = 'compact',
 }: RichTextEditorProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const isUploadingRef = useRef(false);
@@ -86,15 +100,18 @@ export function RichTextEditor({
             const toastId = toast.loading('Uploading image…');
 
             try {
-                const formData = new FormData();
-                formData.append('file', file);
-
-                const { url } = await uploadTaskMedia(projectNanoid, formData);
+                // Uploads go to UploadThing (auth enforced server-side in the
+                // file router middleware); we insert the returned public URL.
+                const uploaded = await uploadFiles('editorImage', { files: [file] });
+                const url = uploaded?.[0]?.url;
+                if (!url) {
+                    throw new Error('Upload did not return a URL.');
+                }
                 targetEditor.chain().focus().setImage({ src: url, alt: file.name }).run();
                 toast.success('Image added', { id: toastId });
             } catch (error) {
                 const message = error instanceof Error ? error.message : 'Could not upload the image.';
-                console.error('Task media upload failed:', error);
+                console.error('Editor image upload failed:', error);
                 toast.error(message, { id: toastId });
             } finally {
                 isUploadingRef.current = false;
@@ -163,7 +180,19 @@ export function RichTextEditor({
             }),
             TaskList,
             TaskItem.configure({ nested: true }),
+            Table.configure({ resizable: true }),
+            TableRow,
+            TableHeader,
+            TableCell,
             ResizableImage.configure({ inline: false, allowBase64: false }),
+            Placeholder.configure({
+                placeholder: ({ node, editor }) =>
+                    editor.isEmpty && node.type.name === 'paragraph' ? placeholder : '',
+                showOnlyWhenEditable: true,
+            }),
+            SlashCommand.configure({
+                onInsertImage: () => fileInputRef.current?.click(),
+            }),
         ],
         editorProps: {
             attributes: {
@@ -171,7 +200,6 @@ export function RichTextEditor({
                     'tiptap focus:outline-none min-h-[10rem] px-4 py-3',
                     !editable && 'cursor-default',
                 ),
-                'data-placeholder': placeholder,
             },
             handlePaste: (_view, event) => handleFiles(event.clipboardData?.files),
             handleDrop: (_view, event, _slice, moved) => {
@@ -217,7 +245,7 @@ export function RichTextEditor({
     }
 
     return (
-        <div className={cn('overflow-hidden rounded-xl border border-border bg-background', className)}>
+        <div className={cn('overflow-hidden rounded-xl  bg-background', className)}>
             {editable && (
                 <div className="flex flex-wrap items-center gap-0.5 border-b border-border/70 bg-muted/40 px-2 py-1">
                     <ToolbarButton label="Bold" active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()}>
@@ -265,6 +293,9 @@ export function RichTextEditor({
                     <ToolbarButton label="Link" active={editor.isActive('link')} onClick={setLink}>
                         <LinkIcon className="h-4 w-4" />
                     </ToolbarButton>
+                    <ToolbarButton label="Insert table" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
+                        <TableIcon className="h-4 w-4" />
+                    </ToolbarButton>
                     <ToolbarButton label="Insert image" disabled={!projectNanoid} onClick={() => fileInputRef.current?.click()}>
                         <ImageIcon className="h-4 w-4" />
                     </ToolbarButton>
@@ -279,7 +310,10 @@ export function RichTextEditor({
                 </div>
             )}
 
-            <EditorContent editor={editor} className="max-h-88 overflow-y-auto" />
+            <EditorContent
+                editor={editor}
+                className={variant === 'compact' ? 'max-h-88 overflow-y-auto bg-background!' : undefined}
+            />
         </div>
     );
 }

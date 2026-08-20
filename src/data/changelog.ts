@@ -7,6 +7,93 @@ import { Changelog } from '@/types/changelog';
  */
 export const changelog: Changelog = [
     {
+        version: "1.6.6",
+        date: "Jul 24, 2026",
+        title: "Mobile Layout Fixes: Dashboard, Build, Sidebar, Filters",
+        description: "A round of mobile-layout fixes across the dashboard, Build page, filters, and sidebar navigation.",
+        improvements: [
+            "Build page: the Kanban/To-do view toggle now sits on its own row below the header instead of crowding the New Task button, and the decorative header icon is hidden on small screens.",
+            "Filter dropdowns (category/version/assignee) use smaller text and a narrower trigger on mobile so labels fit on one line; long category names in the dropdown list now wrap instead of being cut off."
+        ],
+        fixes: [
+            "Fixed the dashboard's stats grid, Working On/Growth row, and Growth Pulse section: several cards had no responsive breakpoints at all (fixed 12-column spans, e.g. the Active Version card), so they rendered as unusable slivers on mobile.",
+            "Fixed the dashboard's progress gauge being cut off: its wrapper forced a 400px-tall centering box while the card only showed the top 208px, clipping the percentage and label. Both are now sized to actually fit the gauge.",
+            "Fixed the mobile sidebar not closing after tapping a navigation link — it navigated correctly but the slide-in menu stayed open over the new page."
+        ],
+        patches: []
+    },
+    {
+        version: "1.6.5",
+        date: "Jul 24, 2026",
+        title: "Editor: Visible Image Resize Handles",
+        description: "Image resize handles now actually appear on hover — the drag logic worked, but the handles had no visual styling at all.",
+        fixes: [
+            "Fixed image resize handles being invisible: the resize feature was fully wired up (drag, persistence) but shipped with zero visual styling, so there was nothing to see or click. Corner dots and edge cursors now appear on hover and stay visible mid-drag."
+        ],
+        improvements: [],
+        patches: []
+    },
+    {
+        version: "1.6.4",
+        date: "Jul 24, 2026",
+        title: "Editor: Image Resize Now Persists",
+        description: "Resized images in notes and task descriptions now keep their size after saving and reopening; also switched to Tiptap's official resize handles for a smoother drag experience.",
+        improvements: [
+            "Switched the editor's image resizing to Tiptap's built-in resize handles (all 8 edges/corners, aspect-ratio preserved) instead of a custom single-corner handle."
+        ],
+        fixes: [
+            "Fixed resized images reverting to their original size after saving and reopening a note or task: the editor's markdown format has no native way to store image width/height, so it was silently discarding the size on every save. The size is now encoded alongside the image and restored on load."
+        ],
+        patches: [
+            "Card preview snippets no longer leak the hidden size marker used to persist image dimensions."
+        ]
+    },
+    {
+        version: "1.6.3",
+        date: "Jul 24, 2026",
+        title: "Notes: Real Masonry Layout",
+        description: "Replaced the hand-rolled CSS-columns masonry grid with react-masonry-css for both the notes grid and the Version PRDs grid.",
+        improvements: [
+            "Notes and Version PRD cards now lay out via react-masonry-css instead of hand-rolled CSS columns, for more predictable, correctly-packed masonry columns at every breakpoint."
+        ],
+        fixes: [],
+        patches: []
+    },
+    {
+        version: "1.6.2",
+        date: "Jul 24, 2026",
+        title: "Notes Fixes, Notion-Style Editor, and Mobile Fixes",
+        description: "Fixed the broken image upload callback, restored the notes masonry grid, gave the editor a Notion-style '/' command menu, and fixed mobile layout breakage on the landing page and blog.",
+        improvements: [
+            "Editor now supports a Notion-style '/' command menu: type '/' to insert headings, lists, a to-do list, quote, code block, table, image, or a divider, with keyboard navigation and search-as-you-type.",
+            "The editor's empty-state placeholder now actually renders (it was silently non-functional before).",
+            "The full-page notes/PRD editor no longer caps itself to a small internal scroll box — it grows naturally and the page scrolls, like any normal document.",
+            "Notes preview snippets now correctly strip markdown syntax (checkboxes, tables, headings, etc.) instead of showing raw formatting characters."
+        ],
+        fixes: [
+            "Fixed image uploads across notes, task descriptions, and project images: our own auth middleware was redirecting UploadThing's server-to-server upload-complete callback to the login page, silently breaking every upload.",
+            "Fixed the notes grid: it was using a CSS class that didn't exist, so notes weren't laid out as a masonry grid at all.",
+            "Fixed the landing page hero headline and the blog index page overflowing/clipping on mobile screens due to fixed pixel widths."
+        ],
+        patches: []
+    },
+    {
+        version: "1.6.1",
+        date: "Jul 24, 2026",
+        title: "Image Uploads Moved to UploadThing",
+        description: "Image uploads for notes, task descriptions, and project images now go through UploadThing for faster, more reliable hosting.",
+        improvements: [
+            "Note and task-description images (drag/drop, paste, or toolbar) now upload via UploadThing.",
+            "Project images ('avatars') on the new-project flow and project settings now upload via UploadThing."
+        ],
+        fixes: [
+            "Fixed unreliable image uploads in the notes editor by routing them through a dedicated upload service."
+        ],
+        patches: [
+            "Added an /api/uploadthing route and a shared upload endpoint with server-side auth for all image uploads."
+        ]
+    },
+    {
         version: "1.6.0",
         date: "Jul 24, 2026",
         title: "Build: Rich-Text Task Descriptions",

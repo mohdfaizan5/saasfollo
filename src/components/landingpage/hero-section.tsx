@@ -42,7 +42,7 @@ export function HeroSection({ content }: HeroSectionProps) {
           </p>
           {/* font-serif-instrumental w-lg */}
           <div className="relative">
-            <h1 className="text-slate-950 text-5xl sm:text-6xl md:text-7xl font-serif-instrumental font-bold w-2xl leading-[0.8]">
+            <h1 className="text-slate-950 text-4xl sm:text-6xl md:text-7xl font-serif-instrumental font-bold w-full max-w-2xl leading-[0.9] sm:leading-[0.8]">
               {content.headline}
             </h1>
             <Image
@@ -61,7 +61,7 @@ export function HeroSection({ content }: HeroSectionProps) {
           </p>
           <Link
             href="/auth/sign-up"
-            className="mt-32 h-12 px-10 bg-[#0C1510] text-[#F6F1EA] text-[15px] font-medium font-sans rounded-full inline-flex items-center hover:bg-[#1a2a20] transition-colors shadow-lg"
+            className="mt-12 sm:mt-20 md:mt-32 h-12 px-10 bg-[#0C1510] text-[#F6F1EA] text-[15px] font-medium font-sans rounded-full inline-flex items-center hover:bg-[#1a2a20] transition-colors shadow-lg"
           >
             {content.cta}
           </Link>

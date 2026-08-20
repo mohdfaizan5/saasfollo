@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Masonry from 'react-masonry-css';
 import { useRouter } from 'next/navigation';
 import { FileText, Plus, Trash2, Users, Target, FileQuestion, Lightbulb, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,11 @@ interface NotesClientProps {
     initialVersions?: Version[];
     projectId: string;
 }
+
+// Column counts per max-width breakpoint (widest-first), matching react-masonry-css's
+// breakpointCols API. Mirrors the previous CSS-columns breakpoints.
+const NOTES_MASONRY_BREAKPOINTS = { default: 4, 1280: 3, 1024: 2, 640: 1 };
+const PRD_MASONRY_BREAKPOINTS = { default: 3, 1024: 2, 768: 1 };
 
 function getPreviewText(content: string | null): string {
     return richTextToPlainText(content);
@@ -165,7 +171,7 @@ export function NotesClient({ initialNotes, initialVersions = [], projectId }: N
             {/* Template Cards */}
             {canEdit && (
                 <div className="space-y-3">
-                    <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Quick Start Templates</h2>
+                    <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Quick Start Templates</h2>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                         {templateKeys.map((key) => {
                             const template = NOTE_TEMPLATES[key];
@@ -176,15 +182,15 @@ export function NotesClient({ initialNotes, initialVersions = [], projectId }: N
                                 <button
                                     key={key}
                                     onClick={() => handleCreateFromTemplate(key)}
-                                    className="group flex flex- items-start gap-3 p-4 rounded-xl border bg-card hover:bg-accent/50 hover:border-primary/30 transition-all duration-200 text-left hover:shadow-md"
+                                    className="group flex flex- items-start gap-3 p-2 px-3 rounded-xl border bg-card hover:bg-accent/50 hover:border-primary/30 transition-all duration-200 text-left hover:shadow-md"
                                 >
-                                    <div className={`p-2.5 rounded-lg ${config.bgColor} group-hover:scale-110 transition-transform duration-200`}>
+                                    <div className={`p-2.2 rounded-lg ${config.bgColor} group-hover:scale-110 transition-transform duration-200`}>
                                         <IconComponent className={`h-5 w-5 ${config.color}`} />
                                     </div>
                                     <div>
                                         <p className="font-medium text-sm leading-tight">{template.title}</p>
                                         {template.description && (
-                                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{template.description}</p>
+                                            <p className="text-xs text-muted-foreground line-clamp-2">{template.description}</p>
                                         )}
                                     </div>
                                 </button>
@@ -193,7 +199,7 @@ export function NotesClient({ initialNotes, initialVersions = [], projectId }: N
                     </div>
                 </div>
             )}
-
+--
             {/* Notes Masonry Grid */}
             {notes.length === 0 && !isCreating ? (
                 <div className="text-center py-16 text-muted-foreground">
@@ -206,9 +212,13 @@ export function NotesClient({ initialNotes, initialVersions = [], projectId }: N
                     </p>
                 </div>
             ) : (
-                <div className="notes-masonry">
+                <Masonry
+                    breakpointCols={NOTES_MASONRY_BREAKPOINTS}
+                    className="masonry-grid"
+                    columnClassName="masonry-grid-column"
+                >
                     {isCreating && (
-                        <Card className="note-card p-5 bg-card mb-4 break-inside-avoid">
+                        <Card className="note-card p-5 bg-card">
                             <div className="space-y-3">
                                 <Skeleton className="h-5 w-2/3" />
                                 <Skeleton className="h-4 w-full" />
@@ -252,19 +262,23 @@ export function NotesClient({ initialNotes, initialVersions = [], projectId }: N
                             </Link>
                         );
                     })}
-                </div>
+                </Masonry>
             )}
 
             {/* Version PRDs Section */}
             {versions.length > 0 && (
                 <div className="pt-8">
                     <h2 className="text-xl font-bold tracking-tight mb-4">Version PRDs</h2>
-                    <div className="columns-1 md:columns-2 lg:columns-3 gap-4 space-y-4">
+                    <Masonry
+                        breakpointCols={PRD_MASONRY_BREAKPOINTS}
+                        className="masonry-grid"
+                        columnClassName="masonry-grid-column"
+                    >
                         {versions.map((version) => {
                             const preview = version.prd ? richTextToPlainText(version.prd) || 'No PRD written yet.' : 'No PRD written yet.';
                             return (<Link key={version.nanoid} href={`/projects/${projectId}/notes/${version.nanoid}?type=prd`} className="block">
                                 <Card
-                                    className="note-card bg-primary/5 p-5 hover:shadow-lg transition-all duration-200 hover:border-primary/40 group cursor-pointer  hover:-translate-y-1 break-inside-avoid"
+                                    className="note-card bg-primary/5 p-5 hover:shadow-lg transition-all duration-200 hover:border-primary/40 group cursor-pointer hover:-translate-y-1"
                                 >
                                     <div className="flex items-start gap-2">
                                         <FolderIcon size={32} weight="duotone" />
@@ -290,7 +304,7 @@ export function NotesClient({ initialNotes, initialVersions = [], projectId }: N
                             </Link>
                             );
                         })}
-                    </div>
+                    </Masonry>
 
                 </div>
             )

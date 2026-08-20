@@ -825,7 +825,7 @@ export function TasksClient({
             {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10">
+                    <div className="hidden sm:block p-2 rounded-lg bg-primary/10">
                         <CheckSquare className="h-5 w-5 text-primary" />
                     </div>
                     <div>
@@ -838,8 +838,6 @@ export function TasksClient({
 
 
                 <div className="flex items-center gap-3">
-                    <TaskViewToggle currentView={currentView} onViewChange={setCurrentView} />
-
                     {canEdit && (
                         <AlertDialog
                             open={isDialogOpen}
@@ -1056,6 +1054,10 @@ export function TasksClient({
                     )}
                 </div>
             </div>
+
+            {/* View toggle: its own row so it doesn't crowd the header/New Task
+                button on narrow screens. */}
+            <TaskViewToggle currentView={currentView} onViewChange={setCurrentView} />
 
             {/* Progress Bar */}
             <Card className="p-4 relative overflow-hidden">

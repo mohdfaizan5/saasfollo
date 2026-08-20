@@ -615,7 +615,7 @@ export function LinksClient({ initialLinks, projectId }: LinksClientProps) {
                             {isAdding ? 'Adding...' : 'Add'}
                         </Button>
                     </div>
-                    <p className="-mt-2 text-xs text-muted-foreground">Tag is optional and links are grouped by tag.</p>
+                    {/* <p className="mt-1 text-xs text-muted-foreground/60 ml-2    ">Tag is optional and links are grouped by tag.</p> */}
                     {error && <p className="text-sm text-destructive mt-2">{error}</p>}
                     {/* <LinkIcon size={32} /> */}
 

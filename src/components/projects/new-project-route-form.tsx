@@ -27,11 +27,8 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import ProfilePicUploader from "@/components/profile-pic-uploader";
-import {
-  createProject,
-  deletePendingProjectIcon,
-  uploadPendingProjectIcon,
-} from "@/lib/actions/projects";
+import { createProject } from "@/lib/actions/projects";
+import { uploadFiles } from "@/lib/uploadthing";
 import { createVersion } from "@/lib/actions/versions";
 import { hasCompletedOnboarding } from "@/lib/actions/onboarding";
 
@@ -40,7 +37,6 @@ type CreateVersionChoice = "yes" | "no";
 
 type PendingIconState = {
   publicUrl: string;
-  storagePath: string;
 } | null;
 
 const stepVariants = {
@@ -140,47 +136,33 @@ export function NewProjectRouteForm() {
     setStep((currentStep) => Math.max(currentStep - 1, 1));
   };
 
-  const safelyDeletePendingIcon = async (storagePath: string) => {
-    try {
-      await deletePendingProjectIcon(storagePath);
-    } catch (deleteError) {
-      console.warn("Failed to delete temporary project icon:", deleteError);
-    }
-  };
-
   const handleIconFileChange = async (file: File | null) => {
     const currentUploadRequest = ++uploadRequestRef.current;
     setIconUploadError(null);
 
     if (!file) {
-      const previous = pendingIcon;
       setPendingIcon(null);
-      if (previous) {
-        await safelyDeletePendingIcon(previous.storagePath);
-      }
       setUploaderKey((currentKey) => currentKey + 1);
       return;
     }
 
     setIsIconUploading(true);
-    const previousIcon = pendingIcon;
     setPendingIcon(null);
 
-    if (previousIcon) {
-      await safelyDeletePendingIcon(previousIcon.storagePath);
-    }
-
     try {
-      const iconData = new FormData();
-      iconData.append("icon", file);
+      // Upload straight to UploadThing; the hosted URL is attached when the
+      // project is created. (Superseded uploads are ignored via the request ref.)
+      const uploaded = await uploadFiles("projectImage", { files: [file] });
+      const url = uploaded?.[0]?.url;
+      if (!url) {
+        throw new Error("Upload did not return a URL.");
+      }
 
-      const uploadedIcon = await uploadPendingProjectIcon(iconData);
       if (uploadRequestRef.current !== currentUploadRequest) {
-        await safelyDeletePendingIcon(uploadedIcon.storagePath);
         return;
       }
 
-      setPendingIcon(uploadedIcon);
+      setPendingIcon({ publicUrl: url });
       toast.success("Project image uploaded", {
         description:
           "Your image is ready and will be attached when the project is created.",

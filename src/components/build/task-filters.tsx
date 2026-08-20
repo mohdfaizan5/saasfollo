@@ -92,7 +92,7 @@ export function TaskFilters({
                 onValueChange={handleCategorySelect}
             >
                 <SelectTrigger className={cn(
-                    "w-40 h-9 border border-muted rounded-lg focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20",
+                    "w-32 sm:w-40 h-9 text-xs sm:text-sm border border-muted rounded-lg focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20",
                     selectedCategory && "bg-card"
                 )}>
                     <div className="flex items-center gap-2">
@@ -114,8 +114,8 @@ export function TaskFilters({
                             value={category}
                             className="text-foreground w-full cursor-pointer"
                         >
-                            <div className="flex items-center justify-between w-50">
-                                <span className="truncate pr-2">{category}</span>
+                            <div className="flex items-center justify-between gap-2 w-full">
+                                <span className="break-words pr-2">{category}</span>
                                 {onDeleteCategory && (
                                     <Trash 
                                         className="h-3 w-3 text-muted-foreground hover:text-destructive shrink-0"
@@ -148,7 +148,7 @@ export function TaskFilters({
                     onValueChange={(value) => setSelectedVersionId(value === activeVersion?.id.toString() ? null : value)}
                 >
                     <SelectTrigger className={cn(
-                        "w-40 h-9 border border-muted rounded-lg focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20",
+                        "w-32 sm:w-40 h-9 text-xs sm:text-sm border border-muted rounded-lg focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20",
                         showVersionFilterAsActive && "bg-card"
                     )}>
                         <div className="flex items-center gap-2">
@@ -187,7 +187,7 @@ export function TaskFilters({
                 onValueChange={(v) => setSelectedAssignee(v === 'all' ? null : v)}
             >
                 <SelectTrigger className={cn(
-                    "w-40 h-9 border border-muted rounded-lg focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20",
+                    "w-32 sm:w-40 h-9 text-xs sm:text-sm border border-muted rounded-lg focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20",
                     selectedAssignee && "bg-card"
                 )}>
                     <div className="flex items-center gap-2">

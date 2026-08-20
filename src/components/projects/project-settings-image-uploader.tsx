@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import ProfilePicUploader from '@/components/profile-pic-uploader';
 import { Button } from '@/components/ui/button';
-import { deleteProjectIcon, uploadProjectIcon } from '@/lib/actions/projects';
+import { deleteProjectIcon, setProjectIcon } from '@/lib/actions/projects';
+import { uploadFiles } from '@/lib/uploadthing';
 
 interface ProjectSettingsImageUploaderProps {
     projectNanoid: string;
@@ -32,9 +33,13 @@ export function ProjectSettingsImageUploader({ projectNanoid, initialImageUrl }:
                 return;
             }
 
-            const formData = new FormData();
-            formData.append('icon', file);
-            const updatedProject = await uploadProjectIcon(projectNanoid, formData);
+            // Upload to UploadThing on the client, then persist the URL.
+            const uploaded = await uploadFiles('projectImage', { files: [file] });
+            const url = uploaded?.[0]?.url;
+            if (!url) {
+                throw new Error('Upload did not return a URL.');
+            }
+            const updatedProject = await setProjectIcon(projectNanoid, url);
             setImageUrl(updatedProject.icon_url);
         } catch (uploadError) {
             console.error('Failed to update project image:', uploadError);

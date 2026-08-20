@@ -159,7 +159,7 @@ export function NoteEditor({ note, projectId, isPRD = false }: NoteEditorProps) 
     };
 
     return (
-        <div className="mx-auto max-w-4xl space-y-6 p-6">
+        <div className="mx-auto max-w-4xl px-2">
             <div className="flex items-center justify-between gap-4">
                 <Button variant="ghost" onClick={handleBack}>
                     <ArrowLeft className="mr-2 h-4 w-4" />
@@ -187,7 +187,7 @@ export function NoteEditor({ note, projectId, isPRD = false }: NoteEditorProps) 
             <textarea
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                className="no-scrollbar w-full resize-none border-0 bg-transparent px-0 text-4xl font-bold focus:outline-none focus:ring-0 placeholder:text-muted-foreground"
+                className="no-scrollbar mb-4 ml-1 mt-3 w-full resize-none border-0 bg-transparent px-0 text-4xl font-bold focus:outline-none focus:ring-0 placeholder:text-muted-foreground"
                 placeholder={isPRD ? 'PRD Title' : 'Note title...'}
                 maxLength={80}
                 readOnly={!canEdit || isPRD}
@@ -198,8 +198,9 @@ export function NoteEditor({ note, projectId, isPRD = false }: NoteEditorProps) 
                 value={content}
                 onChange={setContent}
                 projectNanoid={projectId}
-                placeholder={canEdit ? 'Start writing... Use / shortcuts, markdown, and image uploads.' : 'No content yet'}
+                placeholder={canEdit ? "Start writing... Use '/' for commands, or Markdown shortcuts." : 'No content yet'}
                 editable={canEdit}
+                variant="full"
                 className="min-h-[50vh]"
             />
         </div>

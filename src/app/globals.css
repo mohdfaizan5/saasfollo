@@ -194,32 +194,21 @@
   mask-image: radial-gradient(circle at center, black 50%, transparent 100%);
 }
 
-/* Pinterest/Masonry Layout for Notes */
-.notes-masonry {
-  column-count: 4;
-  column-gap: 1rem;
+/* Pinterest/Masonry layout for Notes and Version PRDs, powered by
+   react-masonry-css. The library only distributes children into column divs
+   and expects the flex layout + gutter CSS to be supplied here. */
+.masonry-grid {
+  display: flex;
+  margin-left: -1rem;
+  width: auto;
 }
 
-@media (max-width: 1280px) {
-  .notes-masonry {
-    column-count: 3;
-  }
+.masonry-grid-column {
+  padding-left: 1rem;
+  background-clip: padding-box;
 }
 
-@media (max-width: 1024px) {
-  .notes-masonry {
-    column-count: 2;
-  }
-}
-
-@media (max-width: 640px) {
-  .notes-masonry {
-    column-count: 1;
-  }
-}
-
-.notes-masonry>* {
-  break-inside: avoid;
+.masonry-grid-column>* {
   margin-bottom: 1rem;
 }
 
@@ -228,6 +217,7 @@
   border-radius: 0.75rem;
   border-left: 3px solid transparent;
   transition: all 0.2s ease;
+  animation: fadeInUp 0.3s ease-out both;
 }
 
 .note-card:hover {
@@ -245,39 +235,6 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.notes-masonry>* {
-  animation: fadeInUp 0.3s ease-out;
-  animation-fill-mode: both;
-}
-
-.notes-masonry>*:nth-child(1) {
-  animation-delay: 0.05s;
-}
-
-.notes-masonry>*:nth-child(2) {
-  animation-delay: 0.1s;
-}
-
-.notes-masonry>*:nth-child(3) {
-  animation-delay: 0.15s;
-}
-
-.notes-masonry>*:nth-child(4) {
-  animation-delay: 0.2s;
-}
-
-.notes-masonry>*:nth-child(5) {
-  animation-delay: 0.25s;
-}
-
-.notes-masonry>*:nth-child(6) {
-  animation-delay: 0.3s;
-}
-
-.notes-masonry>*:nth-child(n+7) {
-  animation-delay: 0.35s;
 }
 
 /* Editor.js Styles */
@@ -678,3 +635,64 @@
 .tiptap pre .hljs-template-variable { color: #eeffff; }
 .tiptap pre .hljs-emphasis { font-style: italic; }
 .tiptap pre .hljs-strong { font-weight: 700; }
+
+/* Image resize handles (Tiptap's built-in ResizableNodeView, wired up in
+   resizable-image.ts). The library only emits mousedown-wired divs tagged
+   with data-resize-* attributes and leaves all visual styling to the host
+   app — without this, the handles exist and work but are literally
+   invisible and zero-size. Shown on hover and kept visible mid-drag via
+   data-resize-state. */
+.tiptap [data-resize-wrapper] {
+  display: inline-block;
+  max-width: 100%;
+  line-height: 0;
+}
+
+.tiptap [data-resize-handle] {
+  position: absolute;
+  z-index: 20;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.tiptap [data-resize-wrapper]:hover [data-resize-handle],
+.tiptap [data-resize-container][data-resize-state="true"] [data-resize-handle] {
+  opacity: 1;
+}
+
+/* Corner handles: small visible dots, centered on the corner. */
+.tiptap [data-resize-handle="top-left"],
+.tiptap [data-resize-handle="top-right"],
+.tiptap [data-resize-handle="bottom-left"],
+.tiptap [data-resize-handle="bottom-right"] {
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: var(--primary);
+  border: 2px solid var(--background);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.tiptap [data-resize-handle="top-left"] { transform: translate(-50%, -50%); cursor: nwse-resize; }
+.tiptap [data-resize-handle="top-right"] { transform: translate(50%, -50%); cursor: nesw-resize; }
+.tiptap [data-resize-handle="bottom-left"] { transform: translate(-50%, 50%); cursor: nesw-resize; }
+.tiptap [data-resize-handle="bottom-right"] { transform: translate(50%, 50%); cursor: nwse-resize; }
+
+/* Edge handles: invisible hit-target strips that just carry the resize cursor. */
+.tiptap [data-resize-handle="top"],
+.tiptap [data-resize-handle="bottom"] {
+  height: 10px;
+  cursor: ns-resize;
+}
+
+.tiptap [data-resize-handle="top"] { transform: translateY(-50%); }
+.tiptap [data-resize-handle="bottom"] { transform: translateY(50%); }
+
+.tiptap [data-resize-handle="left"],
+.tiptap [data-resize-handle="right"] {
+  width: 10px;
+  cursor: ew-resize;
+}
+
+.tiptap [data-resize-handle="left"] { transform: translateX(-50%); }
+.tiptap [data-resize-handle="right"] { transform: translateX(50%); }

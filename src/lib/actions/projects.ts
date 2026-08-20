@@ -694,6 +694,50 @@ export async function uploadProjectIcon(
 }
 
 /**
+ * Set a project's icon to an already-hosted image URL (e.g. uploaded via
+ * UploadThing on the client). Only updates the DB column — no storage work.
+ */
+export async function setProjectIcon(
+  projectNanoid: string,
+  iconUrl: string,
+): Promise<Project> {
+  const supabase = await createClient();
+
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) {
+    throw new Error("Not authenticated");
+  }
+
+  const role = await getUserProjectRole(projectNanoid);
+  if (!role || role === "reader") {
+    throw new Error("You do not have permission to update this project");
+  }
+
+  if (!iconUrl || !/^https?:\/\//i.test(iconUrl)) {
+    throw new Error("A valid image URL is required");
+  }
+
+  const { data, error } = await supabase
+    .from("projects")
+    .update({
+      icon_url: iconUrl,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("nanoid", projectNanoid)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error setting project icon:", error);
+    throw new Error("Failed to update project icon");
+  }
+
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${projectNanoid}`);
+  return data;
+}
+
+/**
  * Upload an icon before a project exists yet.
  */
 export async function uploadPendingProjectIcon(

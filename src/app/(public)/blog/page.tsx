@@ -22,7 +22,7 @@ export default async function BlogIndexPage() {
     const listPosts = sortedPages;
 
     return (
-        <div className="min-h-screen bg-[#F6F1EA]2 text-[#0C1510] w-6xl mx-auto px-4 md:px-6 py-10 md:py-10 space-y-6">
+        <div className="min-h-screen bg-[#F6F1EA] text-[#0C1510] w-full max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-10 space-y-6">
             {/* <section className="rounded-2xl border border-[#A6AEA4]/30 bg-[#F6F1EA]">
                 <div className="px-6 md:px-8 py-6 border-b border-[#A6AEA4]/30 flex items-center justify-between gap-4 flex-wrap">
                     <div>

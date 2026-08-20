@@ -364,7 +364,7 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-12 grid-rows-2 gap-4 max-h-52">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 lg:grid-rows-2 gap-4 lg:max-h-52">
                 {/* Active Version */}
                 {/* <Card className="p-4 pl-32 col-span-9 row-span-1  hidden bg-[#110D09] relative text-white overflow-hidden">
                     <div className="flex items-center gap-3 z-10" >
@@ -406,11 +406,11 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                     <Image className="absolute -bottom-32 -left-30 -rotate-6" src="/computer-in-dark.jpg" alt="Login Background" width={400} height={400} />
                     <Image src={"/macintosh-rightfacing.png"} alt="Dashboard Illustration" width={120} height={120} className="absolute -bottom-10 rounded-full -right-2 opacity-80 pointer-events-none select-none" />
                 </Card> */}
-                <Card className="p-4 col-span-9 row-span-1 bg-[#110D09] relative text-white overflow-hidden">
-                    <div className="flex items-center gap-">
-                        <div className="p-2 rounded-lg bg-primary/10">
+                <Card className="p-4 col-span-1 sm:col-span-2 lg:col-span-9 lg:row-span-1 bg-[#110D09] relative text-white overflow-hidden">
+                    <div className="flex items-center gap-3 sm:gap-">
+                        <div className="p-2 rounded-lg bg-primary/10 min-w-0">
                             {/* <Layers className="h-5 w-5 text-primary" /> */}
-                            <p className="font-semibold text-4xl opacity-90 font-serif">
+                            <p className="font-semibold text-2xl sm:text-4xl opacity-90 font-serif truncate">
                                 {project.active_version?.name || 'No active version'}
                             </p>
                         </div>
@@ -423,9 +423,9 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                         </div>
                         {/* <Coolshape className='absolute -top-8 -left-8' type="star" index={3} size={80} noise={true} /> */}
                     </div>
-                    <Image src={"/computer-in-dark.jpg"} alt="Dashboard Illustration" width={160} height={160} className="absolute -bottom-20 rounded-full -right-2 opacity-80 pointer-events-none select-none" />
+                    <Image src={"/computer-in-dark.jpg"} alt="Dashboard Illustration" width={160} height={160} className="hidden sm:block absolute -bottom-20 rounded-full -right-2 opacity-80 pointer-events-none select-none" />
                 </Card>
-                <Card className="col-span-3 row-span-1 p-4 bg-[#2C4839] text-white">
+                <Card className="col-span-1 lg:col-span-3 lg:row-span-1 p-4 bg-[#2C4839] text-white">
                     <Link href={`/projects/${project.nanoid}/aicofounder`} className="flex items-center gap-3">
                         <SparkleIcon size={38} weight='duotone' />
                         <div>
@@ -450,7 +450,7 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                 </Card> */}
 
                 {/* Now Tasks */}
-                <Card className="p-4 col-start-1 col-end-4">
+                <Card className="p-4 col-span-1 lg:col-span-3">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-orange-500/10">
                             <Clock className="h-5 w-5 text-orange-500" />
@@ -463,7 +463,7 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                 </Card>
 
                 {/* Next Tasks */}
-                <Card className="p-4 col-span-12 md:col-span-6 lg:col-span-3">
+                <Card className="p-4 col-span-1 lg:col-span-3">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-blue-500/10">
                             <CheckSquare className="h-5 w-5 text-blue-500" />
@@ -475,7 +475,7 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                     </div>
                 </Card>
 
-                <Card className="p-4 col-span-12 md:col-span-6 lg:col-span-6">
+                <Card className="p-4 col-span-1 sm:col-span-2 lg:col-span-6">
                     <div className="flex items-center gap-3">
                         {/* <div className="p-2 rounded-lg bg-green-500/10"> */}
                         <SparkleIcon className="" size={22} weight='duotone' />
@@ -501,7 +501,7 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
             </div>
 
             {/* Working On + Left To Do */}
-            <div className="grid grid-cols-12 gap-6 max-h-56">
+            <div className="grid grid-cols-12 gap-6 lg:max-h-56">
                 <Card className="p-5 col-span-12 lg:col-span-4">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="font-semibold flex items-center gap-2">
@@ -533,7 +533,7 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                         )}
                     </div>
                 </Card>
-                <Card className="p-4 border-border/70 max-h-52 overflow-hidden col-span-12 lg:col-span-4">
+                <Card className="p-4 border-border/70 col-span-12 lg:col-span-4">
                     {/* <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-green-500/10">
                             <ChartBarIcon className="w-5 h-5 text-green-500" weight="duotone" />
@@ -541,7 +541,7 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                         <div>
                             <p className="text-xs uppercase tracking-wide text-muted-foreground">Overall Progress </p>
                             <p className="font-semibold">{completionRate}% complete</p> */}
-                    <div className="flex justify-center items-center  w-full h-100 py-2">
+                    <div className="flex justify-center items-center w-full py-4">
                         <Gauge value={completedPercent} size={250} gap={2} thickness={3} label={`${project.active_version?.name} Progress`} />
                     </div>
                     {/* </div>
@@ -664,23 +664,23 @@ export default async function DashboardPage({ params, searchParams }: DashboardP
                             <Button variant="ghost" size="sm">Open Growth</Button>
                         </Link>
                     </div>
-                    <section className='grid grid-cols-12'>
+                    <section className='grid grid-cols-1 lg:grid-cols-12 gap-4'>
 
-                        <div className=" gap-3 mb-4 col-span-3">
-                            <div className="rounded-lg bg-muted/50 p-3 col-span-4">
+                        <div className="grid grid-cols-3 lg:grid-cols-1 gap-3 mb-4 col-span-1 lg:col-span-3">
+                            <div className="rounded-lg bg-muted/50 p-3">
                                 <p className="text-xs text-muted-foreground">Log Volume</p>
                                 <p className="text-lg font-semibold">{growthQuantityInRange}</p>
                             </div>
-                            <div className="rounded-lg bg-muted/50 p-3 col-span-4">
+                            <div className="rounded-lg bg-muted/50 p-3">
                                 <p className="text-xs text-muted-foreground">Active Activities</p>
                                 <p className="text-lg font-semibold">{progressedActivitiesInRange}</p>
                             </div>
-                            <div className="rounded-lg bg-muted/50 p-3 col-span-4">
+                            <div className="rounded-lg bg-muted/50 p-3">
                                 <p className="text-xs text-muted-foreground">Stuck</p>
                                 <p className="text-lg font-semibold">{stuckActivities}</p>
                             </div>
                         </div>
-                        <div className="col-span-9 gap-3 rounded-xl border border-border/70 bg-background py-2">
+                        <div className="col-span-1 lg:col-span-9 gap-3 rounded-xl border border-border/70 bg-background py-2">
                             <p className="px-4 text-lg font-medium mb-1">Growth Activities</p>
                             {growthPlan?.activities.map((act) => {
                                 const percentage = act.target_value > 0
